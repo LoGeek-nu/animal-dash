@@ -1,10 +1,11 @@
 "use client";
+/* eslint-disable @next/next/no-img-element -- local transparent game sprites are already sized and optimized */
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { characters, formatTime, getCharacter, laneColors, staticRanking, type LaneAssignment, type RaceResult } from "./race-data";
 import { useRaceSession } from "./use-race-session";
 
-const PHASE_LABELS = { WAITING: "参加受付中", COUNTDOWN: "カウントダウン", RACING: "レース中", RESULTS: "リザルト", RECOVERY: "復旧待ち" } as const;
+const PHASE_LABELS = { ATTRACT: "アトラクト", WAITING: "参加受付中", COUNTDOWN: "カウントダウン", RACING: "レース中", RESULTS: "リザルト", RECOVERY: "復旧待ち" } as const;
 const keyHelp = ["SPACE / SHIFT", "↑ / ENTER", "W / E", "I / O"];
 const obstacles = [24, 48, 70, 84];
 
@@ -12,7 +13,7 @@ function CharacterAvatar({ id, compact = false }: { id: string; compact?: boolea
   const character = getCharacter(id);
   return (
     <div className={`character-avatar ${compact ? "is-compact" : ""}`} style={{ "--char": character.color, "--char-pale": character.pale } as React.CSSProperties}>
-      <span>{character.emoji}</span>
+      <img src={`/characters/${character.id}/runner.png`} alt={`${character.name}の全身イラスト`} draggable={false} />
       <i className="avatar-spark spark-one" />
       <i className="avatar-spark spark-two" />
     </div>
@@ -51,6 +52,68 @@ function GameHeader({ phase }: { phase: keyof typeof PHASE_LABELS }) {
   );
 }
 
+const ATTRACT_SCENES = [
+  { id: "hero", label: "ANIMAL PARADE", duration: 12_000 },
+  { id: "demo", label: "DEMO RACE", duration: 24_000 },
+  { id: "ranking", label: "TODAY'S RANKING", duration: 14_000 },
+] as const;
+
+function DemoRaceFilm() {
+  return (
+    <div className="demo-film">
+      <video autoPlay muted loop playsInline preload="auto" poster="/demo-poster.svg">
+        <source src="/media/animal-dash-demo.mp4" type="video/mp4" />
+      </video>
+      <div className="demo-film-live" aria-hidden="true">
+        {characters.slice(0, 4).map((character, index) => <div className={`demo-live-runner demo-runner-${index + 1}`} key={character.id}><CharacterAvatar id={character.id} compact /></div>)}
+        <i className="demo-log" /><i className="demo-rock" />
+      </div>
+      <div className="demo-film-label"><span>HOW TO PLAY</span><strong>ジャンプで障害物を<br />とびこえよう！</strong><small>JUMP + BOOST でゴールをめざせ</small></div>
+    </div>
+  );
+}
+
+function AttractRanking() {
+  return (
+    <section className="attract-ranking-scene">
+      <header><p className="section-kicker">2026.08.19 · LIVE RECORD</p><h2>今日のランキング</h2><span>TOP 10</span></header>
+      <div className="attract-ranking-list">
+        {staticRanking.map((item, index) => <article className={`attract-rank-row rank-${index + 1}`} style={{ "--rank-delay": `${index * 120}ms` } as React.CSSProperties} key={item.characterId}><strong>{index + 1}</strong><CharacterAvatar id={item.characterId} compact /><div><b>{getCharacter(item.characterId).name}</b><small>{getCharacter(item.characterId).preset} TYPE</small></div><time>{formatTime(item.finishMs)}</time>{index < 3 && <i>{index === 0 ? "CROWN" : "TOP 3"}</i>}</article>)}
+      </div>
+      <p className="ranking-callout">キミの名前をランキングにのせよう！ <b>→</b></p>
+    </section>
+  );
+}
+
+function AttractScreen({ revision }: { revision: number }) {
+  const [scene, setScene] = useState(0);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setScene((current) => (current + 1) % ATTRACT_SCENES.length), ATTRACT_SCENES[scene].duration);
+    return () => window.clearTimeout(timer);
+  }, [scene, revision]);
+
+  return (
+    <main className={`game-stage attract-stage attract-scene-${ATTRACT_SCENES[scene].id}`} key={revision}>
+      <GameHeader phase="ATTRACT" />
+      <div className="attract-confetti" aria-hidden="true" />
+      {scene === 0 && <section className="attract-hero">
+        <p className="section-kicker">OUREISAI 2026 · PLAYABLE EXHIBITION</p>
+        <h1><span>アニマル</span><strong>ダッシュ！</strong></h1>
+        <p>かわいい動物たちと、いっしょに走ろう！</p>
+        <div className="attract-runners" aria-label="登場キャラクター">
+          {["momo", "koro", "dorami", "azuki"].map((id, index) => <div key={id} style={{ "--runner-delay": `${index * -.35}s` } as React.CSSProperties}><CharacterAvatar id={id} /></div>)}
+        </div>
+      </section>}
+      {scene === 1 && <section className="attract-demo-scene"><header><span>GAME DEMO</span><strong>こんなゲームだよ！</strong></header><DemoRaceFilm /></section>}
+      {scene === 2 && <AttractRanking />}
+      <section className="attract-program" aria-label="上映プログラム">
+        {ATTRACT_SCENES.map((item, index) => <div className={scene === index ? "is-active" : ""} key={item.id}><span>0{index + 1}</span><strong>{item.label}</strong><small>{index === 0 ? "動物たちが大集合！" : index === 1 ? "ゲームの遊びかた" : "今日のトップレーサー"}</small>{scene === index && <i key={`${scene}-${revision}`} style={{ "--scene-duration": `${item.duration}ms` } as React.CSSProperties} />}</div>)}
+      </section>
+      <footer className="attract-footer"><strong>次のレースはまもなく！</strong><span>参加したい人はスタッフに声をかけてね</span></footer>
+    </main>
+  );
+}
+
 function WaitingScreen({ lanes }: { lanes: Array<LaneAssignment | null> }) {
   const count = lanes.filter(Boolean).length;
   return (
@@ -83,7 +146,7 @@ function WaitingScreen({ lanes }: { lanes: Array<LaneAssignment | null> }) {
 }
 
 function CountdownScreen({ lanes, countdownEndsAt }: { lanes: Array<LaneAssignment | null>; countdownEndsAt: number | null }) {
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 80);
     return () => window.clearInterval(timer);
@@ -217,7 +280,7 @@ function RaceArena({ lanes, raceStartedAt, onFinished }: { lanes: Array<LaneAssi
               {obstacles.map((position, obstacleIndex) => {
                 const left = 27 + (position - runner.progress) * 1.62;
                 if (left < -5 || left > 106) return null;
-                return obstacleIndex === 2 ? <div className="mud-patch" key={position} style={{ left: `${left}%` }} /> : <div className={`track-obstacle obstacle-${obstacleIndex % 2}`} key={position} style={{ left: `${left}%` }}>{obstacleIndex % 2 ? "🪵" : "🪨"}</div>;
+                return obstacleIndex === 2 ? <div className="mud-patch" key={position} style={{ left: `${left}%` }} /> : <div aria-hidden="true" className={`track-obstacle obstacle-${obstacleIndex % 2}`} key={position} style={{ left: `${left}%` }} />;
               })}
               {runner.progress > 73 && <div className="finish-line" style={{ left: `${27 + (100 - runner.progress) * 1.62}%` }}><span>FINISH</span></div>}
               <div className="racing-character" style={{ transform: `translateY(${-runner.y}px)` }}><span className="speed-streak">≋</span><CharacterAvatar id={lane.characterId} compact />{runner.finishedAt && <b>GOAL!</b>}</div>
@@ -231,7 +294,7 @@ function RaceArena({ lanes, raceStartedAt, onFinished }: { lanes: Array<LaneAssi
 }
 
 function ResultsScreen({ results, resultsEndsAt }: { results: RaceResult[]; resultsEndsAt: number | null }) {
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(() => Date.now());
   useEffect(() => { const timer = window.setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(timer); }, []);
   const left = Math.max(0, Math.ceil(((resultsEndsAt ?? now) - now) / 1000));
   const ranking = [...results.filter((result) => result.finishMs !== null).map((result) => ({ characterId: result.characterId, finishMs: result.finishMs as number })), ...staticRanking].sort((a, b) => a.finishMs - b.finishMs).filter((item, index, all) => all.findIndex((other) => other.characterId === item.characterId) === index).slice(0, 3);
@@ -250,6 +313,7 @@ function ResultsScreen({ results, resultsEndsAt }: { results: RaceResult[]; resu
 
 export function GameExperience() {
   const { session, finishRace } = useRaceSession();
+  if (session.phase === "ATTRACT") return <AttractScreen key={session.sequence} revision={session.sequence} />;
   if (session.phase === "COUNTDOWN") return <CountdownScreen lanes={session.lanes} countdownEndsAt={session.countdownEndsAt} />;
   if (session.phase === "RACING") return <RaceArena lanes={session.lanes} raceStartedAt={session.raceStartedAt} onFinished={finishRace} />;
   if (session.phase === "RESULTS") return <ResultsScreen results={session.results} resultsEndsAt={session.resultsEndsAt} />;
@@ -261,13 +325,13 @@ function ConfirmDialog({ title, copy, actionLabel, danger = false, onCancel, onC
 }
 
 export function AdminExperience() {
-  const { session, ready, assignCharacter, removeCharacter, fillBots, startRace, forceFinish, resetSession } = useRaceSession();
+  const { session, ready, assignCharacter, removeCharacter, fillBots, startRace, forceFinish, resetSession, showAttract, showWaiting, restartAttract } = useRaceSession();
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<"reset" | "finish" | null>(null);
   const used = new Set(session.lanes.flatMap((lane) => lane ? [lane.characterId] : []));
   const filtered = characters.filter((character) => character.name.includes(query) || character.preset.includes(query));
-  const mutable = session.phase === "WAITING";
+  const mutable = session.phase === "WAITING" || session.phase === "ATTRACT";
   const participantCount = session.lanes.filter(Boolean).length;
   const lastSync = new Date(session.lastSync).toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit", second: "2-digit", timeZone: "Asia/Tokyo" });
 
@@ -297,11 +361,11 @@ export function AdminExperience() {
       </section>
       <section className="admin-controlbar">
         <div className="readiness"><span className={participantCount > 0 ? "ready-light is-ready" : "ready-light"} /> <div><strong>{participantCount > 0 ? "レースを開始できます" : "参加者を登録してください"}</strong><small>ゲーム画面: READY · 画像エラー: 0</small></div></div>
-        <div className="admin-actions"><button className="ghost-button" disabled={session.phase === "WAITING"} onClick={() => setConfirm("finish")}>{session.phase === "RESULTS" ? "リザルトをスキップ" : "強制終了"}</button><button className="ghost-button" onClick={() => setConfirm("reset")}>リセット</button>{session.phase === "WAITING" && participantCount < 4 && <button className="secondary-start" disabled={participantCount === 0} onClick={() => fillBots(true)}>BOTで補充して開始</button>}<button className="race-start-button" disabled={session.phase !== "WAITING" || participantCount === 0} onClick={startRace}><span>▶</span> レース開始</button></div>
+        <div className="admin-actions"><button className="ghost-button" onClick={session.phase === "ATTRACT" ? restartAttract : showAttract}>{session.phase === "ATTRACT" ? "上映を最初から" : "アトラクトへ"}</button><button className="ghost-button" onClick={showWaiting}>参加待機画面</button><button className="ghost-button" disabled={session.phase === "WAITING" || session.phase === "ATTRACT"} onClick={() => setConfirm("finish")}>{session.phase === "RESULTS" ? "リザルトをスキップ" : "強制終了"}</button><button className="ghost-button" onClick={() => setConfirm("reset")}>リセット</button>{session.phase === "WAITING" && participantCount < 4 && <button className="secondary-start" disabled={participantCount === 0} onClick={() => fillBots(true)}>BOTで補充して開始</button>}<button className="race-start-button" disabled={session.phase !== "WAITING" || participantCount === 0} onClick={startRace}><span>▶</span> レース開始</button></div>
       </section>
       <footer className="admin-footer"><span>LOCAL MOCK MODE · BroadcastChannel + localStorage</span><span>Race results: {session.results.length ? "SAVED" : "READY"} · Auto reset: {session.resultsEndsAt ? new Date(session.resultsEndsAt).toLocaleTimeString("ja-JP", { timeZone: "Asia/Tokyo" }) : "--:--"}</span></footer>
       {confirm === "reset" && <ConfirmDialog danger title="待機状態へリセットしますか？" copy="現在のレース進行と参加枠がすべてクリアされます。" actionLabel="リセットする" onCancel={() => setConfirm(null)} onConfirm={() => { resetSession(); setConfirm(null); }} />}
-      {confirm === "finish" && <ConfirmDialog title={session.phase === "RESULTS" ? "リザルトを終了しますか？" : "レースを強制終了しますか？"} copy={session.phase === "RESULTS" ? "次の参加受付のため待機画面へ戻ります。" : "現在の順位を仮タイムで確定してリザルトへ進みます。"} actionLabel={session.phase === "RESULTS" ? "待機画面へ戻す" : "リザルトへ進む"} onCancel={() => setConfirm(null)} onConfirm={() => { session.phase === "RESULTS" ? resetSession() : forceFinish(); setConfirm(null); }} />}
+      {confirm === "finish" && <ConfirmDialog title={session.phase === "RESULTS" ? "リザルトを終了しますか？" : "レースを強制終了しますか？"} copy={session.phase === "RESULTS" ? "次の上映のためアトラクト画面へ戻ります。" : "現在の順位を仮タイムで確定してリザルトへ進みます。"} actionLabel={session.phase === "RESULTS" ? "アトラクトへ戻す" : "リザルトへ進む"} onCancel={() => setConfirm(null)} onConfirm={() => { if (session.phase === "RESULTS") resetSession(); else forceFinish(); setConfirm(null); }} />}
     </main>
   );
 }

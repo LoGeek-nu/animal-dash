@@ -1,4 +1,4 @@
-export type RacePhase = "WAITING" | "COUNTDOWN" | "RACING" | "RESULTS" | "RECOVERY";
+export type RacePhase = "ATTRACT" | "WAITING" | "COUNTDOWN" | "RACING" | "RESULTS" | "RECOVERY";
 
 export type CharacterStats = {
   speed: number;
@@ -32,7 +32,7 @@ export type RaceResult = {
 };
 
 export type RaceSession = {
-  version: 1;
+  version: 2;
   sequence: number;
   sessionId: string;
   phase: RacePhase;
@@ -64,16 +64,23 @@ export const staticRanking = [
   { characterId: "kon", finishMs: 28420 },
   { characterId: "momo", finishMs: 29180 },
   { characterId: "azuki", finishMs: 30460 },
+  { characterId: "toramaru", finishMs: 31820 },
+  { characterId: "koro", finishMs: 32760 },
+  { characterId: "dorami", finishMs: 33910 },
+  { characterId: "penta", finishMs: 34680 },
+  { characterId: "keroppin", finishMs: 35940 },
+  { characterId: "fuwa", finishMs: 37120 },
+  { characterId: "panko", finishMs: 38960 },
 ];
 
 export const getCharacter = (id: string) => characters.find((character) => character.id === id) ?? characters[0];
 
 export function createInitialSession(): RaceSession {
   return {
-    version: 1,
+    version: 2,
     sequence: 1,
     sessionId: "session_demo01",
-    phase: "WAITING",
+    phase: "ATTRACT",
     lanes: [
       { characterId: "momo", isBot: false },
       { characterId: "toramaru", isBot: false },

@@ -21,8 +21,11 @@ test("server-renders the public game screen", async () => {
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
   const html = await response.text();
   assert.match(html, /ANIMAL DASH!/);
-  assert.match(html, /キミのキャラが/);
-  assert.match(html, /LANE\s*(?:<!-- -->)?\s*1/);
+  assert.match(html, /アニマル/);
+  assert.match(html, /ANIMAL PARADE/);
+  assert.match(html, /DEMO RACE/);
+  assert.match(html, /TODAY(?:&#x27;|')S RANKING/);
+  assert.match(html, /\/characters\/momo\/runner\.png/);
   assert.doesNotMatch(html, /codex-preview|react-loading-skeleton/i);
 });
 
@@ -33,6 +36,8 @@ test("server-renders the staff control screen", async () => {
   assert.match(html, /STAFF CONTROL/);
   assert.match(html, /キャラクターを選ぶ/);
   assert.match(html, /レース開始/);
+  assert.match(html, /参加待機画面/);
+  assert.match(html, /上映を最初から/);
 });
 
 test("health endpoint reports the mock ready", async () => {

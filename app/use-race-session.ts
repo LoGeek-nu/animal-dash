@@ -3,13 +3,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { characters, createInitialSession, getCharacter, type RaceResult, type RaceSession } from "./race-data";
 
-const STORAGE_KEY = "animal-dash-session-v1";
+const STORAGE_KEY = "animal-dash-session-v2";
 const CHANNEL_NAME = "animal-dash-live-session";
 
 function validSession(value: unknown): value is RaceSession {
   if (!value || typeof value !== "object") return false;
   const session = value as Partial<RaceSession>;
-  return session.version === 1 && Array.isArray(session.lanes) && session.lanes.length === 4;
+  return session.version === 2 && Array.isArray(session.lanes) && session.lanes.length === 4;
 }
 
 export function useRaceSession() {
@@ -18,11 +18,12 @@ export function useRaceSession() {
   const channelRef = useRef<BroadcastChannel | null>(null);
 
   useEffect(() => {
+    let restored: RaceSession | null = null;
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (validSession(parsed)) setSession(parsed);
+        if (validSession(parsed)) restored = parsed;
       }
     } catch {
       // Corrupt local mock state falls back to a clean demo session.
@@ -44,8 +45,12 @@ export function useRaceSession() {
       }
     };
     window.addEventListener("storage", onStorage);
-    setReady(true);
+    const hydrationTimer = window.setTimeout(() => {
+      if (restored) setSession(restored);
+      setReady(true);
+    }, 0);
     return () => {
+      window.clearTimeout(hydrationTimer);
       channel.close();
       window.removeEventListener("storage", onStorage);
     };
@@ -94,21 +99,21 @@ export function useRaceSession() {
   }, [session.phase, session.resultsEndsAt, update]);
 
   const assignCharacter = (laneIndex: number, characterId: string, isBot = false) => update((current) => {
-    if (current.phase !== "WAITING") return current;
+    if (current.phase !== "WAITING" && current.phase !== "ATTRACT") return current;
     const lanes = current.lanes.map((lane) => lane?.characterId === characterId ? null : lane);
     lanes[laneIndex] = { characterId, isBot };
     return { ...current, lanes };
   });
 
   const removeCharacter = (laneIndex: number) => update((current) => {
-    if (current.phase !== "WAITING") return current;
+    if (current.phase !== "WAITING" && current.phase !== "ATTRACT") return current;
     const lanes = [...current.lanes];
     lanes[laneIndex] = null;
     return { ...current, lanes };
   });
 
   const fillBots = (startAfterFill = false) => update((current) => {
-    if (current.phase !== "WAITING") return current;
+    if (current.phase !== "WAITING" && current.phase !== "ATTRACT") return current;
     const used = new Set(current.lanes.flatMap((lane) => lane ? [lane.characterId] : []));
     const available = characters.filter((character) => !used.has(character.id));
     let cursor = 0;
@@ -153,6 +158,9 @@ export function useRaceSession() {
     lanes: [null, null, null, null],
   }));
 
-  return { session, ready, assignCharacter, removeCharacter, fillBots, startRace, finishRace, forceFinish, resetSession };
-}
+  const showAttract = () => update((current) => ({ ...current, phase: "ATTRACT", countdownEndsAt: null, raceStartedAt: null, resultsEndsAt: null, results: [] }));
+  const showWaiting = () => update((current) => ({ ...current, phase: "WAITING", countdownEndsAt: null, raceStartedAt: null, resultsEndsAt: null, results: [] }));
+  const restartAttract = () => update((current) => current.phase === "ATTRACT" ? { ...current } : current);
 
+  return { session, ready, assignCharacter, removeCharacter, fillBots, startRace, finishRace, forceFinish, resetSession, showAttract, showWaiting, restartAttract };
+}
