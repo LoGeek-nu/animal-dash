@@ -7,7 +7,8 @@ import {
   DragOverlay,
   KeyboardSensor,
   PointerSensor,
-  closestCenter,
+  pointerWithin,
+  rectIntersection,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
@@ -15,12 +16,20 @@ import { DraggableCharacter } from "./components/admin/DraggableCharacter.jsx";
 import { LaneDropTarget } from "./components/admin/LaneDropTarget.jsx";
 import { CharacterAvatar } from "./components/character/CharacterAvatar.jsx";
 import { StatBars } from "./components/character/StatBars.jsx";
+import { CourseObstacle } from "./components/game/CourseObstacle.jsx";
 import { characters, formatTime, getCharacter, laneColors, staticRanking } from "./race-data.js";
-import { courseLeft, courseObstacles, courseSegments, getCourseSegment } from "./course-data.js";
+import { courseLeft, courseObstacles, courseSegments, getCourseSegment, getNearestUpcomingObstacle, getVisibleCourseObstacles } from "./course-data.js";
 import { useRaceSession } from "./use-race-session.js";
+import { ATTRACT_SCENES } from "./attract-data.js";
+import { AttractTutorial } from "./components/game/AttractTutorial.jsx";
 
 const PHASE_LABELS = { ATTRACT: "アトラクト", WAITING: "参加受付中", COUNTDOWN: "カウントダウン", RACING: "レース中", RESULTS: "リザルト", RECOVERY: "復旧待ち" };
 const keyHelp = ["SPACE / SHIFT", "↑ / ENTER", "W / E", "I / O"];
+
+function laneOnlyCollisionDetection(args) {
+  const hits = args.pointerCoordinates ? pointerWithin(args) : rectIntersection(args);
+  return hits.filter(({ id }) => String(id).startsWith("lane-"));
+}
 
 function ConnectionBadge({ label = "LIVE SYNC" }) {
   return <div className="connection-badge"><span />{label}</div>;
@@ -32,27 +41,6 @@ function GameHeader({ phase }) {
       <div className="game-logo"><span>OUREISAI 2026</span><strong>ANIMAL DASH!</strong></div>
       <div className="game-header-status"><span className={`phase-chip phase-${phase.toLowerCase()}`}>{PHASE_LABELS[phase]}</span><ConnectionBadge /></div>
     </header>
-  );
-}
-
-const ATTRACT_SCENES = [
-  { id: "hero", label: "ANIMAL PARADE", duration: 12_000 },
-  { id: "demo", label: "DEMO RACE", duration: 24_000 },
-  { id: "ranking", label: "TODAY'S RANKING", duration: 14_000 },
-];
-
-function DemoRaceFilm() {
-  return (
-    <div className="demo-film">
-      <video autoPlay muted loop playsInline preload="auto" poster="/demo-poster.svg">
-        <source src="/media/animal-dash-demo.mp4" type="video/mp4" />
-      </video>
-      <div className="demo-film-live" aria-hidden="true">
-        {characters.slice(0, 4).map((character, index) => <div className={`demo-live-runner demo-runner-${index + 1}`} key={character.id}><CharacterAvatar id={character.id} compact /></div>)}
-        <i className="demo-log" /><i className="demo-rock" />
-      </div>
-      <div className="demo-film-label"><span>HOW TO PLAY</span><strong>ジャンプで障害物を<br />とびこえよう！</strong><small>JUMP + BOOST でゴールをめざせ</small></div>
-    </div>
   );
 }
 
@@ -87,7 +75,7 @@ function AttractScreen({ revision }) {
           {["momo", "koro", "dorami", "azuki"].map((id, index) => <div key={id} style={{ "--runner-delay": `${index * -.35}s` }}><CharacterAvatar id={id} /></div>)}
         </div>
       </section>}
-      {scene === 1 && <section className="attract-demo-scene"><header><span>GAME DEMO</span><strong>こんなゲームだよ！</strong></header><DemoRaceFilm /></section>}
+      {scene === 1 && <section className="attract-demo-scene"><header><span>GAME DEMO</span><strong>遊び方をおぼえよう！</strong></header><AttractTutorial /></section>}
       {scene === 2 && <AttractRanking />}
       <section className="attract-program" aria-label="上映プログラム">
         {ATTRACT_SCENES.map((item, index) => <div className={scene === index ? "is-active" : ""} key={item.id}><span>0{index + 1}</span><strong>{item.label}</strong><small>{index === 0 ? "動物たちが大集合！" : index === 1 ? "ゲームの遊びかた" : "今日のトップレーサー"}</small>{scene === index && <i key={`${scene}-${revision}`} style={{ "--scene-duration": `${item.duration}ms` }} />}</div>)}
@@ -103,8 +91,8 @@ function WaitingScreen({ lanes }) {
     <main className="game-stage waiting-stage">
       <GameHeader phase="WAITING" />
       <section className="waiting-title-row">
-        <div><p className="section-kicker">NEXT RACE</p><h1>キミのキャラが<br /><em>走りだす！</em></h1></div>
-        <div className="entry-counter"><span>ENTRY</span><strong>{count}<small>/4</small></strong><p>{count === 4 ? "準備OK！まもなくスタート" : `あと${4 - count}人参加できます`}</p></div>
+        <div><p className="section-kicker">NEXT RACE</p><h1>キャラクター選択中<span>…</span></h1><p className="waiting-subtitle">4人集まったらエントリー完了！</p></div>
+        <div className="entry-counter"><span>ENTRY</span><strong>{count}<small>/4</small></strong><p>{count === 4 ? "エントリー完了！ スタートを待ってね" : `あと${4 - count}人でエントリー完了`}</p></div>
       </section>
       <section className="waiting-lanes" aria-label="参加キャラクター">
         {lanes.map((lane, index) => lane ? (
@@ -116,7 +104,7 @@ function WaitingScreen({ lanes }) {
         ) : (
           <article className="waiting-card empty-waiting-card" key={`empty-${index}`} style={{ "--lane": laneColors[index] }}>
             <div className="waiting-card-header"><span>LANE {index + 1}</span></div>
-            <div className="empty-card-art"><strong>?</strong><i>+</i></div>
+            <div className="empty-card-art"><strong>?</strong></div>
             <div className="waiting-card-meta empty-card-meta"><h2>参加者を待っています</h2><p>スタッフが管理画面から登録します</p></div>
           </article>
         ))}
@@ -166,7 +154,7 @@ function CourseScenery({ progress, laneIndex }) {
 }
 
 function RaceArena({ lanes, raceStartedAt, onFinished }) {
-  const [runners, setRunners] = useState(() => lanes.map(() => ({ progress: 0, stamina: 100, y: 0, collision: false, finishedAt: null })));
+  const [runners, setRunners] = useState(() => lanes.map(() => ({ progress: 0, stamina: 100, y: 0, collision: false, boosting: false, finishedAt: null })));
   const runtimeRef = useRef(runners.map((runner) => ({ ...runner, vy: 0, exhausted: false, collisionUntil: 0, hit: new Set() })));
   const controlRef = useRef(lanes.map(() => ({ boost: false, jump: false })));
   const sentRef = useRef(false);
@@ -222,6 +210,7 @@ function RaceArena({ lanes, raceStartedAt, onFinished }) {
 
         if (runner.exhausted && runner.stamina > 32) runner.exhausted = false;
         const boosting = wantsBoost && !runner.exhausted && runner.stamina > 0;
+        runner.boosting = boosting;
         if (boosting) {
           runner.stamina = Math.max(0, runner.stamina - (27 - character.stats.stamina * .7) * dt);
           if (runner.stamina === 0) runner.exhausted = true;
@@ -243,7 +232,7 @@ function RaceArena({ lanes, raceStartedAt, onFinished }) {
       });
 
       if (now - lastPaint > 32) {
-        setRunners(runtimeRef.current.map((runner) => ({ progress: runner.progress, stamina: runner.stamina, y: runner.y, collision: runner.collisionUntil > now, finishedAt: runner.finishedAt })));
+        setRunners(runtimeRef.current.map((runner) => ({ progress: runner.progress, stamina: runner.stamina, y: runner.y, collision: runner.collisionUntil > now, boosting: runner.boosting, finishedAt: runner.finishedAt })));
         lastPaint = now;
       }
 
@@ -273,6 +262,8 @@ function RaceArena({ lanes, raceStartedAt, onFinished }) {
           const runner = runners[index];
           const character = getCharacter(lane.characterId);
           const segment = getCourseSegment(runner.progress);
+          const visibleObstacles = getVisibleCourseObstacles(runner.progress);
+          const nearestObstacle = getNearestUpcomingObstacle(runner.progress, visibleObstacles);
           return (
             <article className={`race-lane segment-${segment.id} ${runner.collision ? "is-hit" : ""} ${runner.finishedAt ? "is-finished" : ""}`} key={lane.characterId} style={{ "--lane": laneColors[index], "--scroll": `${-runner.progress * 9}px`, "--course-progress": runner.progress, "--segment-accent": segment.accent }}>
               <CourseScenery progress={runner.progress} laneIndex={index} />
@@ -280,14 +271,14 @@ function RaceArena({ lanes, raceStartedAt, onFinished }) {
               <div className="rank-bubble"><strong>{ranks[index]}</strong><span>位</span></div>
               <div className="track-meter"><i style={{ width: `${runner.progress}%` }} /></div>
               <div className="stamina-meter"><span>BOOST</span><i><b style={{ width: `${runner.stamina}%` }} /></i></div>
-              {courseObstacles.map((obstacle) => {
+              {visibleObstacles.map((obstacle) => {
                 const left = courseLeft(obstacle.position, runner.progress);
-                if (left < -5 || left > 106) return null;
                 const distance = obstacle.position - runner.progress;
-                return <div aria-hidden="true" className={`course-obstacle obstacle-${obstacle.type} variant-${obstacle.variant}`} key={obstacle.id} style={{ left: `${left}%`, "--obstacle-width": `${obstacle.width}px` }}>{distance > 0 && distance < obstacle.warningDistance && <span className="hazard-warning">!</span>}</div>;
+                return <CourseObstacle obstacle={obstacle} left={left} warning={nearestObstacle?.id === obstacle.id && distance > 0 && distance < obstacle.warningDistance} key={obstacle.id} />;
               })}
               {runner.progress > 80 && <div className="finish-line" style={{ left: `${courseLeft(100, runner.progress)}%` }}><span>FINISH</span></div>}
-              <div className="racing-character" style={{ transform: `translateY(${-runner.y}px)` }}><span className="speed-streak">≋</span><CharacterAvatar id={lane.characterId} compact />{runner.finishedAt && <b>GOAL!</b>}</div>
+              <div className="runner-ground-shadow" style={{ opacity: Math.max(.18, 1 - runner.y / 260), transform: `scaleX(${Math.max(.46, 1 - runner.y / 430)})` }} />
+              <div className={`racing-character ${runner.boosting ? "is-boosting" : ""} ${runner.collision ? "has-impact" : ""}`} style={{ transform: `translateY(${-runner.y}px)` }}><span className="speed-streak">≋</span><span className="runner-dust" /><span className="impact-stars">★</span><CharacterAvatar id={lane.characterId} compact />{runner.finishedAt && <b>GOAL!</b>}</div>
             </article>
           );
         })())}
@@ -334,7 +325,9 @@ export function AdminExperience() {
   const [selectedId, setSelectedId] = useState(null);
   const [confirm, setConfirm] = useState(null);
   const [activeCharacterId, setActiveCharacterId] = useState(null);
+  const [overLaneId, setOverLaneId] = useState(null);
   const [dragAnnouncement, setDragAnnouncement] = useState("");
+  const dragEndedAtRef = useRef(0);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor),
@@ -352,12 +345,20 @@ export function AdminExperience() {
     setSelectedId(null);
   };
 
-  const finishDrag = () => setActiveCharacterId(null);
+  const finishDrag = () => {
+    dragEndedAtRef.current = performance.now();
+    setActiveCharacterId(null);
+    setOverLaneId(null);
+  };
   const handleDragStart = ({ active }) => {
     const characterId = active.data.current?.characterId;
     if (!mutable || !characterId) return;
     setActiveCharacterId(characterId);
     setDragAnnouncement(`${getCharacter(characterId).name}を移動中。配置するレーンを選んでください。`);
+  };
+  const handleDragOver = ({ over }) => {
+    const laneIndex = over?.data.current?.laneIndex;
+    setOverLaneId(Number.isInteger(laneIndex) ? `lane-${laneIndex}` : null);
   };
   const handleDragEnd = ({ active, over }) => {
     const characterId = active.data.current?.characterId;
@@ -373,8 +374,8 @@ export function AdminExperience() {
   };
 
   return (
-    <DndContext id="animal-dash-admin-dnd" sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragCancel={finishDrag}>
-    <main className={`admin-shell ${activeCharacterId ? "is-dragging-character" : ""}`}>
+    <DndContext id="animal-dash-admin-dnd" sensors={sensors} collisionDetection={laneOnlyCollisionDetection} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd} onDragCancel={finishDrag}>
+    <main className={`admin-shell ${activeCharacterId ? "is-dragging-character" : ""} ${overLaneId ? "is-over-lane-zone" : ""}`}>
       <header className="admin-header"><div className="admin-brand"><strong>ANIMAL DASH!</strong><span>STAFF CONTROL</span></div><nav><a href="/game" target="_blank">ゲーム画面を開く <i>↗</i></a><ConnectionBadge label={ready ? "SYNCED" : "CONNECTING"} /></nav></header>
       <section className="admin-statusbar"><div><span>EVENT</span><strong>桜麗祭 2026</strong><small>oureisai-2026</small></div><div><span>PHASE</span><strong className={`status-phase status-${session.phase.toLowerCase()}`}><i />{PHASE_LABELS[session.phase]}</strong></div><div><span>PARTICIPANTS</span><strong>{participantCount} / 4</strong></div><div><span>LAST SYNC</span><strong>{lastSync}</strong><small>SEQ {String(session.sequence).padStart(4, "0")}</small></div><div><span>SESSION</span><strong>{session.sessionId.replace("session_", "#").toUpperCase()}</strong></div></section>
       <section className="admin-workspace">
@@ -382,12 +383,15 @@ export function AdminExperience() {
           <div className="panel-heading"><div><span>01</span><div><h1>キャラクターを選ぶ</h1><p>登録済みのキャラクター {characters.length}体</p></div></div><label className="search-box"><span>⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="名前・タイプで検索" /></label></div>
           <div className="character-list">{filtered.map((character) => {
             const isUsed = used.has(character.id);
-            return <DraggableCharacter character={character} key={character.id} disabled={isUsed || !mutable} isUsed={isUsed} selected={selectedId === character.id} onSelect={() => setSelectedId((current) => current === character.id ? null : character.id)} />;
+            return <DraggableCharacter character={character} key={character.id} disabled={isUsed || !mutable} isUsed={isUsed} selected={selectedId === character.id} onSelect={() => {
+              if (performance.now() - dragEndedAtRef.current < 250) return;
+              setSelectedId((current) => current === character.id ? null : character.id);
+            }} />;
           })}</div>
         </div>
         <div className="lane-management panel-card" aria-label="キャラクターのドロップ先">
           <div className="panel-heading"><div><span>02</span><div><h1>{activeCharacter ? `${activeCharacter.name}をどこへ運ぶ？` : "レーンにセット"}</h1><p>{activeCharacter ? "明るくなったレーンへドロップ" : selectedId ? `${getCharacter(selectedId).name} を選択中` : "キャラクターをドラッグしてレーンへ"}</p></div></div>{selectedId && !activeCharacter && <button className="clear-selection" onClick={() => setSelectedId(null)}>選択解除 ×</button>}</div>
-          <div className="admin-lanes">{session.lanes.map((lane, index) => <LaneDropTarget lane={lane} index={index} key={index} selectedId={selectedId} mutable={mutable} dragging={Boolean(activeCharacterId)} onAssign={assignSelected} onRemove={removeCharacter} />)}</div>
+          <div className="admin-lanes">{session.lanes.map((lane, index) => <LaneDropTarget lane={lane} index={index} key={index} selectedId={selectedId} mutable={mutable} dragging={Boolean(overLaneId)} onAssign={assignSelected} onRemove={removeCharacter} />)}</div>
           <button className="fill-bots-button" disabled={!mutable || participantCount === 4} onClick={() => fillBots(false)}><span>BOT</span><div><strong>空きレーンをBOTで補充</strong><small>自動操作のキャラクターを追加します</small></div><i>→</i></button>
         </div>
       </section>

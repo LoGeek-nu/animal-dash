@@ -7,8 +7,6 @@ export function CharacterAvatar({ id, compact = false }) {
   return (
     <div className={`character-avatar ${compact ? "is-compact" : ""}`} style={{ "--char": character.color, "--char-pale": character.pale }}>
       <img src={`/characters/${character.id}/runner.png`} alt={`${character.name}の全身イラスト`} draggable={false} />
-      <i className="avatar-spark spark-one" />
-      <i className="avatar-spark spark-two" />
     </div>
   );
 }

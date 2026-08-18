@@ -23,6 +23,19 @@ export function getCourseSegment(progress) {
   return courseSegments.find((segment) => progress >= segment.start && progress < segment.end) ?? courseSegments.at(-1);
 }
 
+export function getVisibleCourseObstacles(progress) {
+  return courseObstacles.filter((obstacle) => {
+    const distance = obstacle.position - progress;
+    return distance >= -2.5 && distance <= 35;
+  });
+}
+
+export function getNearestUpcomingObstacle(progress, obstacles = getVisibleCourseObstacles(progress)) {
+  return obstacles
+    .filter((obstacle) => obstacle.position > progress)
+    .sort((a, b) => a.position - b.position)[0] ?? null;
+}
+
 export function courseLeft(position, progress) {
   return 27 + (position - progress) * 1.62;
 }
