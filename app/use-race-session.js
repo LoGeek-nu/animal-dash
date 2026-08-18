@@ -1,24 +1,34 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { characters, createInitialSession, getCharacter, type RaceResult, type RaceSession } from "./race-data";
+import { characters, createInitialSession, getCharacter } from "./race-data.js";
 
-const STORAGE_KEY = "animal-dash-session-v2";
+const STORAGE_KEY = "animal-dash-session-v3";
 const CHANNEL_NAME = "animal-dash-live-session";
 
-function validSession(value: unknown): value is RaceSession {
+export function validSession(value) {
   if (!value || typeof value !== "object") return false;
-  const session = value as Partial<RaceSession>;
-  return session.version === 2 && Array.isArray(session.lanes) && session.lanes.length === 4;
+  const session = value;
+  const phases = new Set(["ATTRACT", "WAITING", "COUNTDOWN", "RACING", "RESULTS", "RECOVERY"]);
+  return session.version === 3
+    && Number.isInteger(session.sequence)
+    && phases.has(session.phase)
+    && Array.isArray(session.lanes)
+    && session.lanes.length === 4
+    && session.lanes.every((lane) => lane === null || (
+      typeof lane === "object"
+      && characters.some((character) => character.id === lane.characterId)
+      && typeof lane.isBot === "boolean"
+    ));
 }
 
 export function useRaceSession() {
-  const [session, setSession] = useState<RaceSession>(() => createInitialSession());
+  const [session, setSession] = useState(() => createInitialSession());
   const [ready, setReady] = useState(false);
-  const channelRef = useRef<BroadcastChannel | null>(null);
+  const channelRef = useRef(null);
 
   useEffect(() => {
-    let restored: RaceSession | null = null;
+    let restored = null;
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
@@ -31,11 +41,11 @@ export function useRaceSession() {
 
     const channel = new BroadcastChannel(CHANNEL_NAME);
     channelRef.current = channel;
-    channel.onmessage = (event: MessageEvent<RaceSession>) => {
+    channel.onmessage = (event) => {
       if (validSession(event.data)) setSession((current) => event.data.sequence >= current.sequence ? event.data : current);
     };
 
-    const onStorage = (event: StorageEvent) => {
+    const onStorage = (event) => {
       if (event.key !== STORAGE_KEY || !event.newValue) return;
       try {
         const parsed = JSON.parse(event.newValue);
@@ -56,7 +66,7 @@ export function useRaceSession() {
     };
   }, []);
 
-  const update = useCallback((recipe: (current: RaceSession) => RaceSession) => {
+  const update = useCallback((recipe) => {
     setSession((current) => {
       const proposed = recipe(current);
       const next = { ...proposed, sequence: current.sequence + 1, lastSync: Date.now() };
@@ -98,14 +108,14 @@ export function useRaceSession() {
     return () => window.clearTimeout(timer);
   }, [session.phase, session.resultsEndsAt, update]);
 
-  const assignCharacter = (laneIndex: number, characterId: string, isBot = false) => update((current) => {
+  const assignCharacter = (laneIndex, characterId, isBot = false) => update((current) => {
     if (current.phase !== "WAITING" && current.phase !== "ATTRACT") return current;
     const lanes = current.lanes.map((lane) => lane?.characterId === characterId ? null : lane);
     lanes[laneIndex] = { characterId, isBot };
     return { ...current, lanes };
   });
 
-  const removeCharacter = (laneIndex: number) => update((current) => {
+  const removeCharacter = (laneIndex) => update((current) => {
     if (current.phase !== "WAITING" && current.phase !== "ATTRACT") return current;
     const lanes = [...current.lanes];
     lanes[laneIndex] = null;
@@ -132,7 +142,7 @@ export function useRaceSession() {
     return { ...current, phase: "COUNTDOWN", countdownEndsAt: Date.now() + 3600, results: [] };
   });
 
-  const finishRace = (results: RaceResult[]) => update((current) => ({
+  const finishRace = (results) => update((current) => ({
     ...current,
     phase: "RESULTS",
     results,

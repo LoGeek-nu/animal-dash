@@ -1,53 +1,14 @@
-export type RacePhase = "ATTRACT" | "WAITING" | "COUNTDOWN" | "RACING" | "RESULTS" | "RECOVERY";
-
-export type CharacterStats = {
-  speed: number;
-  acceleration: number;
-  jump: number;
-  stamina: number;
-};
-
-export type RaceCharacter = {
-  id: string;
-  name: string;
-  emoji: string;
-  color: string;
-  pale: string;
-  preset: string;
-  caption: string;
-  stats: CharacterStats;
-};
-
-export type LaneAssignment = {
-  characterId: string;
-  isBot: boolean;
-};
-
-export type RaceResult = {
-  characterId: string;
-  lane: number;
-  rank: number;
-  finishMs: number | null;
-  isBot: boolean;
-};
-
-export type RaceSession = {
-  version: 2;
-  sequence: number;
-  sessionId: string;
-  phase: RacePhase;
-  lanes: Array<LaneAssignment | null>;
-  lastSync: number;
-  courseSeed: string;
-  countdownEndsAt: number | null;
-  raceStartedAt: number | null;
-  resultsEndsAt: number | null;
-  results: RaceResult[];
-};
+/** @typedef {"ATTRACT"|"WAITING"|"COUNTDOWN"|"RACING"|"RESULTS"|"RECOVERY"} RacePhase */
+/** @typedef {{speed:number, acceleration:number, jump:number, stamina:number}} CharacterStats */
+/** @typedef {{id:string, name:string, emoji:string, color:string, pale:string, preset:string, caption:string, stats:CharacterStats}} RaceCharacter */
+/** @typedef {{characterId:string, isBot:boolean}} LaneAssignment */
+/** @typedef {{characterId:string, lane:number, rank:number, finishMs:number|null, isBot:boolean}} RaceResult */
+/** @typedef {{version:3, sequence:number, sessionId:string, phase:RacePhase, lanes:Array<LaneAssignment|null>, lastSync:number, courseSeed:string, countdownEndsAt:number|null, raceStartedAt:number|null, resultsEndsAt:number|null, results:RaceResult[]}} RaceSession */
 
 export const laneColors = ["#ff6b8a", "#f5b82e", "#55d6be", "#6b8cff"];
 
-export const characters: RaceCharacter[] = [
+/** @type {RaceCharacter[]} */
+export const characters = [
   { id: "momo", name: "ももラビ", emoji: "🐰", color: "#ff6b8a", pale: "#ffe1e8", preset: "スピード", caption: "風よりはやい元気うさぎ", stats: { speed: 9, acceleration: 8, jump: 7, stamina: 6 } },
   { id: "toramaru", name: "トラまる", emoji: "🐯", color: "#f5b82e", pale: "#fff0bc", preset: "バランス", caption: "どんな道もへっちゃら", stats: { speed: 7, acceleration: 7, jump: 7, stamina: 8 } },
   { id: "keroppin", name: "けろっぴん", emoji: "🐸", color: "#55d6be", pale: "#d8f8f1", preset: "ジャンプ", caption: "ぴょーんと空までひとっとび", stats: { speed: 6, acceleration: 7, jump: 10, stamina: 7 } },
@@ -73,11 +34,12 @@ export const staticRanking = [
   { characterId: "panko", finishMs: 38960 },
 ];
 
-export const getCharacter = (id: string) => characters.find((character) => character.id === id) ?? characters[0];
+export const getCharacter = (id) => characters.find((character) => character.id === id) ?? characters[0];
 
-export function createInitialSession(): RaceSession {
+/** @returns {RaceSession} */
+export function createInitialSession() {
   return {
-    version: 2,
+    version: 3,
     sequence: 1,
     sessionId: "session_demo01",
     phase: "ATTRACT",
@@ -96,7 +58,7 @@ export function createInitialSession(): RaceSession {
   };
 }
 
-export function formatTime(ms: number | null) {
+export function formatTime(ms) {
   if (ms === null) return "DNF";
   return `${(ms / 1000).toFixed(2)}s`;
 }

@@ -1,4 +1,4 @@
-import { getCharacter, staticRanking } from "../../race-data";
+import { getCharacter, staticRanking } from "../../race-data.js";
 
 export async function GET() {
   return Response.json({

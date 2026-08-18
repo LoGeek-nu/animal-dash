@@ -35,6 +35,8 @@ test("server-renders the staff control screen", async () => {
   const html = await response.text();
   assert.match(html, /STAFF CONTROL/);
   assert.match(html, /キャラクターを選ぶ/);
+  assert.match(html, /ドラッグしてレーンへ/);
+  assert.match(html, /空きレーン/);
   assert.match(html, /レース開始/);
   assert.match(html, /参加待機画面/);
   assert.match(html, /上映を最初から/);
