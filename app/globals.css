@@ -53,8 +53,8 @@ button:disabled { cursor: not-allowed; }
 .attract-demo-scene > header { display: flex; align-items: baseline; justify-content: center; gap: 1rem; }
 .attract-demo-scene > header span { padding: .35rem .7rem; color: #fff; background: #f04f84; border: 3px solid #183447; border-radius: 99px; font-size: .65rem; font-weight: 1000; letter-spacing: .15em; }
 .attract-demo-scene > header strong { color: #ffe039; font-size: clamp(2.3rem, 4vw, 4.6rem); -webkit-text-stroke: 8px #183447; paint-order: stroke fill; transform: rotate(-1deg); }
-.attract-tutorial { width: min(1340px, 88vw); height: calc(100% - 68px); margin: .55rem auto 0; display: grid; grid-template-columns: minmax(245px, 27%) 1fr; gap: 1rem; position: relative; }
-.tutorial-step-list { padding: 1rem; display: grid; grid-template-rows: 1.2fr repeat(3,1fr); gap: .6rem; background: rgba(255,253,243,.97); border: 5px solid var(--ink); border-radius: 22px 15px 27px 18px; box-shadow: 7px 9px 0 #f2c92e; }
+.attract-tutorial { width: min(1340px, 88vw); height: calc(100% - 98px); margin: .35rem auto 0; display: grid; grid-template-columns: minmax(245px, 27%) 1fr; gap: 1rem; position: relative; }
+.tutorial-step-list { min-height: 0; overflow: hidden; padding: .85rem; display: grid; grid-template-rows: 1.15fr repeat(3,1fr); gap: .5rem; background: rgba(255,253,243,.97); border: 5px solid var(--ink); border-radius: 22px 15px 27px 18px; box-shadow: 7px 9px 0 #f2c92e; }
 .tutorial-step-list header { padding: .7rem .85rem; display: grid; align-content: center; color: white; background: var(--ink); border-radius: 13px 9px 16px 10px; transform: rotate(-1deg); }
 .tutorial-step-list header span { color: #ffe052; font-size: .58rem; font-weight: 1000; letter-spacing: .16em; }
 .tutorial-step-list header strong { margin-top: .2rem; font-size: clamp(1.2rem,1.65vw,2rem); line-height: 1.02; }
