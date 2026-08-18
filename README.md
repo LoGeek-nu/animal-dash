@@ -1,4 +1,4 @@
-# ANIMAL DASH! v0.4 モック
+# ANIMAL DASH! v0.5 モック
 
 桜麗祭向け「手描きキャラクター・2Dレースゲーム」の操作検証用モックです。来場者向けゲーム画面とスタッフ管理画面を別タブで開くと、キャラクター割り当てやフェーズ変更が即時同期します。
 
@@ -39,7 +39,18 @@ npm run dev
 
 本成果物はフロントエンド体験の検証を目的とした、JavaScript／JSXのみのモックです。アプリ内認証はなく、ゲーム画面と管理画面を直接開けます。管理画面をインターネット公開する場合は、運用前に別途アクセス制御を追加してください。
 
-Durable Objects、D1、R2は接続せず、ブラウザの `BroadcastChannel` と `localStorage` で状態を共有しています。本実装へ移行する際は `use-race-session.js` の状態更新をWebSocketメッセージへ、静的キャラクターデータを永続ストレージへ置き換えられる構成です。
+Durable Objects、D1、R2は接続せず、ブラウザの `BroadcastChannel` と `localStorage` で状態を共有しています。セッションのReducer、保存、タブ間同期、フェーズタイマーを分離しているため、本実装へ移行する際は `app/features/race-session/` のStorage・Channel境界を差し替えられます。
+
+## コード構成
+
+- `app/components/ui/`: Atomic Designに基づく共通Atoms・Molecules・Organisms
+- `app/features/game/`: ゲーム画面、フェーズScreen、レースエンジン
+- `app/features/admin/`: 管理画面、ドラッグ＆ドロップ、キャラクター選択
+- `app/features/race-session/`: Reducer、永続化、タブ間同期、タイマー
+- `app/domain/`: キャラクター、コース、ランキング、アトラクト設定
+- `app/styles/`: 共通、ゲーム各Screen、管理画面、レスポンシブのスタイル
+
+`/game` 内のフェーズ切替はURLルーティングではなく、静的importされたScreenの状態切替です。フェーズ移行時に追加のページ読込は発生しません。
 
 ## 検証
 

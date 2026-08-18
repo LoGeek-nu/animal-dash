@@ -1,0 +1,27 @@
+@keyframes charBob { 0%,100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-9px) rotate(2deg); } }
+@keyframes raceBob { from { transform: translateY(0) rotate(-4deg); } to { transform: translateY(-5px) rotate(4deg); } }
+@keyframes countPop { from { opacity: .1; transform: scale(.25) rotate(-12deg); } to { opacity: 1; transform: scale(1) rotate(0); } }
+@keyframes hitShake { 0%,100% { margin-left: 0; } 50% { margin-left: -8px; } }
+@keyframes goalHop { from { margin-bottom: 0; } to { margin-bottom: 20px; } }
+@keyframes livePulse { 50% { box-shadow: 0 0 0 6px #d7f7e3; } }
+@keyframes attractBounce { 0%,100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-18px) rotate(3deg); } }
+@keyframes confettiDrift { to { background-position: 280px 210px, -340px 260px; } }
+@keyframes sceneReveal { from { opacity: 0; transform: scale(.97) translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes sceneProgress { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes rankRush { from { opacity: 0; transform: translateY(150%) rotate(1deg); } to { opacity: 1; transform: none; } }
+@keyframes dragFocusIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes targetBreathe { 50% { box-shadow: 0 0 0 8px color-mix(in srgb, var(--lane) 30%, transparent); } }
+@keyframes zoneTagIn { from { opacity: 0; transform: translateX(20px) scale(.85); } to { opacity: 1; transform: none; } }
+@keyframes hazardBounce { to { transform: translateX(-50%) translateY(-5px) rotate(4deg); } }
+@keyframes speedFlicker { 50% { transform: translateX(-8px) scaleX(1.45); } }
+@keyframes dustPuff { from { transform: translateX(12px) scale(.65); } to { transform: translateX(-20px) scale(1.15); opacity: 0; } }
+@keyframes impactOrbit { 50% { transform: translate(8px,-9px) rotate(25deg) scale(1.2); } }
+@keyframes tutorialCopyIn { from { opacity: 0; transform: translateY(14px) rotate(-2deg); } to { opacity: 1; transform: none; } }
+@keyframes tutorialButton { 0%,28%,48%,100% { transform: translateY(0); box-shadow: 0 7px 0 var(--ink); } 34%,42% { transform: translateY(6px); box-shadow: 0 1px 0 var(--ink); background: #ffe052; } }
+@keyframes tutorialPrompt { to { transform: translateY(-4px) rotate(2deg); } }
+@keyframes tutorialStamina { 0%,12% { width: 92%; } 68% { width: 18%; } 100% { width: 72%; } }
+@keyframes tutorialJump { 0%,10% { transform: translateX(0); } 38% { transform: translateX(180%) translateY(0); } 52% { transform: translateX(245%) translateY(-125px) rotate(-5deg); } 66% { transform: translateX(310%) translateY(0); } 100% { transform: translateX(405%); } }
+@keyframes tutorialBoost { 0%,10% { transform: translateX(0); } 100% { transform: translateX(420%); } }
+@keyframes tutorialGoal { 0%,8% { transform: translateX(0); } 38% { transform: translateX(180%) translateY(0); } 51% { transform: translateX(250%) translateY(-115px) rotate(-4deg); } 64% { transform: translateX(315%) translateY(0); } 100% { transform: translateX(430%); } }
+@keyframes tutorialShadow { 0%,10% { transform: translateX(0) scaleX(1); opacity: .26; } 47% { transform: translateX(330%) scaleX(.5); opacity: .12; } 66% { transform: translateX(450%) scaleX(1); opacity: .26; } 100% { transform: translateX(590%) scaleX(1); opacity: .22; } }
+@keyframes tutorialNice { 0%,58%,100% { opacity: 0; transform: translateY(10px) rotate(-8deg) scale(.7); } 66%,82% { opacity: 1; transform: translateY(0) rotate(6deg) scale(1); } }

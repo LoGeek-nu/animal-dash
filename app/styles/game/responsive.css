@@ -1,0 +1,54 @@
+@media (max-width: 900px) {
+  .attract-stage { height: auto; min-height: 100vh; }
+  .attract-hero, .attract-demo-scene, .attract-ranking-scene { height: 660px; }
+  .attract-program { margin-bottom: 1rem; }
+  .waiting-lanes { grid-template-columns: repeat(2, 1fr); height: auto; }
+  .waiting-card { min-height: 430px; }
+  .waiting-card-art .character-avatar { min-height: 190px; }
+  .game-stage.waiting-stage { min-height: 100vh; height: auto; overflow: auto; }
+  .waiting-title-row { height: auto; padding-top: 2rem; }
+  .game-footer-tips { height: auto; padding-bottom: 2rem; flex-wrap: wrap; }
+}
+
+@media (max-width: 700px) {
+  .attract-hero, .attract-demo-scene, .attract-ranking-scene { height: 610px; padding-left: 1rem; padding-right: 1rem; }
+  .attract-hero h1 span, .attract-hero h1 strong { -webkit-text-stroke-width: 7px; text-shadow: 4px 5px 0 #183447; }
+  .attract-runners { width: 100%; }
+  .attract-program { height: auto; margin: .5rem 1rem; grid-template-columns: 1fr; }
+  .attract-program > div:not(.is-active) { display: none; }
+  .attract-footer { padding: 1rem; text-align: center; }
+  .attract-footer span { display: none; }
+  .attract-tutorial { width: 100%; grid-template-columns: minmax(190px, 30%) 1fr; }
+  .attract-ranking-list { grid-template-columns: 1fr; grid-auto-flow: row; grid-template-rows: repeat(10, 1fr); overflow: auto; }
+  .attract-rank-row:nth-child(n+6) { display: none; }
+  .attract-ranking-scene > header p, .attract-ranking-scene > header > span { display: none; }
+  .game-header { height: 78px; padding: 1rem; }
+  .phase-chip { display: none; }
+  .waiting-title-row { padding: 1rem; }
+  .waiting-title-row h1 { font-size: 2.6rem; }
+  .entry-counter { min-width: 105px; }
+  .entry-counter strong { font-size: 4rem; }
+  .entry-counter p { font-size: .56rem; }
+  .waiting-lanes { padding: .5rem 1rem 1rem; gap: .7rem; }
+  .waiting-card { min-height: 420px; padding: .7rem; border-width: 3px; box-shadow: 5px 6px 0 var(--lane); }
+  .waiting-card-art .character-avatar { min-height: 180px; }
+  .game-footer-tips { padding: 1rem; gap: 1.2rem; }
+  .waiting-message { width: 100%; margin: .5rem 0 0; text-align: center; }
+  .starting-grid { grid-template-columns: repeat(2, 1fr); }
+  .countdown-overlay strong { -webkit-text-stroke-width: 4px; }
+  .race-lane-info { width: 110px; min-width: 110px; padding: .5rem; }
+  .race-lane-info small { display: none; }
+  .rank-bubble { width: 3.5rem; height: 3.5rem; left: 110px; }
+  .rank-bubble strong { font-size: 2rem; }
+  .racing-character { left: 35%; }
+  .track-meter { left: 170px; }
+  .stamina-meter { display: none; }
+  .race-footer > :first-child, .race-footer > :last-child { display: none; }
+  .race-footer { justify-content: center; }
+  .results-heading { padding: 1rem; }
+  .results-heading h1 span { display: none; }
+  .results-board { height: auto; padding: .5rem 1rem 1rem; grid-template-columns: 1fr; }
+  .today-ranking, .current-results { min-height: 400px; }
+  .results-footer { padding: 1rem; }
+  .results-footer p { display: none; }
+}

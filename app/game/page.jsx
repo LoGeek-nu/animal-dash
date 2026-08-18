@@ -1,5 +1,5 @@
-import { GameExperience } from "../AnimalDashApp.jsx";
+import { GamePage } from "../features/game/GamePage.jsx";
 
-export default function GamePreview() {
-  return <GameExperience />;
+export default function GameRoute() {
+  return <GamePage />;
 }

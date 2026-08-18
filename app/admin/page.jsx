@@ -1,5 +1,5 @@
-import { AdminExperience } from "../AnimalDashApp.jsx";
+import { AdminPage } from "../features/admin/AdminPage.jsx";
 
-export default function AdminPage() {
-  return <AdminExperience />;
+export default function AdminRoute() {
+  return <AdminPage />;
 }

@@ -1,0 +1,12 @@
+/* Countdown */
+.countdown-stage { background: linear-gradient(180deg, #ceeefe 0 66%, #b7e494 66% 100%); }
+.starting-grid { height: 89vh; display: grid; grid-template-columns: repeat(4, 1fr); padding: 13vh 4vw 4vh; gap: 2vw; }
+.starting-runner { display: flex; flex-direction: column; justify-content: flex-end; align-items: center; border-bottom: 12px solid var(--lane); position: relative; }
+.starting-runner > span { position: absolute; top: 0; padding: .35rem .65rem; border: 2px solid var(--ink); border-radius: 99px; font-size: .62rem; font-weight: 1000; }
+.starting-runner .character-avatar { width: 100%; height: 45%; }
+.starting-runner > strong { margin-bottom: 1rem; font-size: clamp(1rem, 1.4vw, 1.7rem); }
+.countdown-overlay { position: absolute; z-index: 10; inset: 0; display: grid; place-content: center; justify-items: center; background: rgba(255,253,243,.66); backdrop-filter: blur(6px); }
+.countdown-overlay p { margin: 0; font-size: clamp(.8rem, 1vw, 1.2rem); font-weight: 1000; letter-spacing: .35em; }
+.countdown-overlay strong { display: block; color: #fb5e7d; font-size: clamp(12rem, 29vw, 34rem); line-height: .77; letter-spacing: -.09em; font-weight: 1000; -webkit-text-stroke: 7px var(--ink); paint-order: stroke fill; text-shadow: 12px 14px 0 white; animation: countPop .5s cubic-bezier(.16,1.5,.5,1); }
+.countdown-overlay span { padding: .7rem 1.2rem; color: white; background: var(--ink); border-radius: 99px; font-size: .75rem; font-weight: 1000; }
+

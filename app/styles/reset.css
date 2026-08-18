@@ -1,0 +1,7 @@
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body { background: #eaf2f6; color: var(--ink); font-family: Arial, "Hiragino Maru Gothic ProN", "Yu Gothic", sans-serif; }
+button, input, select { color: inherit; font: inherit; }
+button, a { -webkit-tap-highlight-color: transparent; }
+button { cursor: pointer; }
+button:disabled { cursor: not-allowed; }
