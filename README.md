@@ -1,99 +1,203 @@
-# 初期モック実装 v0.5.5
+# アニマルダッシュ — 2026 桜麗祭企画
 
-手描きキャラクターで遊ぶ2Dレースゲームの操作検証用モックです。ゲーム画面と管理画面を別タブで開くと、キャラクター割り当てやフェーズ変更が即時同期します。
+## ゲーム概要
 
-## 起動
+来場者に動物のイラストを描いてもらい、その動物がゲーム内のレースに参加する参加型ゲームです。
 
-Node.js 22.13 以降で以下を実行します。
+## 技術選定
+
+- [JavaScript / JSX](https://developer.mozilla.org/ja/docs/Web/JavaScript) — アプリケーション全体を記述しています。TypeScriptは使用していません。
+- [React 19](https://react.dev/) — ゲーム画面と管理画面のUI、状態に応じた画面更新に使用しています。
+- [Vinext](https://github.com/cloudflare/vinext) — Next.jsのApp Router形式をViteとCloudflare Workers上で動かすための互換レイヤーです。`app/`以下のルーティングやReact Server Componentsのビルドを担当します。現在はベータ版のため、更新時にはビルドと画面表示の確認が必要です。
+- [Vite 8](https://vite.dev/) — ローカル開発サーバーと本番ビルドに使用しています。設定は`vite.config.js`にあります。
+- [Cloudflare Workers](https://developers.cloudflare.com/workers/) — 公開環境です。Workerの設定は`wrangler.jsonc`、起動処理は`worker/index.js`にあります。
+- [Wrangler](https://developers.cloudflare.com/workers/wrangler/) — Cloudflare Workersのローカル起動、ビルド結果の確認、デプロイに使用するCLIです。
+- [dnd kit](https://dndkit.com/) — 管理画面でキャラクターをレーンへ割り当てるドラッグ＆ドロップ操作に使用しています。
+- [Tailwind CSS 4](https://tailwindcss.com/) / CSS — Tailwind CSSをCSS処理の基盤として読み込み、画面固有の見た目は主に`app/styles/`以下の通常のCSSで管理しています。
+- React Reducer — レースセッションの状態遷移を一か所にまとめるために使用しています。処理は`app/features/race-session/`以下にあります。
+- [`localStorage`](https://developer.mozilla.org/ja/docs/Web/API/Window/localStorage) — レーン割り当てやゲームフェーズなど、モックの状態をブラウザ内に保存します。
+- [`BroadcastChannel`](https://developer.mozilla.org/ja/docs/Web/API/BroadcastChannel) — 同じブラウザで開いたゲーム画面と管理画面の状態をリアルタイムに同期します。
+- [Node.js Test Runner](https://nodejs.org/api/test.html) — ドメインロジック、画面レンダリング、デプロイ設定の自動テストに使用しています。
+- [ESLint](https://eslint.org/) — JavaScript / JSXの静的チェックに使用しています。
+
+このリポジトリは現在、操作検証用のモックとして実装されています。認証、D1、Durable Objects、R2などのサーバー側データ管理は実装していません。ゲーム状態はブラウザ内に保存されるため、別の端末やブラウザとは共有されません。
+
+`/game`内のフェーズ切り替えはURLルーティングではありません。あらかじめ読み込まれた画面コンポーネントを状態に応じて切り替えるため、フェーズ変更のたびに別ページを読み込むことはありません。
+
+## 必要な環境
+
+- Node.js 22.13以降
+- npm
+
+Cloudflareへ公開する場合は、追加でCloudflareアカウントとWranglerのログインが必要です。
+
+## ローカル起動
 
 ```bash
 npm install
 npm run dev
 ```
 
+起動後、次のURLを開きます。
+
 - ゲーム画面: `http://localhost:3000/game`
 - 管理画面: `http://localhost:3000/admin`
 - ヘルスチェック: `http://localhost:3000/health`
 
-## モックで試せること
+キーボード操作は次のとおりです。各レーンの左側がジャンプ、右側が加速です。
 
-- 来場者を呼び込むアトラクト画面（キャラクターパレード → 3ステップ遊び方 → 当日TOP10の約41秒上映）
-- 管理画面からのアトラクト再生・参加待機画面への手動遷移
-- 手描きクレヨン／絵の具調に統一した、全身・横向きの動物ランナー10体
-- 登録済み10キャラクターの検索・選択・解除
-- キャラクターカードを管理画面右側のレーンへドラッグ＆ドロップして割り当て（右側へ入った時だけ反応）
-- 最大4レーンへの割り当てとBOT補充
-- `BroadcastChannel` と `localStorage` を使ったタブ間リアルタイム同期
-- 3秒カウントダウン、4レーンの自動スクロールレース
-- キーボード／Gamepad APIによるジャンプと加速
-- 5区間の手描きコース、描き込み付きの6障害物、接地影・加速・衝突演出、順位・タイム
-- リザルト、日別TOP3、90秒後のアトラクト画面への自動復帰
-- スタッフによる強制終了・スキップ・リセット
-- サンプルAPI `/api/characters` と `/api/rankings`
+| レーン | ジャンプ | 加速 |
+| --- | --- | --- |
+| 1 | `Space` | `Shift` |
+| 2 | `↑` | `Enter` |
+| 3 | `W` | `E` |
+| 4 | `I` | `O` |
 
-キーボードはレーン順に、レーン1が `Space / Shift`、レーン2が `↑ / Enter`、レーン3が `W / E`、レーン4が `I / O` です。各組の左がジャンプ、右が加速です。
+## 開発用コマンド
 
-ゲーム画面は初回起動時にアトラクト表示から始まります。参加者を登録しても画面は切り替わらず、スタッフが管理画面の「参加待機画面」を押したときだけ参加待機へ進みます。
-
-## 実装範囲
-
-本成果物はフロントエンド体験の検証を目的とした、JavaScript／JSXのみのモックです。アプリ内認証はなく、ゲーム画面と管理画面を直接開けます。管理画面をインターネット公開する場合は、運用前に別途アクセス制御を追加してください。
-
-Durable Objects、D1、R2は接続せず、ブラウザの `BroadcastChannel` と `localStorage` で状態を共有しています。セッションのReducer、保存、タブ間同期、フェーズタイマーを分離しているため、本実装へ移行する際は `app/features/race-session/` のStorage・Channel境界を差し替えられます。
-
-## ディレクトリ構成
-
-| パス | 役割 |
+| コマンド | 用途 |
 | --- | --- |
-| `app/` | ページ、画面コンポーネント、ゲームロジック、スタイル |
-| `app/components/ui/` | Atomic Designに基づく共通UI |
-| `app/features/game/` | ゲーム画面、各フェーズ、レースエンジン |
-| `app/features/admin/` | 管理画面、ドラッグ＆ドロップ、キャラクター選択 |
-| `app/features/race-session/` | 状態更新、保存、タブ間同期、タイマー |
-| `app/domain/` | キャラクター、コース、ランキング、アトラクト設定 |
-| `app/styles/` | 共通・ゲーム・管理画面のCSS |
-| `public/` | キャラクター画像とOG画像 |
-| `worker/` | Cloudflare Workersからアプリを起動する入口 |
-| `tests/` | Node.js標準テスト |
-| `scripts/` | ビルド後処理などの補助スクリプト |
-| `doc/` | バージョンごとの実装計画 |
+| `npm run dev` | ローカル開発サーバーを起動する |
+| `npm run build` | Cloudflare Workers向けの公開ファイルを生成する |
+| `npm run start` | ビルド済みファイルをWranglerで起動する |
+| `npm run preview` | ビルド後にWranglerで起動する |
+| `npm run lint` | ESLintでコードを検査する |
+| `npm test` | ビルド後に全テストを実行する |
+| `npm run deploy:dry-run` | デプロイ内容をCloudflareへ反映せず確認する |
+| `npm run deploy` | Cloudflare Workersへデプロイする |
 
-次のフォルダーはコマンド実行時に自動生成され、Gitには保存されません。削除しても必要になれば再生成されます。
-
-| パス | 生成元・用途 |
-| --- | --- |
-| `node_modules/` | `npm install`で入る依存パッケージ |
-| `.next/` | Next.js互換処理の一時生成物 |
-| `.vinext/` | Vinextの開発用キャッシュ |
-| `.wrangler/` | Wranglerのログとローカル実行状態 |
-| `dist/` | `npm run build`で作る公開用ファイル |
-
-主な設定ファイルは、`vite.config.js`がローカル開発とビルド、`wrangler.jsonc`がCloudflare Workers、`eslint.config.mjs`が静的チェック、`postcss.config.mjs`がTailwind CSSの読み込みを担当します。`next.config.js`はNext.js互換レイヤー用の最小設定です。
-
-DrizzleはJavaScriptからSQLデータベースを扱い、テーブル定義やマイグレーションを管理するためのORMです。このモックはデータベースを使わず、ブラウザの`localStorage`に保存するため、Drizzle本体・設定・`drizzle/`フォルダーは必要ありません。
-
-`/game` 内のフェーズ切替はURLルーティングではなく、静的importされたScreenの状態切替です。フェーズ移行時に追加のページ読込は発生しません。
-
-初期計画からv5.5までの実装計画は、[`doc/README.md`](./doc/README.md)から参照できます。
-
-## 検証
+変更をマージする前に、最低限次のコマンドを実行してください。`npm test`にはビルドも含まれます。
 
 ```bash
-npm run build
 npm run lint
 npm test
 ```
 
+## プロジェクトディレクトリ構成
+
+```text
+.
+├── app/                              # アプリケーション本体
+│   ├── admin/
+│   │   └── page.jsx                  # 管理画面 /admin のルート
+│   ├── api/
+│   │   ├── characters/route.js       # キャラクター一覧のサンプルAPI
+│   │   └── rankings/route.js         # ランキング一覧のサンプルAPI
+│   ├── components/ui/                # 複数画面で再利用する共通UI
+│   │   ├── atoms/                    # Button、Badgeなど最小単位のUI
+│   │   ├── molecules/                # 検索欄、能力値表示など複合UI
+│   │   └── organisms/                # ダイアログなどまとまった共通UI
+│   ├── domain/                       # 表示に依存しないゲームデータとルール
+│   │   ├── attract.js                # アトラクト画面の構成と再生時間
+│   │   ├── characters.js             # キャラクター定義
+│   │   ├── course.js                 # コース区間と障害物定義
+│   │   ├── race-session.js           # レースセッションの初期データ
+│   │   └── rankings.js               # ランキングデータ
+│   ├── features/                     # 機能ごとの画面とロジック
+│   │   ├── admin/
+│   │   │   ├── components/           # 管理画面専用コンポーネント
+│   │   │   ├── hooks/                # Drag & Drop、選択処理のカスタムHook
+│   │   │   ├── model/                # レーンへのドロップ判定
+│   │   │   └── AdminPage.jsx         # 管理画面の組み立て
+│   │   ├── game/
+│   │   │   ├── components/           # ゲーム画面専用コンポーネント
+│   │   │   ├── race/                 # レース計算、操作、BOT制御
+│   │   │   ├── screens/              # 各ゲームフェーズの画面
+│   │   │   ├── GamePage.jsx          # ゲーム画面の組み立て
+│   │   │   └── GamePhaseRenderer.jsx # 現在のフェーズに対応する画面を表示
+│   │   └── race-session/             # 画面間で共有するセッション管理
+│   │       ├── race-session-reducer.js # 状態遷移
+│   │       ├── race-session-storage.js # localStorageへの保存
+│   │       ├── race-session-channel.js # BroadcastChannelでの同期
+│   │       └── useRaceSession.js      # 各画面から利用するHook
+│   ├── game/
+│   │   └── page.jsx                  # ゲーム画面 /game のルート
+│   ├── health/
+│   │   └── route.js                  # ヘルスチェック用
+│   ├── styles/                       # 共通・ゲーム・管理画面のCSS
+│   ├── globals.css                   # 全CSSの読み込み口
+│   ├── layout.jsx                    # 全ページ共通レイアウトとmetadata
+│   └── page.jsx                      # /gameへのリダイレクト
+├── doc/                              # 初期計画とバージョン別の実装計画
+├── public/
+│   ├── characters/                   # キャラクターごとのランナー画像
+│   └── og.png                        # og画像
+├── scripts/                          # ビルド後処理などの補助スクリプト
+├── tests/                            # Node.js標準テスト
+├── worker/
+│   └── index.js                      # Cloudflare Workersの起動処理
+├── eslint.config.mjs                 # ESLint設定
+├── next.config.js                    # Next.js互換レイヤーの設定
+├── package.json                      # 依存パッケージとnpmコマンド
+├── postcss.config.mjs                # Tailwind CSSのPostCSS設定
+├── vite.config.js                    # Vinext、Vite、Cloudflare開発設定
+└── wrangler.jsonc                    # Cloudflare Workersの公開設定
+```
+
+`.next/`、`.vinext/`、`.wrangler/`、`dist/`、`node_modules/`はコマンド実行時に自動生成されるため、人が直接編集する必要はありません。これらはGitでも管理しません。
+
+## 設計資料
+
+実装計画は[`doc/README.md`](./doc/README.md)に一覧化しています。初期計画をv1として、追加修正の内容をバージョンごとに保存しています。
+これらはモック作成時の設計記録です。通常の機能変更に合わせて`doc/`を都度更新する必要はありません。
+
+| 呼称 | バージョン | 内容 |
+| --- | --- | --- |
+| v1 | 0.1 | 初期モック、画面、レース、Cloudflare構成 |
+| v2 | 0.2 | アトラクト画面、手描きテイスト、全身ランナー |
+| v3 | 0.3 | JavaScript／JSX化、認証撤去、管理画面とコース改善 |
+| v4 | 0.4 | ドラッグ＆ドロップ、各ゲーム画面、待機画面改善 |
+| v5 | 0.5.0 | Atomic Designを重視したコンポーネント分割 |
+| v5.5 | 0.5.5 | Cloudflare Workersへの移行 |
+
+## 開発フロー
+
+### Issue
+
+詳細は `https://app.notion.com/p/logeek/3c44072687e1800c99dbfc43751e8d3d?source=copy_link` を参照してください。
+
+基本的に、Issueを作成してから作業を始めます。
+`develop`から、Issue番号を含む作業ブランチを作成してください。
+
+```text
+issue/4-admin-drag-drop
+issue/12-fix-race-layout
+```
+
+### Merge
+
+- 作業ブランチから`develop`へPull Requestを作成する
+- セルフレビュー、セルフマージ可
+- 不安な場合は、他のメンバーに確認を依頼する
+- テストが失敗している状態ではマージしない
+- 本番へ反映するときは`develop`から`main`へマージする
+
+## ブランチ運用
+
+| ブランチ | 用途 |
+| --- | --- |
+| `main` | 本番用 |
+| `develop` | 開発/テスト用 |
+| `issue/<番号>-<作業内容>` | Issue単位の作業ブランチ。`develop`から作成し、完了後に`develop`へマージする |
+
+原則として`main`と`develop`へ直接コミットせず、Issueに対応する作業ブランチを使用します。
+
 ## Cloudflare Workersへの公開
 
-ChatGPT Sitesは使用せず、Cloudflare Workersへ直接デプロイします。Cloudflareへログインした環境で実行してください。
+デプロイ前に内容を確認します。
 
 ```bash
 npm run deploy:dry-run
+```
+
+問題がなければCloudflare Workersへ反映します。
+
+```bash
 npm run deploy
 ```
 
-Worker名は`animaldash`です。公開URLはCloudflareの仕様により`animaldash.<アカウントサブドメイン>.workers.dev`形式になります。設定は`wrangler.jsonc`、生成された実行設定は`dist/server/wrangler.json`で確認できます。
+Worker名は`animaldash`です。公開URLは`animaldash.<アカウントサブドメイン>.workers.dev`形式になります。
+cloudflare設定が完了するまでは、個人のサブドメインを使用します
 
 - ゲーム画面: [animaldash.kosei-mochizuki.workers.dev/game](https://animaldash.kosei-mochizuki.workers.dev/game)
 - 管理画面: [animaldash.kosei-mochizuki.workers.dev/admin](https://animaldash.kosei-mochizuki.workers.dev/admin)
