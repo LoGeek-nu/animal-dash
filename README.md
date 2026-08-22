@@ -44,6 +44,7 @@ npm run dev
 - 管理画面: `http://localhost:3000/admin`
 - ヘルスチェック: `http://localhost:3000/health`
 
+現在モックの為、キーボードで動かすことが可能です。
 キーボード操作は次のとおりです。各レーンの左側がジャンプ、右側が加速です。
 
 | レーン | ジャンプ | 加速 |
@@ -151,10 +152,9 @@ npm test
 | v5.5 | 0.5.5 | Cloudflare Workersへの移行 |
 
 ## 開発フロー
+詳細は `https://app.notion.com/p/logeek/3c44072687e1800c99dbfc43751e8d3d?source=copy_link` を参照してください。
 
 ### Issue
-
-詳細は `https://app.notion.com/p/logeek/3c44072687e1800c99dbfc43751e8d3d?source=copy_link` を参照してください。
 
 基本的に、Issueを作成してから作業を始めます。
 `develop`から、Issue番号を含む作業ブランチを作成してください。
