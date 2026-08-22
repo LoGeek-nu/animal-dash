@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720">
-  <defs><pattern id="grain" width="30" height="30" patternUnits="userSpaceOnUse"><circle cx="4" cy="7" r="2" fill="#fff" opacity=".38"/><circle cx="22" cy="18" r="1.5" fill="#fff" opacity=".28"/></pattern></defs>
-  <rect width="1280" height="720" fill="#42bff1"/><rect width="1280" height="720" fill="url(#grain)"/>
-  <path d="M0 490 Q320 440 640 500 T1280 470 V720 H0Z" fill="#75ce4e" stroke="#183447" stroke-width="8"/>
-  <g transform="translate(640 260) rotate(-2)"><text text-anchor="middle" font-family="Arial Rounded MT Bold, sans-serif" font-weight="900" font-size="105" fill="#ffd932" stroke="#fff" stroke-width="24" paint-order="stroke">DEMO RACE!</text><text y="95" text-anchor="middle" font-family="sans-serif" font-weight="900" font-size="34" fill="#fff" stroke="#183447" stroke-width="10" paint-order="stroke">JUMP + BOOST</text></g>
-  <g fill="#ff4c98"><path d="M110 120l18 42 42 18-42 18-18 42-18-42-42-18 42-18z"/><path d="M1120 90l14 32 32 14-32 14-14 32-14-32-32-14 32-14z"/></g>
-</svg>

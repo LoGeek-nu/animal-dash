@@ -1,6 +1,6 @@
-# ANIMAL DASH! v0.5.5 モック
+# 初期モック実装 v0.5.5
 
-桜麗祭向け「手描きキャラクター・2Dレースゲーム」の操作検証用モックです。来場者向けゲーム画面とスタッフ管理画面を別タブで開くと、キャラクター割り当てやフェーズ変更が即時同期します。
+手描きキャラクターで遊ぶ2Dレースゲームの操作検証用モックです。ゲーム画面と管理画面を別タブで開くと、キャラクター割り当てやフェーズ変更が即時同期します。
 
 ## 起動
 
@@ -41,14 +41,36 @@ npm run dev
 
 Durable Objects、D1、R2は接続せず、ブラウザの `BroadcastChannel` と `localStorage` で状態を共有しています。セッションのReducer、保存、タブ間同期、フェーズタイマーを分離しているため、本実装へ移行する際は `app/features/race-session/` のStorage・Channel境界を差し替えられます。
 
-## コード構成
+## ディレクトリ構成
 
-- `app/components/ui/`: Atomic Designに基づく共通Atoms・Molecules・Organisms
-- `app/features/game/`: ゲーム画面、フェーズScreen、レースエンジン
-- `app/features/admin/`: 管理画面、ドラッグ＆ドロップ、キャラクター選択
-- `app/features/race-session/`: Reducer、永続化、タブ間同期、タイマー
-- `app/domain/`: キャラクター、コース、ランキング、アトラクト設定
-- `app/styles/`: 共通、ゲーム各Screen、管理画面、レスポンシブのスタイル
+| パス | 役割 |
+| --- | --- |
+| `app/` | ページ、画面コンポーネント、ゲームロジック、スタイル |
+| `app/components/ui/` | Atomic Designに基づく共通UI |
+| `app/features/game/` | ゲーム画面、各フェーズ、レースエンジン |
+| `app/features/admin/` | 管理画面、ドラッグ＆ドロップ、キャラクター選択 |
+| `app/features/race-session/` | 状態更新、保存、タブ間同期、タイマー |
+| `app/domain/` | キャラクター、コース、ランキング、アトラクト設定 |
+| `app/styles/` | 共通・ゲーム・管理画面のCSS |
+| `public/` | キャラクター画像とOG画像 |
+| `worker/` | Cloudflare Workersからアプリを起動する入口 |
+| `tests/` | Node.js標準テスト |
+| `scripts/` | ビルド後処理などの補助スクリプト |
+| `doc/` | バージョンごとの実装計画 |
+
+次のフォルダーはコマンド実行時に自動生成され、Gitには保存されません。削除しても必要になれば再生成されます。
+
+| パス | 生成元・用途 |
+| --- | --- |
+| `node_modules/` | `npm install`で入る依存パッケージ |
+| `.next/` | Next.js互換処理の一時生成物 |
+| `.vinext/` | Vinextの開発用キャッシュ |
+| `.wrangler/` | Wranglerのログとローカル実行状態 |
+| `dist/` | `npm run build`で作る公開用ファイル |
+
+主な設定ファイルは、`vite.config.js`がローカル開発とビルド、`wrangler.jsonc`がCloudflare Workers、`eslint.config.mjs`が静的チェック、`postcss.config.mjs`がTailwind CSSの読み込みを担当します。`next.config.js`はNext.js互換レイヤー用の最小設定です。
+
+DrizzleはJavaScriptからSQLデータベースを扱い、テーブル定義やマイグレーションを管理するためのORMです。このモックはデータベースを使わず、ブラウザの`localStorage`に保存するため、Drizzle本体・設定・`drizzle/`フォルダーは必要ありません。
 
 `/game` 内のフェーズ切替はURLルーティングではなく、静的importされたScreenの状態切替です。フェーズ移行時に追加のページ読込は発生しません。
 
