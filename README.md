@@ -52,6 +52,8 @@ Durable Objects、D1、R2は接続せず、ブラウザの `BroadcastChannel` �
 
 `/game` 内のフェーズ切替はURLルーティングではなく、静的importされたScreenの状態切替です。フェーズ移行時に追加のページ読込は発生しません。
 
+初期計画からv5.5までの実装計画は、[`doc/README.md`](./doc/README.md)から参照できます。
+
 ## 検証
 
 ```bash

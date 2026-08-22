@@ -1,6 +1,6 @@
 # ANIMAL DASH! 追加修正用実装計画 v0.5
 
-- 文書バージョン: 0.5
+- 文書バージョン: 0.5.0
 - 作成日: 2026-08-19
 - 対象: JavaScript / JSX版 ANIMAL DASH! モック
 - 基準バージョン: v0.4（commit `a6e1a22`）
