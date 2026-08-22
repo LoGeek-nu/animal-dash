@@ -1,4 +1,4 @@
-# ANIMAL DASH! v0.5 モック
+# ANIMAL DASH! v0.5.5 モック
 
 桜麗祭向け「手描きキャラクター・2Dレースゲーム」の操作検証用モックです。来場者向けゲーム画面とスタッフ管理画面を別タブで開くと、キャラクター割り当てやフェーズ変更が即時同期します。
 
@@ -59,3 +59,17 @@ npm run build
 npm run lint
 npm test
 ```
+
+## Cloudflare Workersへの公開
+
+ChatGPT Sitesは使用せず、Cloudflare Workersへ直接デプロイします。Cloudflareへログインした環境で実行してください。
+
+```bash
+npm run deploy:dry-run
+npm run deploy
+```
+
+Worker名は`animaldash`です。公開URLはCloudflareの仕様により`animaldash.<アカウントサブドメイン>.workers.dev`形式になります。設定は`wrangler.jsonc`、生成された実行設定は`dist/server/wrangler.json`で確認できます。
+
+- ゲーム画面: [animaldash.kosei-mochizuki.workers.dev/game](https://animaldash.kosei-mochizuki.workers.dev/game)
+- 管理画面: [animaldash.kosei-mochizuki.workers.dev/admin](https://animaldash.kosei-mochizuki.workers.dev/admin)
