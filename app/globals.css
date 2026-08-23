@@ -1,0 +1,14 @@
+@import "tailwindcss";
+@import "./styles/tokens.css";
+@import "./styles/reset.css";
+@import "./styles/game/base.css";
+@import "./styles/game/attract.css";
+@import "./styles/game/waiting.css";
+@import "./styles/game/countdown.css";
+@import "./styles/game/race.css";
+@import "./styles/game/results.css";
+@import "./styles/admin.css";
+@import "./styles/animations.css";
+@import "./styles/game/responsive.css";
+@import "./styles/admin-responsive.css";
+@import "./styles/accessibility.css";
