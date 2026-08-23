@@ -4,6 +4,31 @@
 
 来場者に動物のイラストを描いてもらい、その動物がゲーム内のレースに参加する参加型ゲームです。
 
+## 開発環境のセットアップ
+
+必要な環境は次のとおりです。
+
+- Git
+- Node.js 22.13.0
+- npm
+
+このプロジェクトで使用するNode.jsのバージョンは`22.13.0`です。開発者間でバージョンを合わせるため、nvmでのバージョン管理をおすすめします。macOSでは[nvm](https://github.com/nvm-sh/nvm)、Windowsでは[nvm-windows](https://github.com/coreybutler/nvm-windows)を利用できます。
+
+```bash
+git clone https://github.com/LoGeek-nu/animal-dash.git
+cd animal-dash
+npm install
+npm run dev
+```
+
+起動後、次のURLを開きます。
+
+- ゲーム画面: `http://localhost:3000/game`
+- 管理画面: `http://localhost:3000/admin`
+- ヘルスチェック: `http://localhost:3000/health`
+
+Cloudflareへ公開する場合は、追加でCloudflareアカウントとWranglerのログインが必要です。
+
 ## 技術選定
 
 - [JavaScript / JSX](https://developer.mozilla.org/ja/docs/Web/JavaScript) — アプリケーション全体を記述しています。TypeScriptは使用していません。
@@ -23,26 +48,6 @@
 このリポジトリは現在、操作検証用のモックとして実装されています。認証、D1、Durable Objects、R2などのサーバー側データ管理は実装していません。ゲーム状態はブラウザ内に保存されるため、別の端末やブラウザとは共有されません。
 
 `/game`内のフェーズ切り替えはURLルーティングではありません。あらかじめ読み込まれた画面コンポーネントを状態に応じて切り替えるため、フェーズ変更のたびに別ページを読み込むことはありません。
-
-## 必要な環境
-
-- Node.js 22.13以降
-- npm
-
-Cloudflareへ公開する場合は、追加でCloudflareアカウントとWranglerのログインが必要です。
-
-## ローカル起動
-
-```bash
-npm install
-npm run dev
-```
-
-起動後、次のURLを開きます。
-
-- ゲーム画面: `http://localhost:3000/game`
-- 管理画面: `http://localhost:3000/admin`
-- ヘルスチェック: `http://localhost:3000/health`
 
 現在モックの為、キーボードで動かすことが可能です。
 キーボード操作は次のとおりです。各レーンの左側がジャンプ、右側が加速です。
