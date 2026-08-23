@@ -5,7 +5,6 @@ export function StatBars({ id, small = false }) {
   const stats = [
     ["SPD", character.stats.speed],
     ["ACC", character.stats.acceleration],
-    ["JMP", character.stats.jump],
     ["STM", character.stats.stamina],
   ];
 
