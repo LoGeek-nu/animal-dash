@@ -1,3 +1,5 @@
+const JUMP_POWER = 7;
+
 export function createRuntimeRunner() {
   return {
     progress: 0,
@@ -20,7 +22,7 @@ export function stepRaceRunner({ runner, character, input, obstacles, now, dt, e
   let jumped = false;
 
   if (input.jump && next.y === 0) {
-    next.vy = 500 + character.stats.jump * 34;
+    next.vy = 500 + JUMP_POWER * 34;
     jumped = true;
   }
 
