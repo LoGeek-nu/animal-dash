@@ -1,3 +1,11 @@
+---
+name: Issue
+about: 作業用のIssueを作成する
+title: ""
+labels: ""
+assignees: ""
+---
+
 ## 概要
 
 <!-- 対応する内容を簡潔に記載してください。 -->

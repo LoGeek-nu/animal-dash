@@ -72,4 +72,4 @@ npm test
 
 ## Issue / Pull Request テンプレート
 
-`.github/ISSUE_TEMPLATE.md`と`.github/pull_request_template.md`が用意されています。Issue作成・PR作成時は自動的にこのテンプレートが適用されるため、概要・完了条件（Issue）や変更内容・確認チェックリスト（PR）を埋めてください。開発フローの詳細は[開発フロー](./development-flow.md)を参照してください。
+`.github/ISSUE_TEMPLATE/issue.md`と`.github/pull_request_template.md`が用意されています。Issue作成・PR作成時は自動的にこのテンプレートが適用されるため、概要・完了条件（Issue）や変更内容・確認チェックリスト（PR）を埋めてください。開発フローの詳細は[開発フロー](./development-flow.md)を参照してください。

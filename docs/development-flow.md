@@ -8,7 +8,7 @@
 
 ## 1. Issueを作る
 
-基本的に、Issueを作成してから作業を始めます。GitHubリポジトリの「Issues → New issue」から作成します。Issue作成時は`.github/ISSUE_TEMPLATE.md`のテンプレートが適用されるので、概要と完了条件を記入してください。
+基本的に、Issueを作成してから作業を始めます。GitHubリポジトリの「Issues → New issue」から作成します。Issue作成時は`.github/ISSUE_TEMPLATE/issue.md`のテンプレートが選択肢に表示されるので、それを選んで概要と完了条件を記入してください。
 
 Issueを作成すると番号が割り当てられます（例: `#4`）。この番号は次の作業ブランチ名に使用します。
 
