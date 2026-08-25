@@ -12,11 +12,11 @@ Issueは、「これから何を実装・修正するのか」をGitHub上で管
 
 基本的に、Issueを作成してから作業を始めます。GitHubリポジトリの「Issues → New issue」から作成します。
 
-![GitHubのIssues画面](./images/development-flow/01-new-issue.png)
+<img src="./images/development-flow/01-new-issue.png" alt="GitHubのIssues画面" width="600">
 
 Issue作成時は`.github/ISSUE_TEMPLATE/issue.md`のテンプレートが選択肢に表示されるので、それを選んで概要と完了条件を記入してください。
 
-![Issue作成画面](./images/development-flow/02-issue-form.png)
+<img src="./images/development-flow/02-issue-form.png" alt="Issue作成画面" width="600">
 
 Issueを作成すると番号が割り当てられます（例: `#1`）。この番号は次の作業ブランチ名に使用します。
 
@@ -26,7 +26,7 @@ Issueを作成すると番号が割り当てられます（例: `#1`）。この
 
 ブランチは、同じリポジトリの中で作業内容を分岐させ、他の人の変更に影響を与えずに自分の変更を進めるための仕組みです。`develop`という「本流」から自分専用の作業ブランチを枝分かれさせ、そこで自由にコード変更・コミットを行い、作業が完了したら`develop`へ合流（マージ）させます。ブランチが分かれていれば、複数人が同時に別々の機能を開発してもお互いの作業がぶつかりません。
 
-![ブランチが枝分かれし、マージされていくイメージ図](./images/development-flow/00-branch-diagram.png)
+<img src="./images/development-flow/00-branch-diagram.png" alt="ブランチが枝分かれし、マージされていくイメージ図" width="400">
 （出典: [Gitのブランチ機能を完全理解！Git Flow・GitHub Flow・GitLab Flowを実例付きで解説 - Zenn](https://zenn.dev/code_journey_ys/articles/7c7dba4450ff18)）
 
 `develop`から、Issue番号を含む作業ブランチを作成してください。ブランチ名は`issue/<Issue番号>-<作業内容>`とし、作業内容は英語で簡潔に書きます。
@@ -70,11 +70,11 @@ git push -u origin issue/<Issue番号>-<作業内容>
 
 `git push`は、手元に溜めたコミットをGitHub（リモート）へ送信するコマンドです。`-u origin issue/<Issue番号>-<作業内容>`は「このブランチをGitHub上の同名ブランチに送り、以後は追跡対象として紐づける」という意味で、初回のpushにのみ必要です（2回目以降は`git push`だけで送れます）。
 
-![Push後のGitHub画面](./images/development-flow/03-push.png)
+<img src="./images/development-flow/03-push.png" alt="Push後のGitHub画面" width="600">
 
 「Compare & request」が表示されている場合はそれを押してPR作成画面へ移動します。表示されていない場合は「New pull request」から、マージ先（base）を`develop`、マージするブランチをcompareに設定してPRを作成します。
 
-![PR作成画面（compare）](./images/development-flow/04-compare-pr.png)
+<img src="./images/development-flow/04-compare-pr.png" alt="PR作成画面（compare）" width="200">
 
 ## 4. Pull Request
 
@@ -84,7 +84,7 @@ Pull Request（PR）は、「このブランチで行った変更をdevelopへ�
 
 作業ブランチから`develop`へPull Requestを作成します。
 
-![Pull Request作成画面](./images/development-flow/05-pr-form.png)
+<img src="./images/development-flow/05-pr-form.png" alt="Pull Request作成画面" width="600">
 
 - PR作成時は`.github/pull_request_template.md`のテンプレートが適用されるので、対応するIssue番号（`Closes #`）、変更内容、確認項目を記入する
 - 他のメンバーにレビューを依頼する
@@ -92,7 +92,7 @@ Pull Request（PR）は、「このブランチで行った変更をdevelopへ�
 
 問題がなければ`develop`へMergeします。IssueはMerge時に自動的にCloseされます。
 
-![Mergeボタン周辺](./images/development-flow/06-merge.png)
+<img src="./images/development-flow/06-merge.png" alt="Mergeボタン周辺" width="400">
 
 ## ブランチ運用
 
