@@ -60,3 +60,15 @@ git push -u origin issue/<Issue番号>-<作業内容>
 原則として`main`と`develop`へ直接コミットせず、Issueに対応する作業ブランチを使用します。
 
 本番へ反映するときの手順は[本番リリースフロー](./release-flow.md)を参照してください。
+
+## Git / GitHubが初めての場合
+
+このプロジェクトでの開発フローの前提となる、Git / GitHub自体の基本操作（コミット、ブランチ、Pull Requestなど）を学べる資料です。
+
+- [初心者でもわかるGit & GitHub入門 - Qiita](https://qiita.com/Udy03/items/973bb483b9f047877e88) — コマンドの意味から丁寧に説明されています。
+- [サル先生のGit入門〜バージョン管理を使いこなそう〜](https://backlog.com/ja/git-tutorial/) — キャラクター解説付きで、Gitの概念（コミット・ブランチ・マージなど）を基礎から学べます。
+- [Hello World - GitHub Docs](https://docs.github.com/get-started/quickstart/hello-world) — GitHub公式のチュートリアル。リポジトリ作成からPull Requestまでを実際に手を動かして体験できます（英語）。
+
+---
+
+[目次に戻る](../README.md#ドキュメント目次)

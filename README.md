@@ -13,6 +13,8 @@
 
 企画全体の進行状況や当日の運営・装飾タスクなどは[Notion](https://app.notion.com/p/logeek/37f4072687e180b4a19bc9f5a178a1b3)で管理しています。このリポジトリはゲーム・システム開発部分を扱います。
 
+来場者が描いた動物イラストを、ゲームで使う透過キャラクター画像とステータスに変換する取り込みパイプラインは、[animal-dash-image-poc](https://github.com/minmmmmin/animal-dash-image-poc)という別リポジトリでPoCとして検証中です。現時点でこのリポジトリとは連携しておらず、ゲーム側は`public/characters/`の静的な画像を使っています。
+
 ## ドキュメント目次
 
 ### はじめに
