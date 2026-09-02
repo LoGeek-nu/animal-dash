@@ -9,6 +9,7 @@ export const RaceSessionAction = {
   SHOW_ATTRACT: "SHOW_ATTRACT",
   SHOW_WAITING: "SHOW_WAITING",
   RESTART_ATTRACT: "RESTART_ATTRACT",
+  NEXT_ATTRACT: "NEXT_ATTRACT",
   RESET_SESSION: "RESET_SESSION",
 };
 
@@ -23,5 +24,6 @@ export const raceSessionActions = {
   showAttract: () => ({ type: RaceSessionAction.SHOW_ATTRACT }),
   showWaiting: () => ({ type: RaceSessionAction.SHOW_WAITING }),
   restartAttract: () => ({ type: RaceSessionAction.RESTART_ATTRACT }),
+  nextAttract: () => ({ type: RaceSessionAction.NEXT_ATTRACT }),
   resetSession: () => ({ type: RaceSessionAction.RESET_SESSION }),
 };

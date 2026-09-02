@@ -55,6 +55,7 @@ export function useRaceSession() {
     showAttract: () => dispatch(raceSessionActions.showAttract()),
     showWaiting: () => dispatch(raceSessionActions.showWaiting()),
     restartAttract: () => dispatch(raceSessionActions.restartAttract()),
+    nextAttract: () => dispatch(raceSessionActions.nextAttract()),
   }), [dispatch]);
 
   return { session, ready, actions };

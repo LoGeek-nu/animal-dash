@@ -9,6 +9,7 @@ export function AdminControlBar({ session, participantCount, actions, onRequestF
       </div>
       <div className="admin-actions">
         <Button variant="ghost" onClick={session.phase === "ATTRACT" ? actions.restartAttract : actions.showAttract}>{session.phase === "ATTRACT" ? "上映を最初から" : "アトラクトへ"}</Button>
+        <Button variant="ghost" disabled={session.phase !== "ATTRACT"} onClick={actions.nextAttract}>アトラクト画面を移行する</Button>
         <Button variant="ghost" onClick={actions.showWaiting}>参加待機画面</Button>
         <Button variant="ghost" disabled={session.phase === "WAITING" || session.phase === "ATTRACT"} onClick={onRequestFinish}>{session.phase === "RESULTS" ? "リザルトをスキップ" : "強制終了"}</Button>
         <Button variant="ghost" onClick={onRequestReset}>リセット</Button>
