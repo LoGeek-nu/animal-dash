@@ -111,6 +111,20 @@ test("session transitions are isolated in the reducer", () => {
   assert.equal(countdown.phase, "COUNTDOWN");
   assert.equal(countdown.countdownEndsAt, 5_600);
   assert.equal(raceSessionReducer(countdown, raceSessionActions.removeCharacter(0), 2_100), countdown);
+
+  const attract = raceSessionReducer(initial, raceSessionActions.showAttract());
+  assert.equal(attract.phase, "ATTRACT");
+  assert.equal(attract.attractIndex, 0);
+
+  const nextScene1 = raceSessionReducer(attract, raceSessionActions.nextAttract());
+  assert.equal(nextScene1.attractIndex, 1);
+  const nextScene2 = raceSessionReducer(nextScene1, raceSessionActions.nextAttract());
+  assert.equal(nextScene2.attractIndex, 2);
+  const nextSceneLoop = raceSessionReducer(nextScene2, raceSessionActions.nextAttract());
+  assert.equal(nextSceneLoop.attractIndex, 0);
+
+  const restarted = raceSessionReducer(nextScene2, raceSessionActions.restartAttract());
+  assert.equal(restarted.attractIndex, 0);
 });
 
 test("race engine calculates jump, boost, collision, and rankings without React", () => {

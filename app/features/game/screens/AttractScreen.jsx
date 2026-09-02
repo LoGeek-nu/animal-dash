@@ -8,8 +8,12 @@ import { AttractRanking } from "../components/AttractRanking.jsx";
 import { AttractTutorial } from "../components/AttractTutorial.jsx";
 import { GameHeader } from "../components/GameHeader.jsx";
 
-export function AttractScreen({ revision }) {
-  const [scene, setScene] = useState(0);
+export function AttractScreen({ revision, attractIndex = 0 }) {
+  const [scene, setScene] = useState(attractIndex);
+
+  useEffect(() => {
+    setScene(attractIndex);
+  }, [attractIndex]);
 
   useEffect(() => {
     const timer = window.setTimeout(

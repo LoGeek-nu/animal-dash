@@ -7,7 +7,7 @@ import { WaitingScreen } from "./screens/WaitingScreen.jsx";
 export function GamePhaseRenderer({ session, onFinished }) {
   switch (session.phase) {
     case "ATTRACT":
-      return <AttractScreen key={session.sequence} revision={session.sequence} />;
+      return <AttractScreen key={session.sequence} revision={session.sequence} attractIndex={session.attractIndex ?? 0} />;
     case "COUNTDOWN":
       return <CountdownScreen lanes={session.lanes} countdownEndsAt={session.countdownEndsAt} />;
     case "RACING":

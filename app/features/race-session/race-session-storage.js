@@ -8,7 +8,7 @@ export function loadRaceSession() {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (!saved) return null;
     const session = JSON.parse(saved);
-    return validSession(session) ? session : null;
+    return validSession(session) ? { ...session, attractIndex: 0 } : null;
   } catch {
     return null;
   }

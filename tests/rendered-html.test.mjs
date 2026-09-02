@@ -40,6 +40,7 @@ test("server-renders the staff control screen", async () => {
   assert.match(html, /レース開始/);
   assert.match(html, /参加待機画面/);
   assert.match(html, /上映を最初から/);
+  assert.match(html, /アトラクト画面を移行する/);
 });
 
 test("health endpoint reports the mock ready", async () => {

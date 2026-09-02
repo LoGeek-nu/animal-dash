@@ -1,7 +1,7 @@
 /** @typedef {"ATTRACT"|"WAITING"|"COUNTDOWN"|"RACING"|"RESULTS"|"RECOVERY"} RacePhase */
 /** @typedef {{characterId:string, isBot:boolean}} LaneAssignment */
 /** @typedef {{characterId:string, lane:number, rank:number, finishMs:number|null, isBot:boolean}} RaceResult */
-/** @typedef {{version:3, sequence:number, sessionId:string, phase:RacePhase, lanes:Array<LaneAssignment|null>, lastSync:number, courseSeed:string, countdownEndsAt:number|null, raceStartedAt:number|null, resultsEndsAt:number|null, results:RaceResult[]}} RaceSession */
+/** @typedef {{version:3, sequence:number, sessionId:string, phase:RacePhase, lanes:Array<LaneAssignment|null>, lastSync:number, courseSeed:string, countdownEndsAt:number|null, raceStartedAt:number|null, resultsEndsAt:number|null, results:RaceResult[], attractIndex?:number}} RaceSession */
 
 export const RACE_PHASES = ["ATTRACT", "WAITING", "COUNTDOWN", "RACING", "RESULTS", "RECOVERY"];
 
@@ -21,6 +21,7 @@ export function createInitialSession() {
     sequence: 1,
     sessionId: "session_demo01",
     phase: "ATTRACT",
+    attractIndex: 0,
     lanes: [
       { characterId: "momo", isBot: false },
       { characterId: "toramaru", isBot: false },

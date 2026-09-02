@@ -1,3 +1,4 @@
+import { ATTRACT_SCENES } from "../../domain/attract.js";
 import { characters, getCharacter } from "../../domain/characters.js";
 import { createEmptySession } from "../../domain/race-session.js";
 import { COUNTDOWN_DURATION, RESULTS_DURATION } from "./constants.js";
@@ -57,11 +58,21 @@ export function raceSessionReducer(session, action, now = Date.now()) {
       return { ...session, phase: "RESULTS", results, resultsEndsAt: now + RESULTS_DURATION, countdownEndsAt: null };
     }
     case RaceSessionAction.SHOW_ATTRACT:
-      return { ...session, phase: "ATTRACT", countdownEndsAt: null, raceStartedAt: null, resultsEndsAt: null, results: [] };
+      return { ...session, phase: "ATTRACT", attractIndex: 0, countdownEndsAt: null, raceStartedAt: null, resultsEndsAt: null, results: [] };
     case RaceSessionAction.SHOW_WAITING:
       return { ...session, phase: "WAITING", countdownEndsAt: null, raceStartedAt: null, resultsEndsAt: null, results: [] };
     case RaceSessionAction.RESTART_ATTRACT:
-      return session.phase === "ATTRACT" ? { ...session } : session;
+      return session.phase === "ATTRACT" ? { ...session, attractIndex: 0 } : session;
+    case RaceSessionAction.NEXT_ATTRACT: {
+      if (session.phase !== "ATTRACT") {
+        return { ...session, phase: "ATTRACT", attractIndex: 0, countdownEndsAt: null, raceStartedAt: null, resultsEndsAt: null, results: [] };
+      }
+      const currentScene = typeof session.attractIndex === "number" ? session.attractIndex : 0;
+      return {
+        ...session,
+        attractIndex: (currentScene + 1) % ATTRACT_SCENES.length,
+      };
+    }
     case RaceSessionAction.RESET_SESSION:
       return createEmptySession(session.sequence);
     default:
