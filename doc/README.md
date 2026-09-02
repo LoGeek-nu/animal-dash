@@ -10,6 +10,7 @@ ANIMAL DASH!の初期計画と追加修正計画は、すべてこのディレ�
 | v4 | 0.4 | [`ADDITIONAL_IMPLEMENTATION_PLAN_v0.4.md`](./ADDITIONAL_IMPLEMENTATION_PLAN_v0.4.md) | ドラッグ＆ドロップ、アトラクト、ゲーム画面、待機画面改善 |
 | v5 | 0.5.0 | [`ADDITIONAL_IMPLEMENTATION_PLAN_v0.5.0.md`](./ADDITIONAL_IMPLEMENTATION_PLAN_v0.5.0.md) | Atomic Designを重視したコンポーネント分割 |
 | v5.5 | 0.5.5 | [`ADDITIONAL_IMPLEMENTATION_PLAN_v0.5.5.md`](./ADDITIONAL_IMPLEMENTATION_PLAN_v0.5.5.md) | ChatGPT Sites撤去とCloudflare Workers移行 |
+| v6 | 0.6 | [`ADDITIONAL_IMPLEMENTATION_PLAN_v0.6.md`](./ADDITIONAL_IMPLEMENTATION_PLAN_v0.6.md) | 画像・ステータス生成パイプラインの本番組み込み方針（#23起点） |
 
 ## 命名について
 
