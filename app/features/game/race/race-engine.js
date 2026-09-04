@@ -1,4 +1,5 @@
 const JUMP_POWER = 7;
+const SPEED_MULTIPLIER = 3;
 
 export function createRuntimeRunner() {
   return {
@@ -45,7 +46,7 @@ export function stepRaceRunner({ runner, character, input, obstacles, now, dt, e
     next.stamina = Math.min(100, next.stamina + (12 + character.stats.stamina * .7) * dt);
   }
 
-  let speed = 2.18 + character.stats.speed * .055 + (next.boosting ? .86 : 0);
+  let speed = (2.18 + character.stats.speed * .055 + (next.boosting ? .86 : 0)) * SPEED_MULTIPLIER;
   if (next.collisionUntil > now) speed *= .35;
   next.progress = Math.min(100, next.progress + speed * dt);
 
