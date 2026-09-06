@@ -21,10 +21,10 @@
 .rank-bubble span { font-size: .65rem; font-weight: 1000; }
 .track-meter { height: .35rem; position: absolute; z-index: 14; top: .4rem; left: 19vw; right: 2vw; overflow: hidden; background: rgba(255,255,255,.75); border: 1px solid var(--ink); border-radius: 99px; }
 .track-meter i { display: block; height: 100%; background: var(--lane); }
-.stamina-meter { width: 12vw; min-width: 130px; display: flex; align-items: center; gap: .4rem; position: absolute; z-index: 14; top: 1.25rem; right: 2vw; }
-.stamina-meter span { font-size: .5rem; font-weight: 1000; }
-.stamina-meter i { height: .6rem; flex: 1; padding: 1px; overflow: hidden; background: white; border: 1.5px solid var(--ink); border-radius: 99px; }
-.stamina-meter b { display: block; height: 100%; background: linear-gradient(90deg, #ffd43b, #ff8d5a); border-radius: 99px; }
+.stamina-meter { width: 96px; min-width: 90px; display: flex; align-items: center; gap: .35rem; position: absolute; z-index: 14; left: calc(23% - 35px); bottom: calc(5.5% + 78px); padding: .2rem .45rem; background: rgba(24, 52, 71, .88); border: 2px solid white; border-radius: 99px; box-shadow: 0 3px 6px rgba(24, 52, 71, .35); pointer-events: none; }
+.stamina-meter span { color: #ffe052; font-size: .48rem; font-weight: 1000; letter-spacing: .06em; line-height: 1; }
+.stamina-meter i { height: .5rem; flex: 1; padding: 1px; overflow: hidden; background: rgba(255, 255, 255, .95); border: 1px solid var(--ink); border-radius: 99px; }
+.stamina-meter b { display: block; height: 100%; background: linear-gradient(90deg, #ffd43b, #ff7a45); border-radius: 99px; }
 .course-scenery { position: absolute; z-index: 1; inset: 0; pointer-events: none; }
 .course-layer { position: absolute; inset: 0; overflow: hidden; }
 .course-far { background-image: radial-gradient(circle at 12% 23%,rgba(255,255,255,.95) 0 12px,transparent 13px),radial-gradient(circle at 14% 22%,rgba(255,255,255,.95) 0 20px,transparent 21px),radial-gradient(circle at 68% 18%,rgba(255,255,255,.82) 0 13px,transparent 14px),radial-gradient(circle at 71% 18%,rgba(255,255,255,.82) 0 20px,transparent 21px); background-position: var(--far-scroll) 0,calc(var(--far-scroll) - 20px) 0,calc(var(--far-scroll) + 380px) 0,calc(var(--far-scroll) + 360px) 0; background-size: 520px 100%,520px 100%,620px 100%,620px 100%; }
@@ -90,7 +90,15 @@
 .hazard-warning { width: 1.8rem; height: 1.8rem; display: grid; place-items: center; position: absolute; left: 50%; top: -2.2rem; transform: translateX(-50%) rotate(-4deg); color: var(--ink); background: #ffe05a; border: 3px solid var(--ink); border-radius: 50% 44% 48% 45%; font-size: 1rem; font-weight: 1000; animation: hazardBounce .55s ease-in-out infinite alternate; }
 .finish-line { width: 16px; height: 90%; position: absolute; z-index: 6; bottom: 0; transform: translateX(-50%); border-left: 8px solid white; border-right: 8px solid var(--ink); }
 .finish-line span { position: absolute; top: 10%; left: 50%; padding: .25rem .5rem; transform: translateX(-50%) rotate(-90deg); color: white; background: var(--ink); font-size: .5rem; letter-spacing: .12em; }
-.race-footer { height: 7vh; min-height: 52px; padding: 0 2.5vw; display: flex; align-items: center; justify-content: space-between; background: var(--paper); }
+.race-footer { height: 7vh; min-height: 52px; padding: 0 2.5vw; display: flex; align-items: center; justify-content: space-between; background: var(--paper); position: relative; }
 .race-footer span, .race-footer strong { font-size: .65rem; }
+.race-footer strong { position: absolute; left: 50%; transform: translateX(-50%); white-space: nowrap; }
 .race-footer kbd { min-width: 0; margin: 0 .3rem; padding: .28rem .5rem; border-width: 2px; box-shadow: 0 3px 0 var(--ink); }
+.race-footer-left { display: flex; align-items: center; }
+.race-footer-keys { display: flex; align-items: center; gap: .9rem; margin-left: 1.4rem; }
+.race-footer-key-hint { display: inline-flex; align-items: center; gap: .35rem; }
+.race-footer .race-key-pill { min-width: 0; margin: 0; padding: .28rem .55rem; color: #fff; border: 2px solid var(--ink); border-radius: 999px; box-shadow: 0 3px 0 var(--ink); font-size: .65rem; font-weight: 1000; line-height: normal; text-align: center; box-sizing: border-box; }
+.race-footer .race-key-pill.is-space { background: var(--blue); }
+.race-footer .race-key-pill.is-shift { background: var(--red); }
+
 

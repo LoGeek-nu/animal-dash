@@ -42,7 +42,7 @@
   .rank-bubble strong { font-size: 2rem; }
   .racing-character { left: 35%; }
   .track-meter { left: 170px; }
-  .stamina-meter { display: none; }
+  .stamina-meter { left: calc(35% - 25px); width: 80px; min-width: 75px; }
   .race-footer > :first-child, .race-footer > :last-child { display: none; }
   .race-footer { justify-content: center; }
   .results-heading { padding: 1rem; }
