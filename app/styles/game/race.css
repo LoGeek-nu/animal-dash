@@ -21,10 +21,10 @@
 .rank-bubble span { font-size: .65rem; font-weight: 1000; }
 .track-meter { height: .35rem; position: absolute; z-index: 14; top: .4rem; left: 19vw; right: 2vw; overflow: hidden; background: rgba(255,255,255,.75); border: 1px solid var(--ink); border-radius: 99px; }
 .track-meter i { display: block; height: 100%; background: var(--lane); }
-.stamina-meter { width: 12vw; min-width: 130px; display: flex; align-items: center; gap: .4rem; position: absolute; z-index: 14; top: 1.25rem; right: 2vw; }
-.stamina-meter span { font-size: .5rem; font-weight: 1000; }
-.stamina-meter i { height: .6rem; flex: 1; padding: 1px; overflow: hidden; background: white; border: 1.5px solid var(--ink); border-radius: 99px; }
-.stamina-meter b { display: block; height: 100%; background: linear-gradient(90deg, #ffd43b, #ff8d5a); border-radius: 99px; }
+.stamina-meter { width: 96px; min-width: 90px; display: flex; align-items: center; gap: .35rem; position: absolute; z-index: 14; left: calc(23% - 35px); bottom: calc(5.5% + 78px); padding: .2rem .45rem; background: rgba(24, 52, 71, .88); border: 2px solid white; border-radius: 99px; box-shadow: 0 3px 6px rgba(24, 52, 71, .35); pointer-events: none; }
+.stamina-meter span { color: #ffe052; font-size: .48rem; font-weight: 1000; letter-spacing: .06em; line-height: 1; }
+.stamina-meter i { height: .5rem; flex: 1; padding: 1px; overflow: hidden; background: rgba(255, 255, 255, .95); border: 1px solid var(--ink); border-radius: 99px; }
+.stamina-meter b { display: block; height: 100%; background: linear-gradient(90deg, #ffd43b, #ff7a45); border-radius: 99px; }
 .course-scenery { position: absolute; z-index: 1; inset: 0; pointer-events: none; }
 .course-layer { position: absolute; inset: 0; overflow: hidden; }
 .course-far { background-image: radial-gradient(circle at 12% 23%,rgba(255,255,255,.95) 0 12px,transparent 13px),radial-gradient(circle at 14% 22%,rgba(255,255,255,.95) 0 20px,transparent 21px),radial-gradient(circle at 68% 18%,rgba(255,255,255,.82) 0 13px,transparent 14px),radial-gradient(circle at 71% 18%,rgba(255,255,255,.82) 0 20px,transparent 21px); background-position: var(--far-scroll) 0,calc(var(--far-scroll) - 20px) 0,calc(var(--far-scroll) + 380px) 0,calc(var(--far-scroll) + 360px) 0; background-size: 520px 100%,520px 100%,620px 100%,620px 100%; }

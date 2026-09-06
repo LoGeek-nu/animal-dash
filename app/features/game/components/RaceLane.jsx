@@ -12,6 +12,7 @@ export function RaceLane({ lane, laneIndex, runner, rank }) {
   const segment = getCourseSegment(runner.progress);
   const visibleObstacles = getVisibleCourseObstacles(runner.progress);
   const nearestObstacle = getNearestUpcomingObstacle(runner.progress, visibleObstacles);
+  const showStamina = (runner.stamina < 99.9 || runner.boosting) && !runner.finishedAt;
 
   return (
     <article
@@ -22,7 +23,7 @@ export function RaceLane({ lane, laneIndex, runner, rank }) {
       <div className="race-lane-info"><span>LANE {laneIndex + 1}</span><strong>{character.name}</strong><small>{lane.isBot ? "BOT" : KEY_HELP[laneIndex]}</small></div>
       <div className="rank-bubble"><strong>{rank}</strong><span>位</span></div>
       <div className="track-meter"><i style={{ width: `${runner.progress}%` }} /></div>
-      <StaminaMeter value={runner.stamina} />
+      {showStamina && <StaminaMeter value={runner.stamina} />}
       {visibleObstacles.map((obstacle) => {
         const left = courseLeft(obstacle.position, runner.progress);
         const distance = obstacle.position - runner.progress;
