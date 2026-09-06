@@ -90,7 +90,15 @@
 .hazard-warning { width: 1.8rem; height: 1.8rem; display: grid; place-items: center; position: absolute; left: 50%; top: -2.2rem; transform: translateX(-50%) rotate(-4deg); color: var(--ink); background: #ffe05a; border: 3px solid var(--ink); border-radius: 50% 44% 48% 45%; font-size: 1rem; font-weight: 1000; animation: hazardBounce .55s ease-in-out infinite alternate; }
 .finish-line { width: 16px; height: 90%; position: absolute; z-index: 6; bottom: 0; transform: translateX(-50%); border-left: 8px solid white; border-right: 8px solid var(--ink); }
 .finish-line span { position: absolute; top: 10%; left: 50%; padding: .25rem .5rem; transform: translateX(-50%) rotate(-90deg); color: white; background: var(--ink); font-size: .5rem; letter-spacing: .12em; }
-.race-footer { height: 7vh; min-height: 52px; padding: 0 2.5vw; display: flex; align-items: center; justify-content: space-between; background: var(--paper); }
+.race-footer { height: 7vh; min-height: 52px; padding: 0 2.5vw; display: flex; align-items: center; justify-content: space-between; background: var(--paper); position: relative; }
 .race-footer span, .race-footer strong { font-size: .65rem; }
+.race-footer strong { position: absolute; left: 50%; transform: translateX(-50%); white-space: nowrap; }
 .race-footer kbd { min-width: 0; margin: 0 .3rem; padding: .28rem .5rem; border-width: 2px; box-shadow: 0 3px 0 var(--ink); }
+.race-footer-left { display: flex; align-items: center; }
+.race-footer-keys { display: flex; align-items: center; gap: .9rem; margin-left: 1.4rem; }
+.race-footer-key-hint { display: inline-flex; align-items: center; gap: .35rem; }
+.race-footer .race-key-pill { min-width: 0; margin: 0; padding: .28rem .55rem; color: #fff; border: 2px solid var(--ink); border-radius: 999px; box-shadow: 0 3px 0 var(--ink); font-size: .65rem; font-weight: 1000; line-height: normal; text-align: center; box-sizing: border-box; }
+.race-footer .race-key-pill.is-space { background: var(--blue); }
+.race-footer .race-key-pill.is-shift { background: var(--red); }
+
 

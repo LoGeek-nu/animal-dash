@@ -21,7 +21,23 @@ export function RaceArena({ lanes, raceStartedAt, onFinished }) {
           />
         ))}
       </section>
-      <footer className="race-footer"><span>障害物の手前で <kbd>JUMP</kbd></span><strong>BOOSTは使いすぎに注意！</strong><span>GAMEPAD READY ●</span></footer>
+      <footer className="race-footer">
+        <div className="race-footer-left">
+          <span>障害物の手前で <kbd>JUMP</kbd></span>
+          <div className="race-footer-keys">
+            <span className="race-footer-key-hint">
+              <span>ジャンプ</span>
+              <kbd className="race-key-pill is-space">Space</kbd>
+            </span>
+            <span className="race-footer-key-hint">
+              <span>ブースト</span>
+              <kbd className="race-key-pill is-shift">Shift</kbd>
+            </span>
+          </div>
+        </div>
+        <strong>BOOSTは使いすぎに注意！</strong>
+        <span>GAMEPAD READY ●</span>
+      </footer>
     </main>
   );
 }
