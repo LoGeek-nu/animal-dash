@@ -15,7 +15,7 @@ import { createInitialSession } from "../app/domain/race-session.js";
 import { raceSessionActions } from "../app/features/race-session/race-session-actions.js";
 import { raceSessionReducer } from "../app/features/race-session/race-session-reducer.js";
 import { validSession } from "../app/features/race-session/race-session-validator.js";
-import { createRuntimeRunner, stepRaceRunner } from "../app/features/game/race/race-engine.js";
+import { createRuntimeRunner, stepRaceRunner, toRenderableRunner } from "../app/features/game/race/race-engine.js";
 import { buildFinalResults, calculateLiveRanks } from "../app/features/game/race/race-ranking.js";
 
 test("the initial session is valid JavaScript runtime data", () => {
@@ -160,6 +160,59 @@ test("race engine calculates jump, boost, collision, and rankings without React"
   const runners = [{ ...createRuntimeRunner(), progress: 30, finishedAt: 30_000 }, { ...createRuntimeRunner(), progress: 40, finishedAt: 29_000 }];
   assert.deepEqual(calculateLiveRanks(runners, lanes), { 0: 2, 1: 1 });
   assert.deepEqual(buildFinalResults(runners, lanes).map(({ lane, rank }) => [lane, rank]), [[2, 1], [1, 2]]);
+
+  const preGoalRunner = {
+    ...createRuntimeRunner(),
+    progress: 99.5,
+    y: 120,
+    vy: 200,
+    boosting: true,
+    collisionUntil: 5_000,
+    collision: true,
+  };
+  const goalResult = stepRaceRunner({
+    runner: preGoalRunner,
+    character,
+    input: { jump: false, boost: true },
+    obstacles: [],
+    now: 3_000,
+    dt: 0.1,
+    elapsed: 15_000,
+  });
+  assert.equal(goalResult.runner.progress, 100);
+  assert.equal(goalResult.runner.finishedAt, 15_000);
+  assert.ok(goalResult.runner.y > 0);
+  assert.equal(goalResult.runner.boosting, false);
+  assert.equal(goalResult.runner.collision, false);
+  assert.equal(goalResult.runner.collisionUntil, 0);
+
+  const renderableAirborne = toRenderableRunner(goalResult.runner, 3_000);
+  assert.ok(renderableAirborne.y > 0);
+  assert.equal(renderableAirborne.boosting, false);
+  assert.equal(renderableAirborne.collision, false);
+  assert.equal(renderableAirborne.finishedAt, 15_000);
+
+  let postGoalRunner = goalResult.runner;
+  for (let i = 0; i < 20 && postGoalRunner.y > 0; i++) {
+    postGoalRunner = stepRaceRunner({
+      runner: postGoalRunner,
+      character,
+      input: { jump: true, boost: true },
+      obstacles: [],
+      now: 3_000 + i * 100,
+      dt: 0.05,
+      elapsed: 15_000 + i * 50,
+    }).runner;
+  }
+  assert.equal(postGoalRunner.y, 0);
+  assert.equal(postGoalRunner.vy, 0);
+  assert.equal(postGoalRunner.boosting, false);
+
+  const renderableLanded = toRenderableRunner(postGoalRunner, 4_000);
+  assert.equal(renderableLanded.y, 0);
+  assert.equal(renderableLanded.boosting, false);
+  assert.equal(renderableLanded.collision, false);
+  assert.equal(renderableLanded.finishedAt, 15_000);
 });
 
 test("route entries and phase rendering stay separated", async () => {

@@ -16,7 +16,7 @@ export function RaceLane({ lane, laneIndex, runner, rank }) {
 
   return (
     <article
-      className={`race-lane segment-${segment.id} ${runner.collision ? "is-hit" : ""} ${runner.finishedAt ? "is-finished" : ""}`}
+      className={`race-lane segment-${segment.id} ${runner.collision ? "is-hit" : ""} ${runner.finishedAt ? "is-finished" : ""} ${runner.finishedAt && runner.y === 0 ? "is-landed" : ""}`}
       style={{ "--lane": laneColors[laneIndex], "--scroll": `${-runner.progress * 9}px`, "--course-progress": runner.progress, "--segment-accent": segment.accent }}
     >
       <CourseScenery progress={runner.progress} laneIndex={laneIndex} />

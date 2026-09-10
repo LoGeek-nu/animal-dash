@@ -35,10 +35,12 @@ export function useRaceEngine({ lanes, raceStartedAt, onFinished }) {
 
       runtimeRef.current = runtimeRef.current.map((runner, laneIndex) => {
         const lane = lanes[laneIndex];
-        if (!lane || runner.finishedAt !== null) return runner;
+        if (!lane || (runner.finishedAt !== null && runner.y === 0)) return runner;
 
-        const manualInput = readInput(laneIndex, gamepads[laneIndex]);
-        const botInput = lane.isBot ? getBotInput({ laneIndex, runner, now, obstacles: courseObstacles }) : { jump: false, boost: false };
+        const manualInput = runner.finishedAt !== null ? { jump: false, boost: false } : readInput(laneIndex, gamepads[laneIndex]);
+        const botInput = lane.isBot && runner.finishedAt === null
+          ? getBotInput({ laneIndex, runner, now, obstacles: courseObstacles })
+          : { jump: false, boost: false };
         const input = { jump: manualInput.jump || botInput.jump, boost: manualInput.boost || botInput.boost };
         const stepped = stepRaceRunner({
           runner,
