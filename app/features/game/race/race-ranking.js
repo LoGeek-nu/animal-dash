@@ -1,8 +1,15 @@
 export function calculateLiveRanks(runners, lanes) {
   return runners
-    .map((runner, index) => ({ index, progress: runner.progress }))
+    .map((runner, index) => ({ index, progress: runner.progress, finishMs: runner.finishedAt }))
     .filter(({ index }) => lanes[index])
-    .sort((a, b) => b.progress - a.progress || a.index - b.index)
+    .sort((a, b) => {
+      if (a.finishMs !== null && b.finishMs !== null) {
+        return a.finishMs - b.finishMs || a.index - b.index;
+      }
+      if (a.finishMs !== null) return -1;
+      if (b.finishMs !== null) return 1;
+      return b.progress - a.progress || a.index - b.index;
+    })
     .reduce((rankByLane, item, index) => ({ ...rankByLane, [item.index]: index + 1 }), {});
 }
 

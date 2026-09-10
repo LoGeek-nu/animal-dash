@@ -179,7 +179,7 @@ test("race engine calculates jump, boost, collision, and rankings without React"
     dt: 0.1,
     elapsed: 15_000,
   });
-  assert.equal(goalResult.runner.progress, 100);
+  assert.ok(goalResult.runner.progress >= 100);
   assert.equal(goalResult.runner.finishedAt, 15_000);
   assert.ok(goalResult.runner.y > 0);
   assert.equal(goalResult.runner.boosting, false);
@@ -192,6 +192,7 @@ test("race engine calculates jump, boost, collision, and rankings without React"
   assert.equal(renderableAirborne.collision, false);
   assert.equal(renderableAirborne.finishedAt, 15_000);
 
+  const initialAirborneProgress = goalResult.runner.progress;
   let postGoalRunner = goalResult.runner;
   for (let i = 0; i < 20 && postGoalRunner.y > 0; i++) {
     postGoalRunner = stepRaceRunner({
@@ -207,12 +208,33 @@ test("race engine calculates jump, boost, collision, and rankings without React"
   assert.equal(postGoalRunner.y, 0);
   assert.equal(postGoalRunner.vy, 0);
   assert.equal(postGoalRunner.boosting, false);
+  assert.ok(postGoalRunner.progress > initialAirborneProgress);
+
+  const landedProgress = postGoalRunner.progress;
+  const subsequentStepped = stepRaceRunner({
+    runner: postGoalRunner,
+    character,
+    input: { jump: true, boost: true },
+    obstacles: [],
+    now: 5_000,
+    dt: 0.05,
+    elapsed: 16_000,
+  }).runner;
+  assert.equal(subsequentStepped.progress, landedProgress);
 
   const renderableLanded = toRenderableRunner(postGoalRunner, 4_000);
   assert.equal(renderableLanded.y, 0);
   assert.equal(renderableLanded.boosting, false);
   assert.equal(renderableLanded.collision, false);
   assert.equal(renderableLanded.finishedAt, 15_000);
+
+  const rankedRunners = [
+    { ...createRuntimeRunner(), progress: 102.5, finishedAt: 12_000 },
+    { ...createRuntimeRunner(), progress: 100.0, finishedAt: 11_000 },
+    { ...createRuntimeRunner(), progress: 85.0, finishedAt: null },
+  ];
+  const threeLanes = [{ characterId: "momo", isBot: false }, { characterId: "toramaru", isBot: true }, { characterId: "keroppin", isBot: false }];
+  assert.deepEqual(calculateLiveRanks(rankedRunners, threeLanes), { 0: 2, 1: 1, 2: 3 });
 });
 
 test("route entries and phase rendering stay separated", async () => {

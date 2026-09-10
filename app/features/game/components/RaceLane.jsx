@@ -22,7 +22,7 @@ export function RaceLane({ lane, laneIndex, runner, rank }) {
       <CourseScenery progress={runner.progress} laneIndex={laneIndex} />
       <div className="race-lane-info"><span>LANE {laneIndex + 1}</span><strong>{character.name}</strong><small>{lane.isBot ? "BOT" : KEY_HELP[laneIndex]}</small></div>
       <div className="rank-bubble"><strong>{rank}</strong><span>位</span></div>
-      <div className="track-meter"><i style={{ width: `${runner.progress}%` }} /></div>
+      <div className="track-meter"><i style={{ width: `${Math.min(100, runner.progress)}%` }} /></div>
       {showStamina && <StaminaMeter value={runner.stamina} />}
       {visibleObstacles.map((obstacle) => {
         const left = courseLeft(obstacle.position, runner.progress);
