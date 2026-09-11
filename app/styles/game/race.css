@@ -12,7 +12,7 @@
 .race-lane.segment-final { background: linear-gradient(180deg,#d8e9ff 0 66%,#8dd06c 66%); }
 .race-lane.is-hit { filter: brightness(.9) saturate(.65); }
 .race-lane.is-hit .racing-character { animation: hitShake .12s 4; }
-.race-lane.is-finished .racing-character { animation: goalHop .5s infinite alternate; }
+.race-lane.is-finished.is-landed .racing-character { animation: goalHop .5s infinite alternate; }
 .race-lane-info { width: 12.8vw; min-width: 145px; height: 100%; padding: .75rem 1rem; display: grid; align-content: center; position: absolute; z-index: 12; left: 0; top: 0; color: white; background: var(--ink); clip-path: polygon(0 0, 88% 0, 100% 50%, 88% 100%, 0 100%); }
 .race-lane-info span, .race-lane-info small { font-size: .55rem; font-weight: 1000; letter-spacing: .12em; opacity: .75; }
 .race-lane-info strong { font-size: clamp(.85rem, 1.2vw, 1.45rem); }
