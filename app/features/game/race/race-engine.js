@@ -17,7 +17,21 @@ export function createRuntimeRunner() {
 }
 
 export function stepRaceRunner({ runner, character, input, obstacles, now, dt, elapsed }) {
-  if (runner.finishedAt !== null) return { runner, jumped: false };
+  if (runner.finishedAt !== null) {
+    if (runner.y > 0 || runner.vy > 0) {
+      const next = { ...runner, hit: new Set(runner.hit) };
+      next.y += next.vy * dt;
+      next.vy -= 1780 * dt;
+      const speed = (2.18 + character.stats.speed * .055) * SPEED_MULTIPLIER;
+      next.progress += speed * dt;
+      if (next.y <= 0) {
+        next.y = 0;
+        next.vy = 0;
+      }
+      return { runner: next, jumped: false };
+    }
+    return { runner, jumped: false };
+  }
 
   const next = { ...runner, hit: new Set(runner.hit) };
   let jumped = false;
@@ -48,7 +62,7 @@ export function stepRaceRunner({ runner, character, input, obstacles, now, dt, e
 
   let speed = (2.18 + character.stats.speed * .055 + (next.boosting ? .86 : 0)) * SPEED_MULTIPLIER;
   if (next.collisionUntil > now) speed *= .35;
-  next.progress = Math.min(100, next.progress + speed * dt);
+  next.progress += speed * dt;
 
   for (const obstacle of obstacles) {
     if (!next.hit.has(obstacle.id) && Math.abs(next.progress - obstacle.position) < .42 && next.y < obstacle.hitHeight) {
@@ -59,17 +73,27 @@ export function stepRaceRunner({ runner, character, input, obstacles, now, dt, e
   }
 
   next.collision = next.collisionUntil > now;
-  if (next.progress >= 100) next.finishedAt = elapsed;
+  if (next.progress >= 100) {
+    if (next.finishedAt === null) next.finishedAt = elapsed;
+    next.boosting = false;
+    next.collision = false;
+    next.collisionUntil = 0;
+    if (next.y <= 0) {
+      next.y = 0;
+      next.vy = 0;
+    }
+  }
   return { runner: next, jumped };
 }
 
 export function toRenderableRunner(runner, now) {
+  const isFinished = runner.finishedAt !== null;
   return {
     progress: runner.progress,
     stamina: runner.stamina,
-    y: runner.y,
-    collision: runner.collisionUntil > now,
-    boosting: runner.boosting,
+    y: Math.max(0, runner.y),
+    collision: !isFinished && runner.collisionUntil > now,
+    boosting: !isFinished && runner.boosting,
     finishedAt: runner.finishedAt,
   };
 }
