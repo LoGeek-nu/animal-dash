@@ -21,11 +21,15 @@ test("Cloudflare Workers is the only configured deployment target", async () => 
   assert.match(packageJson.scripts.deploy, /vinext-cloudflare deploy/);
 
   assert.equal(wrangler.name, "animaldash");
+  assert.equal(wrangler.account_id, "bd6022bab607c76f306d3a313431d8f6");
   assert.equal(wrangler.main, "./worker/index.js");
   assert.equal(wrangler.compatibility_date, "2026-08-19");
   assert.deepEqual(wrangler.compatibility_flags, ["nodejs_compat"]);
-  assert.equal(wrangler.workers_dev, true);
+  assert.equal(wrangler.workers_dev, false);
   assert.equal(wrangler.preview_urls, false);
+  assert.deepEqual(wrangler.routes, [
+    { pattern: "animaldash.logeek.tech", custom_domain: true },
+  ]);
   assert.deepEqual(wrangler.assets, {
     directory: "./dist/client",
     binding: "ASSETS",
