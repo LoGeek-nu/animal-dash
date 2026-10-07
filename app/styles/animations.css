@@ -21,6 +21,7 @@
 @keyframes tutorialPrompt { to { transform: translateY(-4px) rotate(2deg); } }
 @keyframes tutorialStamina { 0%,12% { width: 92%; } 68% { width: 18%; } 100% { width: 72%; } }
 @keyframes tutorialJump { 0%,10% { transform: translateX(0); } 38% { transform: translateX(180%) translateY(0); } 52% { transform: translateX(245%) translateY(-125px) rotate(-5deg); } 66% { transform: translateX(310%) translateY(0); } 100% { transform: translateX(405%); } }
+@keyframes dialogSpin { to { transform: rotate(360deg); } }
 @keyframes tutorialBoost { 0%,10% { transform: translateX(0); } 100% { transform: translateX(420%); } }
 @keyframes tutorialGoal { 0%,8% { transform: translateX(0); } 38% { transform: translateX(180%) translateY(0); } 51% { transform: translateX(250%) translateY(-115px) rotate(-4deg); } 64% { transform: translateX(315%) translateY(0); } 100% { transform: translateX(430%); } }
 @keyframes tutorialShadow { 0%,10% { transform: translateX(0) scaleX(1); opacity: .26; } 47% { transform: translateX(330%) scaleX(.5); opacity: .12; } 66% { transform: translateX(450%) scaleX(1); opacity: .26; } 100% { transform: translateX(590%) scaleX(1); opacity: .22; } }

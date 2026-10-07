@@ -30,6 +30,29 @@ npm run dev
 
 Cloudflareへ公開する場合は、追加でCloudflareアカウントとWranglerのログインが必要です（[デプロイ手順](./deployment.md)を参照）。
 
+## `.dev.vars`のセットアップ（キャラクター生成機能を試す場合のみ）
+
+`/admin`の「撮影して追加」から実際にキャラクター生成を試したい場合だけ、追加の設定が必要です（それ以外の画面・機能は`.dev.vars`が無くても動きます）。
+
+生成処理は[`animal-dash-image-poc`](https://github.com/LoGeek-nu/animal-dash-image-poc)（別リポジトリ、Vercelにデプロイ済み）が担当していて、animal-dash側の`app/api/characters/generate/route.js`がそこへ中継する形になっています。ローカルでこの中継を試すには、プロジェクト直下に`.dev.vars`というファイルを作成してください（`.gitignore`済みなので、本物の値を書いて大丈夫です）。
+
+```bash
+# animal-dash/.dev.vars
+IMAGE_POC_API_URL=https://animal-dash-image-poc.vercel.app
+IMAGE_POC_API_KEY=<下記の方法で取得した値>
+```
+
+`IMAGE_POC_API_KEY`の値は、`animal-dash-image-poc`側のVercelプロジェクトに設定されている`API_SHARED_SECRET`と同じ値である必要があります。ダッシュボードでの目視コピーはずれやすいので、CLIで直接取得するのが確実です。
+
+```bash
+cd animal-dash-image-poc  # animal-dash-image-pocをcloneしたディレクトリ
+vercel env pull .env.production.local --environment=production --yes
+cat .env.production.local  # ここに表示されたAPI_SHARED_SECRET=... の値をコピー
+rm .env.production.local   # 使い終わったら削除（本番の鍵を平文で残さない）
+```
+
+設定後は`npm run dev`を再起動してください（`.dev.vars`の変更はプロセス起動時にのみ読み込まれます）。
+
 ## 推奨エディタ設定
 
 VSCodeを使う場合、次の拡張機能を入れておくとコーディング規約に沿った開発がしやすくなります。
