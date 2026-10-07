@@ -1,3 +1,5 @@
+import { getGeneratedCharacters } from "./generated-characters.js";
+
 /** @typedef {{speed:number, acceleration:number, stamina:number}} CharacterStats */
 /** @typedef {{id:string, name:string, emoji:string, color:string, pale:string, preset:string, caption:string, stats:CharacterStats}} RaceCharacter */
 
@@ -18,5 +20,12 @@ export const characters = [
 ];
 
 export function getCharacter(id) {
-  return characters.find((character) => character.id === id) ?? characters[0];
+  return characters.find((character) => character.id === id)
+    ?? getGeneratedCharacters().find((character) => character.id === id)
+    ?? characters[0];
+}
+
+export function isKnownCharacterId(id) {
+  return characters.some((character) => character.id === id)
+    || getGeneratedCharacters().some((character) => character.id === id);
 }

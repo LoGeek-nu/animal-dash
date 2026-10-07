@@ -1,4 +1,4 @@
-import { characters } from "../../domain/characters.js";
+import { isKnownCharacterId } from "../../domain/characters.js";
 import { RACE_PHASES } from "../../domain/race-session.js";
 
 export function validSession(value) {
@@ -11,7 +11,7 @@ export function validSession(value) {
     && value.lanes.length === 4
     && value.lanes.every((lane) => lane === null || (
       typeof lane === "object"
-      && characters.some((character) => character.id === lane.characterId)
+      && isKnownCharacterId(lane.characterId)
       && typeof lane.isBot === "boolean"
     ));
 }

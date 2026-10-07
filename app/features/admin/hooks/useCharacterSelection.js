@@ -2,14 +2,17 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { characters } from "../../../domain/characters.js";
+import { useGeneratedCharacters } from "./useGeneratedCharacters.js";
 
 export function useCharacterSelection({ lanes }) {
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState(null);
+  const generatedCharacters = useGeneratedCharacters();
+  const allCharacters = useMemo(() => [...characters, ...generatedCharacters], [generatedCharacters]);
   const usedIds = useMemo(() => new Set(lanes.flatMap((lane) => lane ? [lane.characterId] : [])), [lanes]);
   const filteredCharacters = useMemo(
-    () => characters.filter((character) => character.name.includes(query) || character.preset.includes(query)),
-    [query],
+    () => allCharacters.filter((character) => character.name.includes(query) || character.preset.includes(query)),
+    [allCharacters, query],
   );
 
   const toggleSelected = useCallback((characterId) => {
@@ -24,5 +27,6 @@ export function useCharacterSelection({ lanes }) {
     toggleSelected,
     usedIds,
     filteredCharacters,
+    totalCount: allCharacters.length,
   };
 }
