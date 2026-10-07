@@ -1,5 +1,5 @@
 import { ATTRACT_SCENES } from "../../domain/attract.js";
-import { characters, getCharacter } from "../../domain/characters.js";
+import { characters, getCharacter, isKnownCharacterId } from "../../domain/characters.js";
 import { createEmptySession } from "../../domain/race-session.js";
 import { COUNTDOWN_DURATION, RESULTS_DURATION } from "./constants.js";
 import { RaceSessionAction } from "./race-session-actions.js";
@@ -12,7 +12,7 @@ export function raceSessionReducer(session, action, now = Date.now()) {
   switch (action.type) {
     case RaceSessionAction.ASSIGN_CHARACTER: {
       if (!canEditLanes(session.phase) || !Number.isInteger(action.laneIndex) || action.laneIndex < 0 || action.laneIndex >= session.lanes.length) return session;
-      if (!characters.some(({ id }) => id === action.characterId)) return session;
+      if (!isKnownCharacterId(action.characterId)) return session;
       const lanes = session.lanes.map((lane) => lane?.characterId === action.characterId ? null : lane);
       lanes[action.laneIndex] = { characterId: action.characterId, isBot: Boolean(action.isBot) };
       return { ...session, lanes };

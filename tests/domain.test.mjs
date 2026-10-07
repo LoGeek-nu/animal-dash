@@ -10,7 +10,8 @@ import {
   getVisibleCourseObstacles,
 } from "../app/domain/course.js";
 import { ATTRACT_SCENES, TUTORIAL_STEP_DURATION, tutorialSteps } from "../app/domain/attract.js";
-import { characters } from "../app/domain/characters.js";
+import { characters, getCharacter, isKnownCharacterId } from "../app/domain/characters.js";
+import { addGeneratedCharacter } from "../app/domain/generated-characters.js";
 import { createInitialSession } from "../app/domain/race-session.js";
 import { raceSessionActions } from "../app/features/race-session/race-session-actions.js";
 import { raceSessionReducer } from "../app/features/race-session/race-session-reducer.js";
@@ -80,6 +81,18 @@ test("all ten runners have a generated full-body asset", () => {
   }
 });
 
+test("generated characters are resolved alongside the static ten without mutating them", () => {
+  assert.equal(isKnownCharacterId("gen-test-unknown"), false);
+  assert.equal(getCharacter("gen-test-unknown").id, characters[0].id);
+
+  const generated = { id: "gen-test-unknown", name: "テスト", stats: { speed: 10, acceleration: 10, stamina: 10 } };
+  addGeneratedCharacter(generated);
+
+  assert.equal(isKnownCharacterId("gen-test-unknown"), true);
+  assert.deepEqual(getCharacter("gen-test-unknown"), generated);
+  assert.equal(characters.length, 10);
+});
+
 test("waiting cards use the new copy without plus or avatar dot decorations", async () => {
   const [appSource, avatarSource] = await Promise.all([
     readFile(new URL("../app/features/game/screens/WaitingScreen.jsx", import.meta.url), "utf8"),
@@ -125,6 +138,13 @@ test("session transitions are isolated in the reducer", () => {
 
   const restarted = raceSessionReducer(nextScene2, raceSessionActions.restartAttract());
   assert.equal(restarted.attractIndex, 0);
+
+  const generatedId = "gen-test-reducer";
+  addGeneratedCharacter({ id: generatedId });
+  const withGenerated = { ...createInitialSession(), phase: "WAITING", lanes: [null, null, null, null] };
+  const assignedGenerated = raceSessionReducer(withGenerated, raceSessionActions.assignCharacter(1, generatedId), 1_000);
+  assert.deepEqual(assignedGenerated.lanes[1], { characterId: generatedId, isBot: false });
+  assert.equal(validSession(assignedGenerated), true);
 });
 
 test("race engine calculates jump, boost, collision, and rankings without React", () => {
