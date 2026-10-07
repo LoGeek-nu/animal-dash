@@ -104,6 +104,17 @@ test("waiting cards use the new copy without plus or avatar dot decorations", as
   assert.doesNotMatch(avatarSource, /avatar-spark|spark-one|spark-two/);
 });
 
+test("admin character library offers a gated capture button that uses the camera/file picker", async () => {
+  const [librarySource, dialogSource] = await Promise.all([
+    readFile(new URL("../app/features/admin/components/CharacterLibrary.jsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/features/admin/components/CharacterGenerateDialog.jsx", import.meta.url), "utf8"),
+  ]);
+  assert.match(librarySource, /撮影して追加/);
+  assert.match(librarySource, /disabled=\{!mutable\}/);
+  assert.match(dialogSource, /capture="environment"/);
+  assert.match(dialogSource, /\/api\/characters\/generate/);
+});
+
 test("admin drag collision only accepts pointer hits inside lanes", async () => {
   const source = await readFile(new URL("../app/features/admin/model/lane-collision.js", import.meta.url), "utf8");
   assert.match(source, /pointerWithin/);

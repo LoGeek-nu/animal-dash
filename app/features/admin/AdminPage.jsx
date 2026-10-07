@@ -11,6 +11,7 @@ import { AdminFooter } from "./components/AdminFooter.jsx";
 import { AdminHeader } from "./components/AdminHeader.jsx";
 import { AdminStatusBar } from "./components/AdminStatusBar.jsx";
 import { CharacterDragOverlay } from "./components/CharacterDragOverlay.jsx";
+import { CharacterGenerateDialog } from "./components/CharacterGenerateDialog.jsx";
 import { CharacterLibrary } from "./components/CharacterLibrary.jsx";
 import { LaneManagement } from "./components/LaneManagement.jsx";
 import { useCharacterDragAndDrop } from "./hooks/useCharacterDragAndDrop.js";
@@ -20,6 +21,7 @@ import { laneOnlyCollisionDetection } from "./model/lane-collision.js";
 export function AdminPage() {
   const { session, ready, actions } = useRaceSession();
   const [confirm, setConfirm] = useState(null);
+  const [generateOpen, setGenerateOpen] = useState(false);
   const selection = useCharacterSelection({ lanes: session.lanes });
   const clearSelection = useCallback(() => selection.setSelectedId(null), [selection.setSelectedId]);
   const drag = useCharacterDragAndDrop({
@@ -67,6 +69,8 @@ export function AdminPage() {
             mutable={mutable}
             selectedId={selection.selectedId}
             onSelect={handleSelect}
+            totalCount={selection.totalCount}
+            onRequestGenerate={() => setGenerateOpen(true)}
           />
           <LaneManagement
             lanes={session.lanes}
@@ -108,6 +112,7 @@ export function AdminPage() {
             onConfirm={confirmFinish}
           />
         )}
+        {generateOpen && <CharacterGenerateDialog onClose={() => setGenerateOpen(false)} />}
         <VisuallyHidden aria-live="polite">{drag.announcement}</VisuallyHidden>
       </main>
       <DragOverlay dropAnimation={{ duration: 180, easing: "ease-out" }}>

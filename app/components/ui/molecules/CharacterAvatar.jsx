@@ -6,7 +6,11 @@ export function CharacterAvatar({ id, compact = false }) {
   const character = getCharacter(id);
   return (
     <div className={`character-avatar ${compact ? "is-compact" : ""}`} style={{ "--char": character.color, "--char-pale": character.pale }}>
-      <img src={`/characters/${character.id}/runner.png`} alt={`${character.name}の全身イラスト`} draggable={false} />
+      <img
+        src={character.generated ? character.imageDataUrl : `/characters/${character.id}/runner.png`}
+        alt={`${character.name}の全身イラスト`}
+        draggable={false}
+      />
     </div>
   );
 }
