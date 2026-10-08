@@ -1,5 +1,6 @@
 import { env } from "cloudflare:workers";
 import { characters } from "../../../domain/characters.js";
+import { saveGeneratedCharacter } from "../character-store.js";
 
 const PALETTE = characters.map(({ color, pale }) => ({ color, pale }));
 
@@ -18,7 +19,7 @@ function pickPreset(stats) {
   return "スタミナ";
 }
 
-function toRaceCharacter({ image_base64: imageBase64, status }) {
+function toRaceCharacter(status) {
   const id = `gen-${crypto.randomUUID()}`;
   const stats = {
     speed: status.stats.speed,
@@ -33,13 +34,12 @@ function toRaceCharacter({ image_base64: imageBase64, status }) {
     caption: `${status.animal_type}・${status.personality}`,
     stats,
     generated: true,
-    imageDataUrl: `data:image/png;base64,${imageBase64}`,
   };
 }
 
 function missingEnvResponse() {
   return Response.json(
-    { error: "server_misconfigured", detail: "IMAGE_POC_API_URL/IMAGE_POC_API_KEY is not configured", retryable: false },
+    { error: "server_misconfigured", detail: "IMAGE_POC_API_URL/IMAGE_POC_API_KEY/CHARACTERS is not configured", retryable: false },
     { status: 500 },
   );
 }
@@ -48,8 +48,8 @@ export async function POST(request) {
   // IMAGE_POC_BYPASS_SECRET is optional: it's only needed if Vercel's own
   // Deployment Protection is ever turned on for the production alias domain
   // (it currently isn't — the app-level X-API-Key is the real gate).
-  const { IMAGE_POC_API_URL, IMAGE_POC_API_KEY, IMAGE_POC_BYPASS_SECRET } = env;
-  if (!IMAGE_POC_API_URL || !IMAGE_POC_API_KEY) {
+  const { IMAGE_POC_API_URL, IMAGE_POC_API_KEY, IMAGE_POC_BYPASS_SECRET, CHARACTERS } = env;
+  if (!IMAGE_POC_API_URL || !IMAGE_POC_API_KEY || !CHARACTERS) {
     return missingEnvResponse();
   }
 
@@ -93,5 +93,9 @@ export async function POST(request) {
     return Response.json(body, { status: upstream.status });
   }
 
-  return Response.json(toRaceCharacter(body));
+  try {
+    return Response.json(await saveGeneratedCharacter(CHARACTERS, toRaceCharacter(body.status), body.image_base64));
+  } catch (cause) {
+    return Response.json({ error: "storage_failed", detail: String(cause), retryable: true }, { status: 500 });
+  }
 }

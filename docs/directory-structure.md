@@ -6,7 +6,11 @@
 │   ├── admin/
 │   │   └── page.jsx                  # 管理画面 /admin のルート
 │   ├── api/
-│   │   ├── characters/route.js       # キャラクター一覧のサンプルAPI
+│   │   ├── characters/
+│   │   │   ├── route.js              # キャラクター一覧（静的10体＋R2の生成キャラ）
+│   │   │   ├── character-store.js    # 生成キャラのR2保存・一覧・画像取得
+│   │   │   ├── generate/route.js     # 画像からキャラ生成（image-pocへ中継しR2へ保存）
+│   │   │   └── [id]/image/route.js   # 生成キャラの画像配信
 │   │   └── rankings/route.js         # ランキング一覧のサンプルAPI
 │   ├── components/ui/                # 複数画面で再利用する共通UI
 │   │   ├── atoms/                    # Button、Badgeなど最小単位のUI

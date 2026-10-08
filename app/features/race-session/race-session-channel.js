@@ -1,11 +1,20 @@
+import { refreshGeneratedCharacters } from "../../domain/generated-characters.js";
 import { CHANNEL_NAME, STORAGE_KEY } from "./constants.js";
 import { validSession } from "./race-session-validator.js";
 
 export function createRaceSessionChannel(onSession) {
   const channel = typeof BroadcastChannel === "undefined" ? null : new BroadcastChannel(CHANNEL_NAME);
 
-  const accept = (candidate) => {
-    if (validSession(candidate)) onSession(candidate);
+  let closed = false;
+
+  const accept = async (candidate) => {
+    if (validSession(candidate)) {
+      onSession(candidate);
+      return;
+    }
+    // The session may reference a character generated on another screen; reload the pool and retry once.
+    await refreshGeneratedCharacters();
+    if (!closed && validSession(candidate)) onSession(candidate);
   };
 
   const onMessage = (event) => accept(event.data);
@@ -26,6 +35,7 @@ export function createRaceSessionChannel(onSession) {
       channel?.postMessage(session);
     },
     close() {
+      closed = true;
       if (channel) {
         channel.removeEventListener("message", onMessage);
         channel.close();

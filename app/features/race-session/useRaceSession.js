@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { refreshGeneratedCharacters } from "../../domain/generated-characters.js";
 import { createInitialSession } from "../../domain/race-session.js";
 import { raceSessionActions } from "./race-session-actions.js";
 import { createRaceSessionChannel } from "./race-session-channel.js";
@@ -14,19 +15,23 @@ export function useRaceSession() {
   const channelRef = useRef(null);
 
   useEffect(() => {
-    const restored = loadRaceSession();
-    const channel = createRaceSessionChannel((incoming) => {
+    let cancelled = false;
+    const adoptNewer = (incoming) => {
       setSession((current) => incoming.sequence >= current.sequence ? incoming : current);
-    });
+    };
+    const channel = createRaceSessionChannel(adoptNewer);
     channelRef.current = channel;
 
-    const hydrationTimer = window.setTimeout(() => {
-      if (restored) setSession(restored);
+    // Load generated characters first so a saved session that references them still validates.
+    refreshGeneratedCharacters().then(() => {
+      if (cancelled) return;
+      const restored = loadRaceSession();
+      if (restored) adoptNewer(restored);
       setReady(true);
-    }, 0);
+    });
 
     return () => {
-      window.clearTimeout(hydrationTimer);
+      cancelled = true;
       channel.close();
     };
   }, []);

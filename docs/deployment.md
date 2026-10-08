@@ -2,6 +2,16 @@
 
 前提として、Cloudflareアカウントを持ち、Wranglerでログイン済みである必要があります（`npx wrangler login`）。
 
+## 0. 初回のみ: R2バケットの作成
+
+生成キャラクターの保存先として、R2バケット`animaldash-characters`が必要です。アカウントごとに一度だけ作成します。
+
+```bash
+npx wrangler r2 bucket create animaldash-characters
+```
+
+ローカル開発（`npm run dev`）ではWranglerのローカルR2が自動で使われるため、この作成は不要です。
+
 ## 1. デプロイ内容の確認（dry-run）
 
 デプロイ前に内容を確認します。Cloudflareへは反映されません。
