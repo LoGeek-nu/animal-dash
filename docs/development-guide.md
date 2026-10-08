@@ -41,7 +41,7 @@ npm test
 | 用語 | 説明 | 主なファイル |
 | --- | --- | --- |
 | フェーズ（phase） | ゲームの状態（`ATTRACT` → `WAITING` → `COUNTDOWN` → `RACING` → `RESULTS`）。管理画面・ゲーム画面はどちらもこのフェーズを見て表示を切り替えます。 | `app/features/race-session/race-session-reducer.js` |
-| セッション（session） | レーン割り当て、フェーズ、レース結果などレース1回分の状態全体。`localStorage`に保存し、`BroadcastChannel`で他画面へ同期します。 | `app/domain/race-session.js`, `app/features/race-session/` |
+| セッション（session） | レーン割り当て、フェーズ、レース結果などレース1回分の状態全体。`localStorage`に保存し、同じブラウザ内は`BroadcastChannel`、別端末へはDurable ObjectsとWebSocket（`/api/sync`）で同期します。 | `app/domain/race-session.js`, `app/features/race-session/` |
 | アトラクト画面 | 誰もプレイしていない待ち受け中に流れる紹介・チュートリアル・ランキング演出。 | `app/domain/attract.js` |
 | コース／障害物 | レースコースの区間（`courseSegments`）と、区間内に配置された障害物（`courseObstacles`）。ジャンプで避けられなかった場合はペナルティ（`penaltyMs`など）が発生します。 | `app/domain/course.js` |
 | キャラクター | プレイヤーが選べる動物と、その能力値（`speed`/`acceleration`/`stamina`）。 | `app/domain/characters.js` |
