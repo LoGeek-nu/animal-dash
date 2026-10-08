@@ -21,7 +21,7 @@ import { laneOnlyCollisionDetection } from "./model/lane-collision.js";
 
 export function AdminPage() {
   const auth = useRequireStaff("/admin");
-  const { session, ready, actions } = useRaceSession();
+  const { session, ready, syncStatus, actions } = useRaceSession();
   const [confirm, setConfirm] = useState(null);
   const [generateOpen, setGenerateOpen] = useState(false);
   const selection = useCharacterSelection({ lanes: session.lanes });
@@ -60,7 +60,7 @@ export function AdminPage() {
       {...drag.dndHandlers}
     >
       <main className={`admin-shell ${drag.activeCharacterId ? "is-dragging-character" : ""} ${drag.overLaneId ? "is-over-lane-zone" : ""}`}>
-        <AdminHeader ready={ready} canLogout={auth?.loginRequired === true} />
+        <AdminHeader ready={ready} syncStatus={syncStatus} canLogout={auth?.loginRequired === true} />
         <AdminStatusBar session={session} participantCount={participantCount} />
         <section className="admin-workspace">
           <CharacterLibrary
