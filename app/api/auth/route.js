@@ -1,8 +1,11 @@
 import { env } from "cloudflare:workers";
-import { clearedStaffCookie, isStaffRequest, passcodeMatches, staffCookie } from "../../../worker/auth.js";
+import { clearedStaffCookie, isStaffRequest, loginRequired, passcodeMatches, staffCookie } from "../../../worker/auth.js";
 
 export async function GET(request) {
-  return Response.json({ authenticated: await isStaffRequest(request, env) }, { headers: { "Cache-Control": "no-store" } });
+  return Response.json(
+    { authenticated: await isStaffRequest(request, env), loginRequired: loginRequired(env) },
+    { headers: { "Cache-Control": "no-store" } },
+  );
 }
 
 export async function POST(request) {

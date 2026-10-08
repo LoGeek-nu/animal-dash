@@ -4,11 +4,12 @@ import {
   clearedStaffCookie,
   isSameOrigin,
   isStaffRequest,
+  loginRequired,
   passcodeMatches,
   STAFF_COOKIE,
   staffCookie,
 } from "../worker/auth.js";
-import { safeNextPath } from "../app/features/auth/useStaffAuth.js";
+import { loginPath, logout, safeNextPath } from "../app/features/auth/useStaffAuth.js";
 
 const env = { STAFF_PASSCODE: "kuma-dash-2026" };
 const request = (headers = {}, url = "https://animaldash.logeek.tech/api/sync") => new Request(url, { headers });
@@ -32,6 +33,8 @@ test("missing, forged, or stale cookies are refused", async () => {
 });
 
 test("without a configured passcode nothing is accepted outside vite dev", async () => {
+  assert.equal(loginRequired({}), true);
+  assert.equal(loginRequired(env), true);
   assert.equal(await isStaffRequest(request({ Cookie: `${STAFF_COOKIE}=x` }), {}), false);
   assert.equal(passcodeMatches("", {}), false);
   assert.equal(passcodeMatches("kuma-dash-2026", env), true);
@@ -54,4 +57,25 @@ test("login only redirects back to paths on this site", () => {
   assert.equal(safeNextPath("//evil.example"), "/admin");
   assert.equal(safeNextPath("/\\evil.example"), "/admin");
   assert.equal(safeNextPath(null), "/admin");
+});
+
+test("signed-out screens are sent to /login with a way back", () => {
+  assert.equal(loginPath("/admin"), "/login?next=%2Fadmin");
+  assert.equal(safeNextPath(new URLSearchParams(loginPath("/admin").split("?")[1]).get("next")), "/admin");
+});
+
+test("logging out clears the cookie on the server and opens the login page", async (t) => {
+  const calls = [];
+  t.mock.method(globalThis, "fetch", async (url, init) => {
+    calls.push([url, init.method]);
+    return new Response(null, { status: 204 });
+  });
+  const assigned = [];
+  globalThis.window = { location: { assign: (path) => assigned.push(path) } };
+  t.after(() => delete globalThis.window);
+
+  await logout("/admin");
+
+  assert.deepEqual(calls, [["/api/auth", "DELETE"]]);
+  assert.deepEqual(assigned, ["/login?next=%2Fadmin"]);
 });

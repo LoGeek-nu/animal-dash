@@ -7,8 +7,8 @@ const TOKEN_LABEL = "animal-dash-staff-v1";
 
 // Local `npm run dev` without a passcode stays open so the setup guide's "no .dev.vars needed"
 // still holds. Built bundles (production) refuse everything until the secret is set.
-function authDisabled(env) {
-  return !env.STAFF_PASSCODE && import.meta.env?.DEV === true;
+export function loginRequired(env) {
+  return Boolean(env.STAFF_PASSCODE) || import.meta.env?.DEV !== true;
 }
 
 function constantTimeEqual(a, b) {
@@ -35,7 +35,7 @@ function readCookie(request, name) {
 }
 
 export async function isStaffRequest(request, env) {
-  if (authDisabled(env)) return true;
+  if (!loginRequired(env)) return true;
   if (!env.STAFF_PASSCODE) return false;
   return constantTimeEqual(readCookie(request, STAFF_COOKIE), await staffToken(env.STAFF_PASSCODE));
 }

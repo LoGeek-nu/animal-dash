@@ -1,17 +1,17 @@
 "use client";
 
-import { useStaffAuth } from "./useStaffAuth.js";
+import { loginPath, useStaffAuth } from "./useStaffAuth.js";
 
-// Shown on /admin and /game when this device has not entered the staff passcode,
-// because syncing and character generation are refused until it has.
+// Shown on /game when this device has not entered the staff passcode, because syncing is
+// refused until it has. (/admin redirects to /login instead.)
 export function StaffLoginNotice({ returnTo }) {
-  const authenticated = useStaffAuth();
-  if (authenticated !== false) return null;
+  const auth = useStaffAuth();
+  if (auth?.authenticated !== false) return null;
 
   return (
     <div className="staff-login-notice" role="alert">
       <span>この端末はまだスタッフログインしていないため、他の端末と同期されません。</span>
-      <a href={`/login?next=${encodeURIComponent(returnTo)}`}>ログインする</a>
+      <a href={loginPath(returnTo)}>ログインする</a>
     </div>
   );
 }
