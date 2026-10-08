@@ -18,7 +18,7 @@ function createRoom(sockets) {
   return { room: new RaceSessionRoom(ctx), storage };
 }
 
-const session = (sequence) => ({ version: 3, sequence, phase: "WAITING", lanes: [null, null, null, null] });
+const session = (sequence) => ({ version: 3, sequence, sessionId: "session_test", phase: "WAITING", lanes: [null, null, null, null] });
 const frame = (value) => JSON.stringify({ type: "session", session: value });
 
 test("a newer session is stored and relayed to every other screen", async () => {
@@ -51,6 +51,7 @@ test("malformed frames are ignored and character changes reach everyone", async 
 
   await room.webSocketMessage(admin, "not json");
   await room.webSocketMessage(admin, JSON.stringify({ type: "session", session: { sequence: 9 } }));
+  await room.webSocketMessage(admin, frame({ ...session(9), sessionId: undefined }));
   assert.equal(storage.size, 0);
 
   const response = await room.fetch(new Request("https://sync/characters-changed", { method: "POST" }));

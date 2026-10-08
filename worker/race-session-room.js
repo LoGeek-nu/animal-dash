@@ -5,6 +5,7 @@ function looksLikeSession(value) {
     && typeof value === "object"
     && value.version === 3
     && Number.isInteger(value.sequence)
+    && typeof value.sessionId === "string"
     && Array.isArray(value.lanes);
 }
 

@@ -30,6 +30,10 @@ test("invalid phases, lanes, and characters are rejected", () => {
   const session = createInitialSession();
   assert.equal(validSession({ ...session, phase: "SIGNED_IN" }), false);
   assert.equal(validSession({ ...session, lanes: [] }), false);
+  // Sessions arrive from other devices, so every field the screens read must be present.
+  for (const field of ["sessionId", "courseSeed", "lastSync", "results"]) {
+    assert.equal(validSession({ ...session, [field]: undefined }), false, field);
+  }
   assert.equal(
     validSession({
       ...session,
