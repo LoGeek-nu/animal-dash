@@ -2,7 +2,7 @@
 
 前提として、Wranglerで`logeek.tech`のCloudflareアカウント（`bd6022bab607c76f306d3a313431d8f6`）にログイン済みである必要があります。`npx wrangler whoami`でアカウントIDを確認し、異なる場合は`npx wrangler login`で対象アカウントにログインしてください。
 
-## 0. 初回のみ: R2バケットの作成
+## 初回のみ: R2バケットの作成
 
 生成キャラクターの保存先として、R2バケット`animaldash-characters`が必要です。アカウントごとに一度だけ作成します。
 
@@ -11,6 +11,18 @@ npx wrangler r2 bucket create animaldash-characters
 ```
 
 ローカル開発（`npm run dev`）ではWranglerのローカルR2が自動で使われるため、この作成は不要です。
+
+## 初回のみ: シークレットの登録
+
+本番のWorkerには次のシークレットが必要です。値はリポジトリに書かず、Wranglerで登録します。
+
+```bash
+npx wrangler secret put STAFF_PASSCODE      # スタッフログインの合言葉
+npx wrangler secret put IMAGE_POC_API_URL
+npx wrangler secret put IMAGE_POC_API_KEY
+```
+
+`STAFF_PASSCODE`が未登録のままだと、同期（`/api/sync`）とキャラクター生成はすべて拒否されます。合言葉は推測されにくい長めのものにし、当日はスタッフ間で口頭などで共有してください。変更すると、ログイン済みの端末も全てログアウトされます。
 
 ## 1. デプロイ内容の確認（dry-run）
 
