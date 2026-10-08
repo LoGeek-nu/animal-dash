@@ -1,25 +1,6 @@
-const STORAGE_KEY = "animal-dash-generated-characters-v1";
-
-function loadPool() {
-  if (typeof localStorage === "undefined") return [];
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    return saved ? JSON.parse(saved) : [];
-  } catch {
-    return [];
-  }
-}
-
-function savePool(pool) {
-  if (typeof localStorage === "undefined") return;
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(pool));
-  } catch {
-    // Storage quota or privacy mode — the in-memory pool still works for this tab.
-  }
-}
-
-let pool = loadPool();
+// In-memory pool of generated characters, filled from GET /api/characters (backed by R2).
+let pool = [];
+let inflight = null;
 const listeners = new Set();
 
 function notify() {
@@ -31,8 +12,8 @@ export function getGeneratedCharacters() {
 }
 
 export function addGeneratedCharacter(character) {
+  if (pool.some((existing) => existing.id === character.id)) return;
   pool = [...pool, character];
-  savePool(pool);
   notify();
 }
 
@@ -41,10 +22,18 @@ export function subscribeGeneratedCharacters(listener) {
   return () => listeners.delete(listener);
 }
 
-if (typeof window !== "undefined") {
-  window.addEventListener("storage", (event) => {
-    if (event.key !== STORAGE_KEY) return;
-    pool = loadPool();
-    notify();
-  });
+// Concurrent callers share one request. Failures keep the current pool.
+export function refreshGeneratedCharacters() {
+  inflight ??= fetch("/api/characters", { cache: "no-store" })
+    .then((response) => response.ok ? response.json() : null)
+    .then((body) => {
+      if (!body) return;
+      pool = body.characters.filter((character) => character.generated);
+      notify();
+    })
+    .catch(() => {})
+    .finally(() => {
+      inflight = null;
+    });
+  return inflight;
 }
