@@ -37,7 +37,7 @@
 │   │   └── race-session/             # 画面間で共有するセッション管理
 │   │       ├── race-session-reducer.js # 状態遷移
 │   │       ├── race-session-storage.js # localStorageへの保存
-│   │       ├── race-session-channel.js # BroadcastChannelでの同期
+│   │       ├── race-session-channel.js # BroadcastChannelとWebSocketでの同期
 │   │       └── useRaceSession.js      # 各画面から利用するHook
 │   ├── game/
 │   │   └── page.jsx                  # ゲーム画面 /game のルート
@@ -55,7 +55,9 @@
 ├── scripts/                          # ビルド後処理などの補助スクリプト
 ├── tests/                            # Node.js標準テスト
 ├── worker/
-│   └── index.js                      # Cloudflare Workersの起動処理
+│   ├── index.js                      # Cloudflare Workersの起動処理（/api/syncをDurable Objectへ振り分け）
+│   ├── race-session-room.js          # 端末間同期のDurable Object
+│   └── sync.js                       # 同期用Durable Objectの取得とキャラ追加通知
 ├── eslint.config.mjs                 # ESLint設定
 ├── next.config.js                    # Next.js互換レイヤーの設定
 ├── package.json                      # 依存パッケージとnpmコマンド

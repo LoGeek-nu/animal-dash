@@ -1,5 +1,6 @@
 import { env } from "cloudflare:workers";
 import { characters } from "../../../domain/characters.js";
+import { notifyCharactersChanged } from "../../../../worker/sync.js";
 import { saveGeneratedCharacter } from "../character-store.js";
 
 const PALETTE = characters.map(({ color, pale }) => ({ color, pale }));
@@ -93,9 +94,14 @@ export async function POST(request) {
     return Response.json(body, { status: upstream.status });
   }
 
+  let character;
   try {
-    return Response.json(await saveGeneratedCharacter(CHARACTERS, toRaceCharacter(body.status), body.image_base64));
+    character = await saveGeneratedCharacter(CHARACTERS, toRaceCharacter(body.status), body.image_base64);
   } catch (cause) {
     return Response.json({ error: "storage_failed", detail: String(cause), retryable: true }, { status: 500 });
   }
+
+  // Other screens can still pick the character up on their next reload, so a failed notice is not an error.
+  await notifyCharactersChanged(env).catch(() => {});
+  return Response.json(character);
 }

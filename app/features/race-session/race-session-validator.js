@@ -6,6 +6,10 @@ export function validSession(value) {
 
   return value.version === 3
     && Number.isInteger(value.sequence)
+    && typeof value.sessionId === "string"
+    && typeof value.courseSeed === "string"
+    && Number.isFinite(value.lastSync)
+    && Array.isArray(value.results)
     && RACE_PHASES.includes(value.phase)
     && Array.isArray(value.lanes)
     && value.lanes.length === 4

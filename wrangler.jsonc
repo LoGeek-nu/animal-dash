@@ -1,15 +1,36 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "animaldash",
+  "account_id": "bd6022bab607c76f306d3a313431d8f6",
   "main": "./worker/index.js",
   "compatibility_date": "2026-08-19",
   "compatibility_flags": ["nodejs_compat"],
-  "workers_dev": true,
+  "workers_dev": false,
   "preview_urls": false,
+  "routes": [
+    {
+      "pattern": "animaldash.logeek.tech",
+      "custom_domain": true
+    }
+  ],
   "r2_buckets": [
     {
       "binding": "CHARACTERS",
       "bucket_name": "animaldash-characters"
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "RACE_SESSION",
+        "class_name": "RaceSessionRoom"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["RaceSessionRoom"]
     }
   ],
   "assets": {

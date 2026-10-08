@@ -26,7 +26,11 @@ export function useRaceSession() {
     refreshGeneratedCharacters().then(() => {
       if (cancelled) return;
       const restored = loadRaceSession();
-      if (restored) adoptNewer(restored);
+      if (restored) {
+        adoptNewer(restored);
+        // Offer it to the sync room too, in case it is newer than what the room has.
+        channel.publish(restored);
+      }
       setReady(true);
     });
 
