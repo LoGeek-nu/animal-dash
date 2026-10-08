@@ -12,6 +12,7 @@ import { usePhaseTimers } from "./usePhaseTimers.js";
 export function useRaceSession() {
   const [session, setSession] = useState(() => createInitialSession());
   const [ready, setReady] = useState(false);
+  const [syncStatus, setSyncStatus] = useState("connecting");
   const channelRef = useRef(null);
 
   useEffect(() => {
@@ -19,7 +20,7 @@ export function useRaceSession() {
     const adoptNewer = (incoming) => {
       setSession((current) => incoming.sequence >= current.sequence ? incoming : current);
     };
-    const channel = createRaceSessionChannel(adoptNewer);
+    const channel = createRaceSessionChannel(adoptNewer, { onSyncStatus: setSyncStatus });
     channelRef.current = channel;
 
     // Load generated characters first so a saved session that references them still validates.
@@ -67,5 +68,5 @@ export function useRaceSession() {
     nextAttract: () => dispatch(raceSessionActions.nextAttract()),
   }), [dispatch]);
 
-  return { session, ready, actions };
+  return { session, ready, syncStatus, actions };
 }

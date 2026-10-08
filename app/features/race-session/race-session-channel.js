@@ -10,7 +10,8 @@ const RECONNECT_MAX_DELAY = 10_000;
 
 // Keeps one WebSocket to the sync room open, reconnecting with backoff and
 // detecting silently dropped connections (common on phones) with ping/pong.
-function createSyncSocket({ onSession, onCharactersChanged }) {
+// onStatus receives "connecting" | "open" | "offline", so screens can show whether they really sync.
+function createSyncSocket({ onSession, onCharactersChanged, onStatus }) {
   if (typeof WebSocket === "undefined" || typeof location === "undefined") {
     return { send() {}, close() {} };
   }
@@ -28,14 +29,17 @@ function createSyncSocket({ onSession, onCharactersChanged }) {
   const scheduleReconnect = () => {
     window.clearInterval(heartbeatTimer);
     if (closed) return;
+    onStatus("offline");
     reconnectTimer = window.setTimeout(connect, reconnectDelay);
     reconnectDelay = Math.min(reconnectDelay * 2, RECONNECT_MAX_DELAY);
   };
 
   function connect() {
+    onStatus("connecting");
     socket = new WebSocket(url);
 
     socket.addEventListener("open", () => {
+      onStatus("open");
       reconnectDelay = RECONNECT_MIN_DELAY;
       lastHeard = Date.now();
       // Re-send our newest state; the room ignores it unless it is newer than its own.
@@ -80,7 +84,7 @@ function createSyncSocket({ onSession, onCharactersChanged }) {
   };
 }
 
-export function createRaceSessionChannel(onSession) {
+export function createRaceSessionChannel(onSession, { onSyncStatus = () => {} } = {}) {
   const channel = typeof BroadcastChannel === "undefined" ? null : new BroadcastChannel(CHANNEL_NAME);
 
   let closed = false;
@@ -107,7 +111,7 @@ export function createRaceSessionChannel(onSession) {
 
   if (channel) channel.addEventListener("message", onMessage);
   if (typeof window !== "undefined") window.addEventListener("storage", onStorage);
-  const sync = createSyncSocket({ onSession: accept, onCharactersChanged: refreshGeneratedCharacters });
+  const sync = createSyncSocket({ onSession: accept, onCharactersChanged: refreshGeneratedCharacters, onStatus: onSyncStatus });
 
   return {
     publish(session) {
