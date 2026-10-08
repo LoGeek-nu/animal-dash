@@ -11,4 +11,5 @@
 @import "./styles/animations.css";
 @import "./styles/game/responsive.css";
 @import "./styles/admin-responsive.css";
+@import "./styles/auth.css";
 @import "./styles/accessibility.css";

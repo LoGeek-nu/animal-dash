@@ -5,6 +5,7 @@ import { DndContext, DragOverlay } from "@dnd-kit/core";
 import { VisuallyHidden } from "../../components/ui/atoms/VisuallyHidden.jsx";
 import { ConfirmDialog } from "../../components/ui/organisms/ConfirmDialog.jsx";
 import { getCharacter } from "../../domain/characters.js";
+import { StaffLoginNotice } from "../auth/StaffLoginNotice.jsx";
 import { useRaceSession } from "../race-session/useRaceSession.js";
 import { AdminControlBar } from "./components/AdminControlBar.jsx";
 import { AdminFooter } from "./components/AdminFooter.jsx";
@@ -59,6 +60,7 @@ export function AdminPage() {
     >
       <main className={`admin-shell ${drag.activeCharacterId ? "is-dragging-character" : ""} ${drag.overLaneId ? "is-over-lane-zone" : ""}`}>
         <AdminHeader ready={ready} />
+        <StaffLoginNotice returnTo="/admin" />
         <AdminStatusBar session={session} participantCount={participantCount} />
         <section className="admin-workspace">
           <CharacterLibrary
