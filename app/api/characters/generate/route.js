@@ -1,5 +1,6 @@
 import { env } from "cloudflare:workers";
 import { characters } from "../../../domain/characters.js";
+import { isStaffRequest, unauthorizedResponse } from "../../../../worker/auth.js";
 import { notifyCharactersChanged } from "../../../../worker/sync.js";
 import { saveGeneratedCharacter } from "../character-store.js";
 
@@ -46,6 +47,8 @@ function missingEnvResponse() {
 }
 
 export async function POST(request) {
+  if (!(await isStaffRequest(request, env))) return unauthorizedResponse();
+
   // IMAGE_POC_BYPASS_SECRET is optional: it's only needed if Vercel's own
   // Deployment Protection is ever turned on for the production alias domain
   // (it currently isn't — the app-level X-API-Key is the real gate).
