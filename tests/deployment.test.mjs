@@ -33,6 +33,11 @@ test("Cloudflare Workers is the only configured deployment target", async () => 
   assert.deepEqual(wrangler.r2_buckets, [
     { binding: "CHARACTERS", bucket_name: "animaldash-characters" },
   ]);
+  assert.deepEqual(wrangler.durable_objects, {
+    bindings: [{ name: "RACE_SESSION", class_name: "RaceSessionRoom" }],
+  });
+  assert.deepEqual(wrangler.migrations, [{ tag: "v1", new_sqlite_classes: ["RaceSessionRoom"] }]);
+  assert.match(workerSource, /export \{ RaceSessionRoom \}/);
   assert.deepEqual(wrangler.assets, {
     directory: "./dist/client",
     binding: "ASSETS",

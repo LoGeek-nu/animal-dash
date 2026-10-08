@@ -19,6 +19,20 @@
       "bucket_name": "animaldash-characters"
     }
   ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "RACE_SESSION",
+        "class_name": "RaceSessionRoom"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["RaceSessionRoom"]
+    }
+  ],
   "assets": {
     "directory": "./dist/client",
     "binding": "ASSETS",
