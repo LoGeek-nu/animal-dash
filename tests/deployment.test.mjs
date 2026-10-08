@@ -26,6 +26,9 @@ test("Cloudflare Workers is the only configured deployment target", async () => 
   assert.deepEqual(wrangler.compatibility_flags, ["nodejs_compat"]);
   assert.equal(wrangler.workers_dev, true);
   assert.equal(wrangler.preview_urls, false);
+  assert.deepEqual(wrangler.r2_buckets, [
+    { binding: "CHARACTERS", bucket_name: "animaldash-characters" },
+  ]);
   assert.deepEqual(wrangler.assets, {
     directory: "./dist/client",
     binding: "ASSETS",
