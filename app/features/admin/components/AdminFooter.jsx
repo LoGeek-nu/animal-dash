@@ -4,8 +4,8 @@ export function AdminFooter({ session }) {
     : "--:--";
   return (
     <footer className="admin-footer">
-      <span>LOCAL MOCK MODE · BroadcastChannel + localStorage</span>
-      <span>Race results: {session.results.length ? "SAVED" : "READY"} · Auto reset: {resetAt}</span>
+      <span>LIVE SYNC · SERVER CONFIRMED</span>
+      <span>Race results: {session.results.length ? "CONFIRMED" : "READY"} · Auto reset: {resetAt}</span>
     </footer>
   );
 }

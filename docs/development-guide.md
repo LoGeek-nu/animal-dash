@@ -68,8 +68,10 @@ npm test
 | --- | --- |
 | `tests/domain.test.mjs` | `app/domain/`のレースルール・ランキング計算など、表示に依存しないロジックを検証します。 |
 | `tests/rendered-html.test.mjs` | ビルド後の画面が期待通りHTMLとして描画されるかを検証します。 |
-| `tests/race-timing.test.mjs` | レースID、タイムの固定、DNF、連続レースと古い通知・タイマーの拒否を検証します。 |
 | `tests/deployment.test.mjs` | `wrangler.jsonc`など、デプロイ設定に不整合がないかを検証します。 |
+| `tests/data-store.test.mjs` | 独立したMiniflareの実D1・R2で関連付け、再送、日次集計、取り込み、WebSocketからの保存を検証します。 |
+| `tests/race-timing.test.mjs` | レースID、クリアタイムの固定、DNF、連続レースと古い通知・タイマーの拒否を検証します。 |
+| `tests/race-session-room.test.mjs` | 同期の採用順序と、D1障害・再起動・画面リセット後も結果outboxが残ることを検証します。 |
 
 ## Issue / Pull Request テンプレート
 

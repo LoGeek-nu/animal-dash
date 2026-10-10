@@ -7,6 +7,7 @@ import { raceSessionReducer } from "../app/features/race-session/race-session-re
 import { validSession } from "../app/features/race-session/race-session-validator.js";
 import { createRuntimeRunner, stepRaceRunner } from "../app/features/game/race/race-engine.js";
 import { advanceRaceRuntime, createRaceRuntime, takeRaceCompletion } from "../app/features/game/race/race-runtime.js";
+import { raceRecordFromSession } from "../worker/race-record.js";
 import { characters } from "../app/domain/characters.js";
 import { getBotInput } from "../app/features/game/race/bot-controller.js";
 import { courseObstacles } from "../app/domain/course.js";
@@ -151,18 +152,22 @@ test("invalid final results are rejected and force finish supplies DNF instead o
     completedAt: racing.raceStartedAt + 999, results })), racing);
   const forced = raceSessionReducer(racing, raceSessionActions.forceFinish(), racing.raceStartedAt + 1000);
   assert.deepEqual(forced.results.map((result) => result.finishMs), [null, null]);
+  assert.ok(raceRecordFromSession(forced).results.every((result) => result.finishMs === null));
   const beforeStart = raceSessionReducer(countdown, raceSessionActions.forceFinish(), countdown.countdownEndsAt - 1);
-  assert.equal(beforeStart.raceStartedAt, null);
+  assert.equal(raceRecordFromSession(beforeStart), null);
 });
 
-test("explicit and legacy race identities and completion timestamps are validated", () => {
+test("storage uses the explicit race ID and frozen completion time, with compatibility for old sessions", () => {
   const session = { ...waiting(), phase: "RESULTS", raceId: "fixed-race", raceStartedAt: startedAt,
     raceCompletedAt: startedAt + 1000, lastSync: startedAt + 5000,
     results: lanes.flatMap((lane, index) => lane ? [{ ...lane, lane: index + 1, rank: index + 1, finishMs: 1000 }] : []) };
-  assert.equal(getRaceId(session), "fixed-race");
-  assert.equal(validSession(session), true);
+  const record = raceRecordFromSession(session);
+  assert.equal(record.raceId, "fixed-race");
+  assert.equal(record.completedAt, startedAt + 1000);
+  assert.deepEqual(raceRecordFromSession({ ...session, lastSync: startedAt + 10000 }), record);
   const legacy = { ...session, raceId: undefined, raceCompletedAt: undefined };
   assert.equal(getRaceId(legacy), `${legacy.sessionId}:${startedAt}`);
+  assert.equal(raceRecordFromSession(legacy).raceId, getRaceId(legacy));
   assert.equal(validSession({ ...session, raceId: 12 }), false);
   assert.equal(validSession({ ...session, raceCompletedAt: "now" }), false);
 });

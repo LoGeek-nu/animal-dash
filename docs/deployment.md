@@ -12,6 +12,24 @@ npx wrangler r2 bucket create animaldash-characters
 
 ローカル開発（`npm run dev`）ではWranglerのローカルR2が自動で使われるため、この作成は不要です。
 
+## D1の作成とマイグレーション
+
+初回は対象CloudflareアカウントにDBを作成し、出力された実際のUUIDを`wrangler.jsonc`の`d1_databases`内に`database_id`として追加します。既存の`animaldash-races`がある場合はそのUUIDを使ってください。
+
+```bash
+npx wrangler d1 create animaldash-races
+```
+
+Workerのビルド・デプロイより先に、スキーマと静的キャラクターを本番D1へ反映します。以後もマイグレーション追加時に実行します。
+
+```bash
+npm run db:migrate:remote
+```
+
+ローカル確認では`npm run db:migrate:local`を使います。D1のUUIDは初回設定前には省略されています。先にDBを作成してUUIDを設定し、マイグレーションを適用してからビルドしてください。マイグレーションはWorkerのデプロイだけでは実行されません。
+
+既存R2キャラクターはデプロイ後にスタッフログインし、[取り込み手順](./race-storage.md#既存r2キャラクターの取り込み)でD1へ登録します。取り込まれるまで生成キャラクターは一覧に表示されません。
+
 ## 初回のみ: シークレットの登録
 
 本番のWorkerには次のシークレットが必要です。値はリポジトリに書かず、Wranglerで登録します。
