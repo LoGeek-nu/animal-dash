@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { createInitialSession } from "../app/domain/race-session.js";
 import { RaceSessionRoom } from "../worker/race-session-room.js";
 
 globalThis.WebSocketRequestResponsePair ??= class {};
@@ -8,17 +9,18 @@ function createSocket() {
   return { sent: [], send(payload) { this.sent.push(JSON.parse(payload)); } };
 }
 
-function createRoom(sockets) {
+function createRoom(sockets, storedCharacterIds = []) {
   const storage = new Map();
   const ctx = {
     storage: { get: async (key) => storage.get(key), put: async (key, value) => storage.set(key, value) },
     getWebSockets: () => sockets,
     setWebSocketAutoResponse() {},
   };
-  return { room: new RaceSessionRoom(ctx), storage };
+  const bucket = { head: async (key) => storedCharacterIds.some((id) => key === `characters/${id}.png`) ? {} : null };
+  return { room: new RaceSessionRoom(ctx, { CHARACTERS: bucket }), storage };
 }
 
-const session = (sequence) => ({ version: 3, sequence, sessionId: "session_test", phase: "WAITING", lanes: [null, null, null, null] });
+const session = (sequence) => ({ ...createInitialSession(), sequence, sessionId: "session_test", phase: "WAITING", lanes: [null, null, null, null] });
 const frame = (value) => JSON.stringify({ type: "session", session: value });
 
 test("a newer session is stored and relayed to every other screen", async () => {
@@ -58,4 +60,20 @@ test("malformed frames are ignored and character changes reach everyone", async 
   assert.equal(response.status, 204);
   assert.deepEqual(admin.sent, [{ type: "characters-changed" }]);
   assert.deepEqual(game.sent, [{ type: "characters-changed" }]);
+});
+
+test("sessions the screens would reject are never stored, so they cannot block later writes", async () => {
+  const [admin, game] = [createSocket(), createSocket()];
+  const { room, storage } = createRoom([admin, game], ["gen-stored"]);
+  const withLane = (characterId) => ({ ...session(9), lanes: [{ characterId, isBot: false }, null, null, null] });
+
+  await room.webSocketMessage(admin, frame({ ...session(9), lanes: [null, null, null] }));
+  await room.webSocketMessage(admin, frame({ ...session(9), courseSeed: undefined }));
+  await room.webSocketMessage(admin, frame(withLane("gen-missing")));
+  assert.equal(storage.size, 0);
+
+  await room.webSocketMessage(admin, frame(withLane("gen-stored")));
+  assert.equal(storage.get("session").lanes[0].characterId, "gen-stored");
+  await room.webSocketMessage(admin, frame({ ...withLane("momo"), sequence: 10 }));
+  assert.equal(storage.get("session").sequence, 10);
 });

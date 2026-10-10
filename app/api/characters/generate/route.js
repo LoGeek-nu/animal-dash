@@ -1,5 +1,7 @@
 import { env } from "cloudflare:workers";
 import { characters } from "../../../domain/characters.js";
+import { isStaffRequest, unauthorizedResponse } from "../../../../worker/auth.js";
+import { takeGenerationSlot } from "../../../../worker/generation-quota.js";
 import { notifyCharactersChanged } from "../../../../worker/sync.js";
 import { saveGeneratedCharacter } from "../character-store.js";
 
@@ -46,6 +48,8 @@ function missingEnvResponse() {
 }
 
 export async function POST(request) {
+  if (!(await isStaffRequest(request, env))) return unauthorizedResponse();
+
   // IMAGE_POC_BYPASS_SECRET is optional: it's only needed if Vercel's own
   // Deployment Protection is ever turned on for the production alias domain
   // (it currently isn't — the app-level X-API-Key is the real gate).
@@ -63,6 +67,15 @@ export async function POST(request) {
   const image = incomingForm.get("image");
   if (!(image instanceof File) || image.size === 0) {
     return Response.json({ error: "missing_image", detail: "image field is required", retryable: false }, { status: 400 });
+  }
+
+  // Counted only once the request will really reach Gemini; failed generations still count there.
+  const slot = await takeGenerationSlot(env);
+  if (!slot.allowed) {
+    return Response.json(
+      { error: "rate_limited", detail: `生成が混み合っています。${slot.retryAfter}秒ほど待ってから、もう一度試してください。`, retryable: true, retryAfter: slot.retryAfter },
+      { status: 429, headers: { "Retry-After": String(slot.retryAfter) } },
+    );
   }
 
   const upstreamForm = new FormData();

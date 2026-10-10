@@ -6,6 +6,7 @@
 │   ├── admin/
 │   │   └── page.jsx                  # 管理画面 /admin のルート
 │   ├── api/
+│   │   ├── auth/route.js             # スタッフログイン（POST）・状態確認（GET）・ログアウト（DELETE）
 │   │   ├── characters/
 │   │   │   ├── route.js              # キャラクター一覧（静的10体＋R2の生成キャラ）
 │   │   │   ├── character-store.js    # 生成キャラのR2保存・一覧・画像取得
@@ -23,6 +24,7 @@
 │   │   ├── race-session.js           # レースセッションの初期データ
 │   │   └── rankings.js               # ランキングデータ
 │   ├── features/                     # 機能ごとの画面とロジック
+│   │   ├── auth/                     # ログイン画面、未ログイン時の案内、認証状態のHook
 │   │   ├── admin/
 │   │   │   ├── components/           # 管理画面専用コンポーネント
 │   │   │   ├── hooks/                # Drag & Drop、選択処理のカスタムHook
@@ -41,6 +43,8 @@
 │   │       └── useRaceSession.js      # 各画面から利用するHook
 │   ├── game/
 │   │   └── page.jsx                  # ゲーム画面 /game のルート
+│   ├── login/
+│   │   └── page.jsx                  # スタッフログイン /login のルート
 │   ├── health/
 │   │   └── route.js                  # ヘルスチェック用
 │   ├── styles/                       # 共通・ゲーム・管理画面のCSS
@@ -56,6 +60,7 @@
 ├── tests/                            # Node.js標準テスト
 ├── worker/
 │   ├── index.js                      # Cloudflare Workersの起動処理（/api/syncをDurable Objectへ振り分け）
+│   ├── auth.js                       # スタッフログイン（合言葉とCookie）
 │   ├── race-session-room.js          # 端末間同期のDurable Object
 │   └── sync.js                       # 同期用Durable Objectの取得とキャラ追加通知
 ├── eslint.config.mjs                 # ESLint設定

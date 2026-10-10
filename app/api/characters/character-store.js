@@ -46,6 +46,10 @@ export async function listGeneratedCharacters(bucket) {
     });
 }
 
+export async function generatedCharacterExists(bucket, id) {
+  return (await bucket.head(imageKey(id))) !== null;
+}
+
 export function getGeneratedCharacterImage(bucket, id) {
   return bucket.get(imageKey(id));
 }

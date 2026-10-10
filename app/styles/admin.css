@@ -111,3 +111,6 @@
 
 .panel-heading-actions { display: flex; align-items: center; gap: .5rem; }
 .capture-button { white-space: nowrap; }
+.connection-badge.is-pending span { background: #f2b630; box-shadow: 0 0 0 3px #fcefc8; }
+.connection-badge.is-offline span { background: var(--red); box-shadow: 0 0 0 3px #fbd9dd; animation: none; }
+.admin-header .connection-badge.is-offline { color: white; background: var(--red); }

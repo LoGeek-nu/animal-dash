@@ -34,10 +34,17 @@ test("Cloudflare Workers is the only configured deployment target", async () => 
     { binding: "CHARACTERS", bucket_name: "animaldash-characters" },
   ]);
   assert.deepEqual(wrangler.durable_objects, {
-    bindings: [{ name: "RACE_SESSION", class_name: "RaceSessionRoom" }],
+    bindings: [
+      { name: "RACE_SESSION", class_name: "RaceSessionRoom" },
+      { name: "GENERATION_QUOTA", class_name: "GenerationQuota" },
+    ],
   });
-  assert.deepEqual(wrangler.migrations, [{ tag: "v1", new_sqlite_classes: ["RaceSessionRoom"] }]);
-  assert.match(workerSource, /export \{ RaceSessionRoom \}/);
+  assert.deepEqual(wrangler.migrations, [
+    { tag: "v1", new_sqlite_classes: ["RaceSessionRoom"] },
+    { tag: "v2", new_sqlite_classes: ["GenerationQuota"] },
+  ]);
+  assert.match(workerSource, /export \{ GenerationQuota, RaceSessionRoom \}/);
+  assert.deepEqual(wrangler.ratelimits, [{ name: "AUTH_LIMITER", namespace_id: "1001", simple: { limit: 20, period: 60 } }]);
   assert.deepEqual(wrangler.assets, {
     directory: "./dist/client",
     binding: "ASSETS",

@@ -10,7 +10,8 @@ const RECONNECT_MAX_DELAY = 10_000;
 
 // Keeps one WebSocket to the sync room open, reconnecting with backoff and
 // detecting silently dropped connections (common on phones) with ping/pong.
-function createSyncSocket({ onSession, onCharactersChanged }) {
+// onStatus receives "connecting" | "open" | "offline", so screens can show whether they really sync.
+function createSyncSocket({ onSession, onCharactersChanged, onStatus }) {
   if (typeof WebSocket === "undefined" || typeof location === "undefined") {
     return { send() {}, close() {} };
   }
@@ -28,28 +29,38 @@ function createSyncSocket({ onSession, onCharactersChanged }) {
   const scheduleReconnect = () => {
     window.clearInterval(heartbeatTimer);
     if (closed) return;
+    onStatus("offline");
     reconnectTimer = window.setTimeout(connect, reconnectDelay);
     reconnectDelay = Math.min(reconnectDelay * 2, RECONNECT_MAX_DELAY);
   };
 
   function connect() {
-    socket = new WebSocket(url);
+    onStatus("connecting");
+    const ws = new WebSocket(url);
+    socket = ws;
 
-    socket.addEventListener("open", () => {
+    ws.addEventListener("open", () => {
+      if (socket !== ws) return;
+      onStatus("open");
       reconnectDelay = RECONNECT_MIN_DELAY;
       lastHeard = Date.now();
       // Re-send our newest state; the room ignores it unless it is newer than its own.
-      if (pending) socket.send(pending);
+      if (pending) ws.send(pending);
       heartbeatTimer = window.setInterval(() => {
         if (Date.now() - lastHeard > HEARTBEAT_TIMEOUT) {
-          socket.close();
+          // On a half-open connection the close handshake can stall for minutes,
+          // so give up on this socket now instead of waiting for its close event.
+          socket = null;
+          ws.close();
+          scheduleReconnect();
           return;
         }
-        socket.send("ping");
+        ws.send("ping");
       }, HEARTBEAT_INTERVAL);
     });
 
-    socket.addEventListener("message", (event) => {
+    ws.addEventListener("message", (event) => {
+      if (socket !== ws) return;
       lastHeard = Date.now();
       if (event.data === "pong") return;
       try {
@@ -61,7 +72,10 @@ function createSyncSocket({ onSession, onCharactersChanged }) {
       }
     });
 
-    socket.addEventListener("close", scheduleReconnect);
+    // A socket we already gave up on has been replaced; its late close must not reconnect again.
+    ws.addEventListener("close", () => {
+      if (socket === ws) scheduleReconnect();
+    });
   }
 
   connect();
@@ -80,7 +94,7 @@ function createSyncSocket({ onSession, onCharactersChanged }) {
   };
 }
 
-export function createRaceSessionChannel(onSession) {
+export function createRaceSessionChannel(onSession, { onSyncStatus = () => {} } = {}) {
   const channel = typeof BroadcastChannel === "undefined" ? null : new BroadcastChannel(CHANNEL_NAME);
 
   let closed = false;
@@ -107,7 +121,7 @@ export function createRaceSessionChannel(onSession) {
 
   if (channel) channel.addEventListener("message", onMessage);
   if (typeof window !== "undefined") window.addEventListener("storage", onStorage);
-  const sync = createSyncSocket({ onSession: accept, onCharactersChanged: refreshGeneratedCharacters });
+  const sync = createSyncSocket({ onSession: accept, onCharactersChanged: refreshGeneratedCharacters, onStatus: onSyncStatus });
 
   return {
     publish(session) {

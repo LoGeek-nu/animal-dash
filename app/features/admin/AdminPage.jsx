@@ -5,6 +5,7 @@ import { DndContext, DragOverlay } from "@dnd-kit/core";
 import { VisuallyHidden } from "../../components/ui/atoms/VisuallyHidden.jsx";
 import { ConfirmDialog } from "../../components/ui/organisms/ConfirmDialog.jsx";
 import { getCharacter } from "../../domain/characters.js";
+import { useRequireStaff } from "../auth/useStaffAuth.js";
 import { useRaceSession } from "../race-session/useRaceSession.js";
 import { AdminControlBar } from "./components/AdminControlBar.jsx";
 import { AdminFooter } from "./components/AdminFooter.jsx";
@@ -19,7 +20,8 @@ import { useCharacterSelection } from "./hooks/useCharacterSelection.js";
 import { laneOnlyCollisionDetection } from "./model/lane-collision.js";
 
 export function AdminPage() {
-  const { session, ready, actions } = useRaceSession();
+  const auth = useRequireStaff("/admin");
+  const { session, ready, syncStatus, actions } = useRaceSession();
   const [confirm, setConfirm] = useState(null);
   const [generateOpen, setGenerateOpen] = useState(false);
   const selection = useCharacterSelection({ lanes: session.lanes });
@@ -58,7 +60,7 @@ export function AdminPage() {
       {...drag.dndHandlers}
     >
       <main className={`admin-shell ${drag.activeCharacterId ? "is-dragging-character" : ""} ${drag.overLaneId ? "is-over-lane-zone" : ""}`}>
-        <AdminHeader ready={ready} />
+        <AdminHeader ready={ready} syncStatus={syncStatus} canLogout={auth?.loginRequired === true} />
         <AdminStatusBar session={session} participantCount={participantCount} />
         <section className="admin-workspace">
           <CharacterLibrary
