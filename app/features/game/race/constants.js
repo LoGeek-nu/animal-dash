@@ -1,4 +1,4 @@
-export const RACE_TIMEOUT = 60_000;
+export { RACE_TIMEOUT } from "../../../domain/race-results.js";
 export const MAX_FRAME_DELTA = .04;
 export const PAINT_INTERVAL = 32;
 

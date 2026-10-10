@@ -24,6 +24,7 @@
 
 ### 開発
 
+- [クリアタイム計測の仕様](./docs/race-timing.md) — レースID、開始時刻、タイム確定、DNF、保存への受け渡し
 - [開発ガイドライン](./docs/development-guide.md) — コマンド、ゲームドメイン用語集、テスト構成
 - [ディレクトリ構成](./docs/directory-structure.md) — プロジェクトのディレクトリ構造
 - [開発フロー](./docs/development-flow.md) — Issue作成からPRマージまでの手順

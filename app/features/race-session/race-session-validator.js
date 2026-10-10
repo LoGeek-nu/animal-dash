@@ -8,6 +8,8 @@ export function validSession(value, isKnownId = isKnownCharacterId) {
   return value.version === 3
     && Number.isInteger(value.sequence)
     && typeof value.sessionId === "string"
+    && (value.raceId == null || (typeof value.raceId === "string" && value.raceId.length > 0 && value.raceId.length <= 200))
+    && (value.raceCompletedAt == null || (Number.isSafeInteger(value.raceCompletedAt) && value.raceCompletedAt > 0))
     && typeof value.courseSeed === "string"
     && Number.isFinite(value.lastSync)
     && Array.isArray(value.results)
