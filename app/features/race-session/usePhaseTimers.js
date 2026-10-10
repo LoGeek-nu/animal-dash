@@ -9,8 +9,15 @@ export function usePhaseTimers(session, dispatch) {
   useEffect(() => {
     if (session.phase !== "COUNTDOWN" || !session.countdownEndsAt) return undefined;
     const wait = Math.max(0, session.countdownEndsAt - Date.now());
-    const timer = window.setTimeout(() => dispatch(raceSessionActions.startRace(session.raceId)), wait);
-    return () => window.clearTimeout(timer);
+    let retry;
+    const timer = window.setTimeout(() => {
+      const start = () => dispatch(raceSessionActions.startRace(session.raceId));
+      start();
+      // The room uses its own clock. An early request from a fast device is
+      // rejected; keep checking until the room acknowledges RACING.
+      retry = window.setInterval(start, 250);
+    }, wait);
+    return () => { window.clearTimeout(timer); window.clearInterval(retry); };
   }, [dispatch, session.countdownEndsAt, session.phase, session.raceId]);
 
   useEffect(() => {

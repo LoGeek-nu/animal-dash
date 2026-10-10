@@ -24,6 +24,9 @@ function fixture(env = {}) {
   const start = async () => {
     await send(admin, { phase: "WAITING" });
     await send(admin, { phase: "COUNTDOWN", raceId: "untrusted-id" });
+    await send(game, { phase: "RACING" });
+    assert.equal(data.get("session").phase, "COUNTDOWN");
+    assert.equal(game.sent.at(-2).error, "invalid_transition");
     now = data.get("activeRace").startedAt;
     await send(game, { phase: "RACING" });
   };
