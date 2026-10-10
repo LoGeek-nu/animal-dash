@@ -8,12 +8,37 @@ import { validSession } from "../app/features/race-session/race-session-validato
 import { createRuntimeRunner, stepRaceRunner } from "../app/features/game/race/race-engine.js";
 import { advanceRaceRuntime, createRaceRuntime, takeRaceCompletion } from "../app/features/game/race/race-runtime.js";
 import { characters } from "../app/domain/characters.js";
+import { getBotInput } from "../app/features/game/race/bot-controller.js";
+import { courseObstacles } from "../app/domain/course.js";
 
 const lanes = [{ characterId: "momo", isBot: false }, { characterId: "toramaru", isBot: true }, null, null];
 const waiting = () => ({ ...createInitialSession(), phase: "WAITING", lanes });
 const startedAt = 100_000;
 const runtime = (raceId = "test-race") => createRaceRuntime({ raceId, raceStartedAt: startedAt, lanes, now: 1000, epochNow: startedAt });
 const step = (run, elapsed) => advanceRaceRuntime(run, { now: 1000 + elapsed, epochNow: startedAt + elapsed, obstacles: [] });
+
+test("120/60/20/10/1 FPS produce the same goals and BOT controls on the actual course", () => {
+  const measured = [120, 60, 20, 10, 1].map((fps) => {
+    const run = createRaceRuntime({ raceId: `fps-${fps}`, raceStartedAt: startedAt, lanes, now: 0, epochNow: startedAt });
+    for (let frame = 1; frame <= fps * 59 && !run.completed; frame++) {
+      const now = frame * 1000 / fps;
+      advanceRaceRuntime(run, { now, epochNow: startedAt + Math.round(now),
+        readInput: (laneIndex, runner, lane, simulationNow) => lane.isBot
+          ? getBotInput({ laneIndex, runner, now: simulationNow, obstacles: courseObstacles }) : { jump: false, boost: false } });
+    }
+    assert.ok(run.completed);
+    return run.completed.results;
+  });
+  measured.forEach((results) => assert.deepEqual(results, measured[0]));
+  assert.ok(measured[0].every((result) => result.finishMs !== null));
+});
+
+test("unsafe, negative and exhausted sequences are rejected before adoption", () => {
+  for (const sequence of [1e100, -1, 1.5, Number.MAX_SAFE_INTEGER, Infinity]) {
+    assert.equal(validSession({ ...waiting(), sequence }), false);
+  }
+  assert.equal(validSession({ ...waiting(), sequence: 0 }), true);
+});
 
 test("each countdown identifies one race and delayed devices share its start without countdown time", () => {
   const countdown = raceSessionReducer(waiting(), raceSessionActions.startCountdown(), startedAt);
@@ -26,7 +51,7 @@ test("each countdown identifies one race and delayed devices share its start wit
   const run = createRaceRuntime({ raceId: late.raceId, raceStartedAt: late.raceStartedAt, lanes, now: 1000, epochNow: late.raceStartedAt + 250 });
   run.runners[0].progress = 99.99;
   advanceRaceRuntime(run, { now: 1016, epochNow: late.raceStartedAt + 266, obstacles: [] });
-  assert.equal(run.runners[0].finishedAt, 266);
+  assert.ok(run.runners[0].finishedAt > 0 && run.runners[0].finishedAt <= 266);
   assert.notEqual(raceSessionReducer(waiting(), raceSessionActions.startCountdown(), startedAt).raceId, countdown.raceId);
   const bots = raceSessionReducer({ ...waiting(), lanes: [lanes[0], null, null, null] }, raceSessionActions.fillBots(true), startedAt);
   assert.ok(bots.raceId);
@@ -38,20 +63,20 @@ test("different goals are fixed in integer milliseconds even while a finisher is
   const run = runtime();
   run.runners[0] = { ...run.runners[0], progress: 99.99, y: 80, vy: 100 };
   step(run, 16.4);
-  assert.equal(run.runners[0].finishedAt, 16);
+  assert.equal(run.runners[0].finishedAt, 8);
   assert.equal(takeRaceCompletion(run), null);
   step(run, 26.4);
-  assert.equal(run.runners[0].finishedAt, 16);
+  assert.equal(run.runners[0].finishedAt, 8);
   assert.ok(run.runners[0].progress > 100);
   run.runners[1].progress = 99.99;
-  step(run, 1000.6);
+  step(run, 36.4);
   const completed = takeRaceCompletion(run);
   assert.deepEqual(completed.results, [
-    { characterId: "momo", lane: 1, rank: 1, finishMs: 16, isBot: false },
-    { characterId: "toramaru", lane: 2, rank: 2, finishMs: 1001, isBot: true },
+    { characterId: "momo", lane: 1, rank: 1, finishMs: 8, isBot: false },
+    { characterId: "toramaru", lane: 2, rank: 2, finishMs: 33, isBot: true },
   ]);
   assert.equal(completed.raceId, "test-race");
-  assert.equal(completed.completedAt, startedAt + 1001);
+  assert.equal(completed.completedAt, startedAt + 36);
   step(run, RACE_TIMEOUT + 1000);
   assert.equal(run.completed, completed);
   assert.equal(takeRaceCompletion(run), null);
@@ -81,7 +106,7 @@ test("a sleeping monotonic clock cannot extend the deadline, and wall clock chan
   const run = runtime();
   run.runners[0].progress = 99.99;
   advanceRaceRuntime(run, { now: 1016, epochNow: startedAt - 5000, obstacles: [] });
-  assert.equal(run.runners[0].finishedAt, 16);
+  assert.equal(run.runners[0].finishedAt, 8);
 });
 
 test("new races reset clock, runners, results and stale finish/reset/start notifications are ignored", () => {

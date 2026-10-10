@@ -27,15 +27,15 @@ export function useRaceEngine({ raceId, lanes, raceStartedAt, onFinished }) {
       const gamepads = navigator.getGamepads?.() ?? [];
       advanceRaceRuntime(runtime, {
         now, epochNow: Date.now(), onJump: consumeJump,
-        readInput: (laneIndex, runner, lane) => {
+        readInput: (laneIndex, runner, lane, simulationNow) => {
           const manual = readInput(laneIndex, gamepads[laneIndex]);
-          const bot = lane.isBot ? getBotInput({ laneIndex, runner, now, obstacles: courseObstacles }) : { jump: false, boost: false };
+          const bot = lane.isBot ? getBotInput({ laneIndex, runner, now: simulationNow, obstacles: courseObstacles }) : { jump: false, boost: false };
           return { jump: manual.jump || bot.jump, boost: manual.boost || bot.boost };
         },
       });
 
       if (runtime.completed || now - lastPaint > PAINT_INTERVAL) {
-        setRunners(runtime.runners.map((runner) => toRenderableRunner(runner, now)));
+        setRunners(runtime.runners.map((runner) => toRenderableRunner(runner, runtime.simulatedElapsed)));
         lastPaint = now;
       }
 
