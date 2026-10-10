@@ -10,7 +10,7 @@ const RECONNECT_MAX_DELAY = 10_000;
 // Keeps one WebSocket to the sync room open, reconnecting with backoff and
 // detecting silently dropped connections (common on phones) with ping/pong.
 // onStatus receives "connecting" | "open" | "offline", so screens can show whether they really sync.
-function createSyncSocket({ role, onSession, onCharactersChanged, onStatus }) {
+function createSyncSocket({ role, onSession, onCharactersChanged, onResultsSaved, onResultsFailed, onStatus }) {
   if (typeof WebSocket === "undefined" || typeof location === "undefined") {
     return { send() {}, sendInput() {}, close() {} };
   }
@@ -66,6 +66,8 @@ function createSyncSocket({ role, onSession, onCharactersChanged, onStatus }) {
         const message = JSON.parse(event.data);
         if (message.type === "session") onSession(message.session);
         if (message.type === "characters-changed") onCharactersChanged();
+        if (message.type === "results-saved" && typeof message.raceId === "string") onResultsSaved(message.raceId);
+        if (message.type === "results-failed" && typeof message.raceId === "string") onResultsFailed(message.raceId);
       } catch {
         // Ignore malformed frames.
       }
@@ -96,13 +98,14 @@ function createSyncSocket({ role, onSession, onCharactersChanged, onStatus }) {
   };
 }
 
-export function createRaceSessionChannel(onSession, { onSyncStatus = () => {}, role = "viewer" } = {}) {
+export function createRaceSessionChannel(onSession, { onSyncStatus = () => {}, onResultsSaved = () => {}, onResultsFailed = () => {}, role = "viewer" } = {}) {
   let closed = false;
   const accept = async (candidate) => {
     if (!validSession(candidate)) await refreshGeneratedCharacters();
     if (!closed && validSession(candidate)) onSession(candidate);
   };
-  const sync = createSyncSocket({ role, onSession: accept, onCharactersChanged: refreshGeneratedCharacters, onStatus: onSyncStatus });
+  const sync = createSyncSocket({ role, onSession: accept, onCharactersChanged: refreshGeneratedCharacters, onStatus: onSyncStatus,
+    onResultsSaved: (id) => { if (!closed) onResultsSaved(id); }, onResultsFailed: (id) => { if (!closed) onResultsFailed(id); } });
   // Local storage/BroadcastChannel must never bypass the room's validation.
   return {
     publish(session) { sync.send(session); },

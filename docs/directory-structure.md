@@ -23,7 +23,7 @@
 │   │   ├── characters.js             # キャラクター定義
 │   │   ├── course.js                 # コース区間と障害物定義
 │   │   ├── race-session.js           # レースセッションの初期データ
-│   │   └── rankings.js               # ランキングデータ
+│   │   └── rankings.js               # タイムと対象日の表示フォーマット
 │   ├── features/                     # 機能ごとの画面とロジック
 │   │   ├── auth/                     # ログイン画面、未ログイン時の案内、認証状態のHook
 │   │   ├── admin/
@@ -37,6 +37,7 @@
 │   │   │   ├── screens/              # 各ゲームフェーズの画面
 │   │   │   ├── GamePage.jsx          # ゲーム画面の組み立て
 │   │   │   └── GamePhaseRenderer.jsx # 現在のフェーズに対応する画面を表示
+│   │   ├── rankings/                 # 日次ランキングの共通取得状態・保存待ち・再試行
 │   │   └── race-session/             # 画面間で共有するセッション管理
 │   │       ├── race-session-reducer.js # 状態遷移
 │   │       ├── race-session-storage.js # localStorageへの保存

@@ -34,6 +34,7 @@
 - [デプロイ手順](./docs/deployment.md) — Cloudflare Workersへのデプロイ方法
 - [D1とランキングの仕様](./docs/race-storage.md) — DB導入、R2からの取り込み、結果保存、取得API
 - [クリアタイム計測の仕様](./docs/race-timing.md) — レースID、開始時刻、タイム確定、DNF、保存への受け渡し
+- [ランキング表示の仕様](./docs/ranking-display.md) — 実データのTOP 3／TOP 10、保存待ち、取得状態
 
 ## クイックスタート
 
@@ -53,77 +54,143 @@ npm run dev
 - 管理画面: `http://localhost:3000/admin`
 - ヘルスチェック: `http://localhost:3000/health`
 
-## 本番反映の手順（D1導入・ランキング対応）
+## 本番反映
 
-今回の取り込み順は **[PR #49 / Issue #45](https://github.com/LoGeek-nu/animal-dash/pull/49) → [PR #48 / Issue #44](https://github.com/LoGeek-nu/animal-dash/pull/48) → [PR #50 / Issue #46](https://github.com/LoGeek-nu/animal-dash/pull/50)** です。まず#49を`develop`へ取り込み、#48のbaseを`develop`へ変更して取り込み、最後に#50のbaseを`develop`へ変更して取り込みます。後続PRの差分に前段が重複しないことを確認してください。Squash/Rebase mergeを使った場合は後続ブランチのrebaseも必要です。3つすべてを取り込んでから、[本番リリースフロー](./docs/release-flow.md)に従って`develop`を`main`へマージし、以下を実行します。
+PRの取り込み順は **[PR #49 / Issue #45](https://github.com/LoGeek-nu/animal-dash/pull/49) → [PR #48 / Issue #44](https://github.com/LoGeek-nu/animal-dash/pull/48) → [PR #50 / Issue #46](https://github.com/LoGeek-nu/animal-dash/pull/50)** です。前段を取り込んだら、次のPRのbaseを`develop`へ変更して差分の重複がないことを確認します。Squash/Rebase mergeの場合は後続ブランチのrebaseも必要です。3PRすべてを取り込んだ後、[リリースフロー](./docs/release-flow.md)に従って`develop`を`main`へマージします。
 
-1. **レースを止め、対象を確認する。** 進行中のレースを終了させ、反映完了まで新規レースを開始しません。対象はCloudflareアカウント`bd6022bab607c76f306d3a313431d8f6`、Worker `animaldash`、R2 `animaldash-characters`、D1 `animaldash-races`です。
+本番の対象はWorker `animaldash`、D1 `animaldash-races`、R2 `animaldash-characters`、Cloudflareアカウント`bd6022bab607c76f306d3a313431d8f6`です。
 
-   ```bash
-   npx wrangler whoami
-   npx wrangler d1 list
-   ```
+### 初回導入だけ行うこと
 
-2. **D1を紐付ける（初回のみ）。** 既存の`animaldash-races`があればそのUUIDを使います。存在しない場合だけ作成します。
+**1. D1を作成し、UUIDを設定する。**
 
-   ```bash
-   npx wrangler d1 create animaldash-races
-   ```
+```bash
+npx wrangler whoami
+npx wrangler d1 list
+```
 
-   出力のUUIDを`wrangler.jsonc`の`d1_databases`内へ`database_id`として追加します。DB名だけでデプロイせず、既存DBのUUIDを明示してください。設定変更はGitにも反映します。R2が未作成の場合だけ`npx wrangler r2 bucket create animaldash-characters`を実行します。
+対象アカウントであることを確認します。`animaldash-races`が既にあればそのUUIDを使います。存在しない場合だけ作成します。
 
-3. **シークレットを確認する。** `npx wrangler secret list`で`STAFF_PASSCODE`、`IMAGE_POC_API_URL`、`IMAGE_POC_API_KEY`が登録済みか確認し、不足分だけ`npx wrangler secret put <名前>`で登録します。値はコマンド引数・Git・ログに書きません。ローカルの`.dev.vars`は自動では本番へ反映されません。
+```bash
+npx wrangler d1 create animaldash-races
+```
 
-4. **既存DBをバックアップして、本番マイグレーションを適用する。** バックアップはGit管理外に保存します。新規DBに記録がない場合はバックアップを省略できます。
+出力されたUUIDを`wrangler.jsonc`の`d1_databases`内の`database_id`に設定し、設定変更をGitへ反映します。DB名だけの設定でデプロイせず、使用するDBのUUIDを明示してください。
 
-   ```bash
-   mkdir -p .wrangler/backups
-   npx wrangler d1 export animaldash-races --remote --output .wrangler/backups/animaldash-races-before-migration.sql
-   npx wrangler d1 migrations list animaldash-races --remote --config wrangler.jsonc
-   npm run db:migrate:remote
-   ```
+**2. R2とシークレットを準備する。**
 
-   初回は`0001_race_storage.sql`（テーブル・制約・インデックス）と`0002_builtin_characters.sql`（静的10体）が適用されます。以後も新しいmigrationを**Workerの反映より先に**適用します。`npm run db:migrate:local`では本番DBは初期化されません。Workerのデプロイだけでもmigrationは実行されません。
+R2が未作成の場合だけ実行します。
 
-5. **本番設定で検証してデプロイする。** UUIDを設定した状態でビルドします。
+```bash
+npx wrangler r2 bucket create animaldash-characters
+```
 
-   ```bash
-   npm ci
-   npm run lint
-   npm test
-   npm run deploy:dry-run
-   npm run deploy
-   ```
+`npx wrangler secret list`で登録済みの名前を確認します。不足しているものだけ、次のコマンドで登録します。
 
-   dry-runの成功は本番のDB初期化や疎通を保証しません。`dist/server/wrangler.json`は生成物なので直接編集しません。
+```bash
+npx wrangler secret put STAFF_PASSCODE
+npx wrangler secret put IMAGE_POC_API_URL
+npx wrangler secret put IMAGE_POC_API_KEY
+```
 
-6. **既存R2キャラクターをD1へ取り込む（初回・復旧時）。** 本番の[ログイン画面](https://animaldash.logeek.tech/login)からスタッフログインし、同じサイトの開発者コンソールで実行します。
+値はコマンド引数・Git・ログに書きません。`.dev.vars`は本番へ自動反映されません。
 
-   ```js
-   await (async () => {
-     let cursor;
-     do {
-       const query = cursor ? `?cursor=${encodeURIComponent(cursor)}` : "";
-       const response = await fetch(`/api/characters/import${query}`, { method: "POST" });
-       if (!response.ok) throw new Error(`取り込み失敗: ${response.status}`);
-       const page = await response.json();
-       console.log(page); // imported / skipped / cursor / done
-       cursor = page.cursor;
-     } while (cursor);
-   })();
-   ```
+**3. 初回のマイグレーションとデプロイを行う。**
 
-   取り込み完了・`skipped`の内容を確認します。同じIDへのupsertのため再実行可能です。既存キャラクターは取り込まれるまで一覧に現れません。画像はR2に残り、再生成は不要です。
+```bash
+npm ci
+npm run lint
+npm test
+npm run db:migrate:remote
+npm run deploy:dry-run
+npm run deploy
+```
 
-7. **すべての管理・ゲーム画面を再読み込みする。** 同期プロトコルが変わるため、古いタブを残しません。まず[ゲーム画面](https://animaldash.logeek.tech/game)を開き、[管理画面](https://animaldash.logeek.tech/admin)から開始します。ゲーム画面未接続では開始を受理しません。複数のゲーム画面がある場合は最初の接続が操作の報告元となり、切断後の再接続では接続中のゲーム画面へ引き継ぎます。
+`0001_race_storage.sql`でテーブル・制約・インデックス、`0002_builtin_characters.sql`で静的10体を登録します。既存DBに記録がある場合は、適用前に下の通常更新手順のバックアップを取得してください。
 
-8. **本番の疎通を確認して運用を再開する。** `/health`、`/api/characters`、`/api/rankings`が成功することを確認し、テストレースを自然完走させます。画面の順位・タイムと以下の本番D1の保存値を照合し、BOT・DNFのランキング除外も確認します。本番のテストレースは実際に記録へ残ります。
+**4. デプロイ後、既存R2キャラクターをD1へ取り込む。**
 
-   ```bash
-   npx wrangler d1 execute animaldash-races --remote --config wrangler.jsonc --command "SELECT r.id, rr.character_id, rr.rank, rr.finish_ms, rr.is_bot FROM races r JOIN race_results rr ON rr.race_id=r.id ORDER BY r.started_at DESC, rr.rank LIMIT 20"
-   ```
+本番の[ログイン画面](https://animaldash.logeek.tech/login)からスタッフログインし、同じサイトの開発者コンソールで実行します。
 
-保存エラーはWorkers Logsの`race_save_failed`で確認します。一時的なDB障害は再試行しますが、結果競合などの恒久エラーはDurable Objectの`failed:<raceId>`へ隔離し、再試行を止めて画面へ失敗を通知します。隔離記録を確認して原因を修復してください。WorkerコードのロールバックだけではD1/R2のデータやmigrationは戻りません。詳細は[デプロイ手順](./docs/deployment.md)と[D1の仕様](./docs/race-storage.md)を参照してください。
+```js
+await (async () => {
+  let cursor;
+  do {
+    const query = cursor ? `?cursor=${encodeURIComponent(cursor)}` : "";
+    const response = await fetch(`/api/characters/import${query}`, { method: "POST" });
+    if (!response.ok) throw new Error(`取り込み失敗: ${response.status}`);
+    const page = await response.json();
+    console.log(page); // imported / skipped / cursor / done
+    cursor = page.cursor;
+  } while (cursor);
+})();
+```
+
+取り込み完了と`skipped`の内容を確認します。画像はR2に残り、再生成は不要です。既存キャラクターは取り込まれるまで一覧に表示されません。完了後は、下の「画面を再読み込みして疎通を確認する」を実施します。
+
+### 通常の本番更新で毎回行うこと
+
+DB・R2の作り直し、シークレットの再登録、既存キャラクターの取り込みは通常更新では不要です。
+
+**1. 反映するコードと対象を確認し、レースを止める。**
+
+`main`にリリース対象がマージ済みであることを確認します。進行中のレースを終了させ、疎通確認が終わるまで新規レースを開始しません。
+
+```bash
+npx wrangler whoami
+npm ci
+npm run lint
+npm test
+```
+
+**2. 本番DBをバックアップする。**
+
+```bash
+mkdir -p .wrangler/backups
+npx wrangler d1 export animaldash-races --remote --output .wrangler/backups/animaldash-races-before-migration.sql
+```
+
+バックアップ先はGit管理外です。前回分も残す場合はファイル名に日時を付けます。
+
+**3. 未適用のマイグレーションを適用する。**
+
+```bash
+npx wrangler d1 migrations list animaldash-races --remote --config wrangler.jsonc
+npm run db:migrate:remote
+```
+
+適用済みファイルは再実行されません。Workerの更新より先にDBを更新します。`db:migrate:local`では本番DBは更新されません。
+
+**4. デプロイする。**
+
+```bash
+npm run deploy:dry-run
+npm run deploy
+```
+
+UUIDを設定した状態でビルド・デプロイします。`dist/server/wrangler.json`は生成物なので直接編集しません。dry-runだけでは本番のDB疎通は確認できません。
+
+**5. 画面を再読み込みして疎通を確認する。**
+
+すべての管理・ゲーム画面を再読み込みします。今回の変更では同期プロトコルが変わるため、古いタブを残さないでください。先に[ゲーム画面](https://animaldash.logeek.tech/game)を開き、その後[管理画面](https://animaldash.logeek.tech/admin)から開始します。
+
+- `/health`、`/api/characters`、`/api/rankings`が成功することを確認する。
+- テストレースを自然完走させ、画面の順位・タイムとD1の値を照合する。
+- BOT・DNFは出走履歴へ残り、日次ランキングには含まれないことを確認する。
+
+```bash
+npx wrangler d1 execute animaldash-races --remote --config wrangler.jsonc --command "SELECT r.id, rr.character_id, rr.rank, rr.finish_ms, rr.is_bot FROM races r JOIN race_results rr ON rr.race_id=r.id ORDER BY r.started_at DESC, rr.rank LIMIT 20"
+```
+
+本番のテストレースは記録へ残ります。確認が通ったら通常運用を再開します。
+
+### 障害時の復旧
+
+一時的なDB障害は保存を再試行します。結果競合などの恒久エラーはDurable Objectの`failed:<raceId>`へ隔離して再試行を止め、画面へ保存失敗を通知します。Workers Logsの`race_save_failed`と隔離記録を確認して原因を修復してください。
+
+生成時にR2保存だけ成功してD1保存が失敗した場合は、初回導入の取り込み手順を再実行できます。同じIDへのupsertなので重複登録しません。
+
+WorkerコードのロールバックだけではD1/R2のデータやmigrationは戻りません。詳細は[デプロイ手順](./docs/deployment.md)と[D1の仕様](./docs/race-storage.md)を参照してください。
 
 ## 設計資料
 

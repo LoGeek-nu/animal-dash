@@ -132,6 +132,19 @@ test("TOP 3/TOP 10 API limits and errors are explicit and import requires staff 
   assert.equal((await response.json()).done, true);
 });
 
+test("rankings confirm persistence before returning the current race's leaderboard", async (t) => {
+  const { db, bucket } = await fixture(t);
+  const query = new Request("https://example.test/api/rankings?date=2026-10-10&afterRaceId=race-pending");
+  const pending = await (await rankingsResponse(query, { DB: db })).json();
+  assert.equal(pending.raceSaved, false);
+  await saveRace(db, bucket, race("race-pending"));
+  const committed = await (await rankingsResponse(query, { DB: db })).json();
+  assert.equal(committed.raceSaved, true);
+  assert.equal(committed.afterRaceId, "race-pending");
+  assert.equal(committed.rankings[0].raceId, "race-pending");
+  assert.equal((await rankingsResponse(new Request("https://example.test/api/rankings?afterRaceId="), { DB: db })).status, 400);
+});
+
 test("session adapter distinguishes consecutive races and rejects invalid or mismatched results", () => {
   const session = { phase: "RESULTS", sessionId: "session-demo", raceStartedAt: startedAt, lastSync: startedAt + 60000,
     courseSeed: "course", lanes: [{ characterId: "momo", isBot: false }, null, null, null], results: [result("momo", 1, 30000)] };
@@ -200,4 +213,15 @@ test("workerd validates race registration, ownership, canonical times, immutabil
   assert.ok((await db.prepare("SELECT finish_ms FROM race_results WHERE race_id=?").bind(current.raceId).all()).results.every((r) => r.finish_ms === null));
   assert.equal((await db.prepare("SELECT COUNT(*) AS count FROM races").first()).count, 2);
   assert.equal((await getDailyRankings(db, { date: "2026-10-10" })).rankings.length, 2);
+});
+
+test("API reports permanent outbox failures after a missed notification", async (t) => {
+  const { db, mf } = await fixture(t, true);
+  await mf.dispatchFetch("https://example.test/test-failure?raceId=failed-race");
+  const env = { DB: db, RACE_SESSION: { getByName: () => ({ fetch: (url) => mf.dispatchFetch(url) }) } };
+  const response = await rankingsResponse(new Request("https://example.test/api/rankings?date=2026-10-10&afterRaceId=failed-race"), env);
+  const body = await response.json();
+  assert.equal(response.status, 200);
+  assert.equal(body.raceSaved, false);
+  assert.equal(body.raceFailed, true);
 });

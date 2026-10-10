@@ -50,6 +50,18 @@ test("the sync status follows the WebSocket so screens can show when they are of
   channel.close();
 });
 
+test("save notifications reach the ranking refresh only while the channel is active", () => {
+  const saved = [];
+  const channel = createRaceSessionChannel(() => {}, { onResultsSaved: (raceId) => saved.push(raceId) });
+  const socket = FakeWebSocket.instances.at(-1);
+  socket.emit("message", { data: JSON.stringify({ type: "results-saved", raceId: "race-new" }) });
+  socket.emit("message", { data: JSON.stringify({ type: "results-saved" }) });
+  assert.deepEqual(saved, ["race-new"]);
+  channel.close();
+  socket.emit("message", { data: JSON.stringify({ type: "results-saved", raceId: "race-late" }) });
+  assert.deepEqual(saved, ["race-new"]);
+});
+
 test("a silent connection is replaced without waiting for its close event", (t) => {
   const statuses = [];
   const channel = createRaceSessionChannel(() => {}, { onSyncStatus: (status) => statuses.push(status) });
@@ -74,4 +86,16 @@ test("a silent connection is replaced without waiting for its close event", (t) 
   assert.equal(timeouts.length, 0);
   replacement.emit("open");
   assert.equal(statuses.at(-1), "open");
+});
+
+test("game connections identify their role and forward permanent failure notices only while active", () => {
+  const failed = [];
+  const channel = createRaceSessionChannel(() => {}, { role: "game", onResultsFailed: (id) => failed.push(id) });
+  const socket = FakeWebSocket.instances.at(-1);
+  assert.match(socket.url, /role=game$/);
+  socket.emit("message", { data: JSON.stringify({ type: "results-failed", raceId: "failed-race" }) });
+  assert.deepEqual(failed, ["failed-race"]);
+  channel.close();
+  socket.emit("message", { data: JSON.stringify({ type: "results-failed", raceId: "late" }) });
+  assert.deepEqual(failed, ["failed-race"]);
 });
