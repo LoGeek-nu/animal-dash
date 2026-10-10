@@ -24,13 +24,28 @@
       {
         "name": "RACE_SESSION",
         "class_name": "RaceSessionRoom"
+      },
+      {
+        "name": "GENERATION_QUOTA",
+        "class_name": "GenerationQuota"
       }
     ]
   },
+  "ratelimits": [
+    {
+      "name": "AUTH_LIMITER",
+      "namespace_id": "1001",
+      "simple": { "limit": 20, "period": 60 }
+    }
+  ],
   "migrations": [
     {
       "tag": "v1",
       "new_sqlite_classes": ["RaceSessionRoom"]
+    },
+    {
+      "tag": "v2",
+      "new_sqlite_classes": ["GenerationQuota"]
     }
   ],
   "assets": {

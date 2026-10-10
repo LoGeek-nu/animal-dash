@@ -1,5 +1,5 @@
 import { env } from "cloudflare:workers";
-import { clearedStaffCookie, isStaffRequest, loginRequired, passcodeMatches, staffCookie } from "../../../worker/auth.js";
+import { clearedStaffCookie, isStaffRequest, loginAttemptAllowed, loginRequired, passcodeMatches, staffCookie } from "../../../worker/auth.js";
 
 export async function GET(request) {
   return Response.json(
@@ -9,6 +9,9 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
+  if (!(await loginAttemptAllowed(request, env))) {
+    return Response.json({ error: "rate_limited", detail: "ログインの試行が多すぎます。1分ほど待ってから、もう一度試してください。" }, { status: 429, headers: { "Retry-After": "60" } });
+  }
   let passcode;
   try {
     ({ passcode } = await request.json());

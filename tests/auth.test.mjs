@@ -4,6 +4,7 @@ import {
   clearedStaffCookie,
   isSameOrigin,
   isStaffRequest,
+  loginAttemptAllowed,
   loginRequired,
   passcodeMatches,
   STAFF_COOKIE,
@@ -82,4 +83,15 @@ test("logging out clears the cookie on the server and opens the login page", asy
 
   assert.deepEqual(calls, [["/api/auth", "DELETE"]]);
   assert.deepEqual(assigned, ["/login?next=%2Fadmin"]);
+});
+
+test("login attempts are counted per IP, and unlimited where the limiter binding is absent", async () => {
+  const keys = [];
+  const limiter = { limit: async ({ key }) => ({ success: keys.push(key) <= 1 }) };
+  const from = (ip) => request({ "CF-Connecting-IP": ip }, "https://animaldash.logeek.tech/api/auth");
+
+  assert.equal(await loginAttemptAllowed(from("203.0.113.7"), { AUTH_LIMITER: limiter }), true);
+  assert.equal(await loginAttemptAllowed(from("203.0.113.7"), { AUTH_LIMITER: limiter }), false);
+  assert.deepEqual(keys, ["203.0.113.7", "203.0.113.7"]);
+  assert.equal(await loginAttemptAllowed(from("203.0.113.7"), {}), true);
 });

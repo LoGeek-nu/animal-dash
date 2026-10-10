@@ -63,6 +63,14 @@ export function isSameOrigin(request) {
   return origin === null || origin === new URL(request.url).origin;
 }
 
+// Slows down passcode guessing: AUTH_LIMITER allows a set number of logins per IP per minute.
+// Unlimited when the binding is absent.
+export async function loginAttemptAllowed(request, env) {
+  if (!env.AUTH_LIMITER) return true;
+  const { success } = await env.AUTH_LIMITER.limit({ key: request.headers.get("CF-Connecting-IP") ?? "unknown" });
+  return success;
+}
+
 export function unauthorizedResponse() {
   return Response.json({ error: "unauthorized", detail: "スタッフログインが必要です。/login で合言葉を入力してください。", retryable: false }, { status: 401 });
 }
