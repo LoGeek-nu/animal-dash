@@ -87,3 +87,15 @@ test("a silent connection is replaced without waiting for its close event", (t) 
   replacement.emit("open");
   assert.equal(statuses.at(-1), "open");
 });
+
+test("game connections identify their role and forward permanent failure notices only while active", () => {
+  const failed = [];
+  const channel = createRaceSessionChannel(() => {}, { role: "game", onResultsFailed: (id) => failed.push(id) });
+  const socket = FakeWebSocket.instances.at(-1);
+  assert.match(socket.url, /role=game$/);
+  socket.emit("message", { data: JSON.stringify({ type: "results-failed", raceId: "failed-race" }) });
+  assert.deepEqual(failed, ["failed-race"]);
+  channel.close();
+  socket.emit("message", { data: JSON.stringify({ type: "results-failed", raceId: "late" }) });
+  assert.deepEqual(failed, ["failed-race"]);
+});

@@ -7,7 +7,8 @@ export function japanDate(now = Date.now()) {
 function validResponse(body, date, raceId) {
   return body?.mock === false && body.date === date && body.timezone === "Asia/Tokyo"
     && body.metric === "finishMs" && body.unit === "milliseconds" && body.botsIncluded === false && body.tiePolicy === "competition"
-    && (!raceId || (body.afterRaceId === raceId && typeof body.raceSaved === "boolean"))
+    && (!raceId || (body.afterRaceId === raceId && typeof body.raceSaved === "boolean"
+      && (body.raceFailed === undefined || typeof body.raceFailed === "boolean")))
     && Array.isArray(body.rankings) && body.rankings.length <= 10
     && new Set(body.rankings.map((item) => item?.characterId)).size === body.rankings.length
     && body.rankings.every((item, index) => item && Number.isInteger(item.rank) && item.rank >= 1 && item.rank <= 10
@@ -49,13 +50,14 @@ export function createRankingClient({ fetcher = (...args) => fetch(...args), now
       if (controller.signal.aborted) throw new Error("Ranking request aborted");
       if (!validResponse(body, date, raceId)) throw new Error("Invalid ranking response");
       if (token !== revision || !observers.size) return;
-      publish({ status: body.raceSaved === false ? "pending" : "ready", date: body.date, rankings: body.rankings });
+      publish({ status: body.raceFailed ? "failed" : body.raceSaved === false ? "pending" : "ready", date: body.date,
+        rankings: body.raceFailed ? [] : body.rankings });
     } catch {
       if (token !== revision || !observers.size) return;
       publish({ status: "error", date, rankings: [] });
     } finally {
       cancel(timeout);
-      if (token === revision && observers.size) {
+      if (token === revision && observers.size && state.status !== "failed") {
         timer = schedule(refresh, state.status === "pending" ? 1500 : 30000);
       }
     }

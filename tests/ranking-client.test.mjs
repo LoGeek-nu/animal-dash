@@ -134,3 +134,17 @@ test("a stalled network request times out into a retryable error", async () => {
   assert.equal([...timers.values()][0].ms, 30000);
   stop();
 });
+
+test("permanent save failure stops pending polling and manual retry can observe recovery", async () => {
+  let failed = true;
+  const { client, timers } = fixture(async () => response(data({ afterRaceId: "failed-race", raceSaved: !failed, raceFailed: failed })));
+  const stop = client.observe("failed-race");
+  await settle();
+  assert.equal(client.getSnapshot().status, "failed");
+  assert.deepEqual(client.getSnapshot().rankings, []);
+  assert.equal(timers.size, 0);
+  failed = false;
+  await client.refresh();
+  assert.equal(client.getSnapshot().status, "ready");
+  stop();
+});

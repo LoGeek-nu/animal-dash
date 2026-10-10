@@ -40,13 +40,13 @@ test("this race keeps its own confirmed time and clearly marks uncompleted BOT r
 test("loading, pending, empty and failed boards show state messages without displaying stale rankings", async (t) => {
   const { ResultsBoardView, AttractRankingView } = await loadRankingViews(t);
   const states = [[board("loading"), "読み込んでいます"], [board("pending"), "記録を反映"],
-    [board("error"), "取得できません"], [board("ready", []), "完走記録がありません"]];
+    [board("error"), "取得できません"], [board("failed"), "保存できません"], [board("ready", []), "完走記録がありません"]];
   for (const [state, message] of states) {
     for (const html of [renderToStaticMarkup(createElement(ResultsBoardView, { results, board: state })),
       renderToStaticMarkup(createElement(AttractRankingView, { board: state }))]) {
       assert.ok(html.includes(message));
       assert.doesNotMatch(html, /生成キャラクターA|30\.123秒|CROWN/);
-      if (state.status === "error") { assert.match(html, /role="alert"/); assert.match(html, /再読み込み/); }
+      if (state.status === "error" || state.status === "failed") { assert.match(html, /role="alert"/); assert.match(html, /再読み込み/); }
     }
   }
 });

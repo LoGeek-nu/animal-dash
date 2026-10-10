@@ -214,3 +214,14 @@ test("workerd validates race registration, ownership, canonical times, immutabil
   assert.equal((await db.prepare("SELECT COUNT(*) AS count FROM races").first()).count, 2);
   assert.equal((await getDailyRankings(db, { date: "2026-10-10" })).rankings.length, 2);
 });
+
+test("API reports permanent outbox failures after a missed notification", async (t) => {
+  const { db, mf } = await fixture(t, true);
+  await mf.dispatchFetch("https://example.test/test-failure?raceId=failed-race");
+  const env = { DB: db, RACE_SESSION: { getByName: () => ({ fetch: (url) => mf.dispatchFetch(url) }) } };
+  const response = await rankingsResponse(new Request("https://example.test/api/rankings?date=2026-10-10&afterRaceId=failed-race"), env);
+  const body = await response.json();
+  assert.equal(response.status, 200);
+  assert.equal(body.raceSaved, false);
+  assert.equal(body.raceFailed, true);
+});

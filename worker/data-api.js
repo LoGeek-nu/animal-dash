@@ -1,5 +1,6 @@
 import { isSameOrigin, isStaffRequest, unauthorizedResponse } from "./auth.js";
 import { getDailyRankings, importCharacterPage, listStoredCharacters, rankingDay } from "./data-store.js";
+import { getSyncRoom } from "./sync.js";
 
 const headers = { "Cache-Control": "no-store" };
 const unavailable = () => Response.json({ error: "storage_unavailable", retryable: true }, { status: 503, headers });
@@ -33,8 +34,14 @@ export async function rankingsResponse(request, env) {
     // Check first, then read the board: true must never accompany a pre-save leaderboard.
     const raceSaved = afterRaceId === null ? undefined
       : Boolean(await env.DB.prepare("SELECT id FROM races WHERE id = ?").bind(afterRaceId).first());
+    let raceFailed = false;
+    if (afterRaceId && !raceSaved && env.RACE_SESSION) {
+      const status = await getSyncRoom(env).fetch(`https://sync/race-save-status?raceId=${encodeURIComponent(afterRaceId)}`);
+      if (!status.ok) throw new Error("Race save status unavailable");
+      raceFailed = (await status.json()).failed === true;
+    }
     return Response.json({ ...await getDailyRankings(env.DB, { date, limit }),
-      ...(afterRaceId !== null ? { afterRaceId, raceSaved } : {}) }, { headers });
+      ...(afterRaceId !== null ? { afterRaceId, raceSaved, raceFailed } : {}) }, { headers });
   } catch (error) {
     console.error("rankings_failed", error);
     return unavailable();
