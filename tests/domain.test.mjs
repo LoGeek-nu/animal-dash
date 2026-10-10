@@ -11,7 +11,7 @@ import {
 } from "../app/domain/course.js";
 import { ATTRACT_SCENES, TUTORIAL_STEP_DURATION, tutorialSteps } from "../app/domain/attract.js";
 import { characters, getCharacter, isKnownCharacterId } from "../app/domain/characters.js";
-import { addGeneratedCharacter } from "../app/domain/generated-characters.js";
+import { addGeneratedCharacter, getGeneratedCharacters, refreshGeneratedCharacters } from "../app/domain/generated-characters.js";
 import { createInitialSession } from "../app/domain/race-session.js";
 import { raceSessionActions } from "../app/features/race-session/race-session-actions.js";
 import { raceSessionReducer } from "../app/features/race-session/race-session-reducer.js";
@@ -283,4 +283,28 @@ test("route entries and phase rendering stay separated", async () => {
   assert.match(phaseRenderer, /AttractScreen/);
   assert.match(phaseRenderer, /RacingScreen/);
   assert.doesNotMatch(phaseRenderer, /import\s*\(|React\.lazy/);
+});
+
+test("a refresh asked for mid-request gets a fresh response, and a stale one never drops a character", async (t) => {
+  const responses = [];
+  t.mock.method(globalThis, "fetch", () => new Promise((resolve) => responses.push(resolve)));
+  const reply = (ids) => responses.shift()(Response.json({ characters: ids.map((id) => ({ id, generated: true })) }));
+
+  const first = refreshGeneratedCharacters();
+  addGeneratedCharacter({ id: "gen-refresh-local", generated: true });
+  const second = refreshGeneratedCharacters();
+  assert.equal(responses.length, 1);
+
+  // The first answer predates both characters below.
+  reply(["gen-refresh-old"]);
+  await first;
+  assert.ok(getGeneratedCharacters().some((character) => character.id === "gen-refresh-local"));
+
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(responses.length, 1);
+  reply(["gen-refresh-old", "gen-refresh-local", "gen-refresh-new"]);
+  await second;
+  const ids = getGeneratedCharacters().map((character) => character.id);
+  assert.ok(ids.includes("gen-refresh-new"));
+  assert.equal(ids.filter((id) => id === "gen-refresh-local").length, 1);
 });

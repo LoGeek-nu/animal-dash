@@ -57,6 +57,10 @@ test("login only redirects back to paths on this site", () => {
   assert.equal(safeNextPath("//evil.example"), "/admin");
   assert.equal(safeNextPath("/\\evil.example"), "/admin");
   assert.equal(safeNextPath(null), "/admin");
+  // The browser drops tabs/newlines when it parses a URL, which would turn these into "//evil.example".
+  assert.equal(safeNextPath("/\t/evil.example"), "/admin");
+  assert.equal(safeNextPath("/\n/evil.example"), "/admin");
+  assert.equal(safeNextPath("/admin?tab=lanes#top"), "/admin?tab=lanes#top");
 });
 
 test("signed-out screens are sent to /login with a way back", () => {

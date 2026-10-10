@@ -1,6 +1,7 @@
 // In-memory pool of generated characters, filled from GET /api/characters (backed by R2).
 let pool = [];
 let inflight = null;
+let queued = null;
 const listeners = new Set();
 
 function notify() {
@@ -22,18 +23,33 @@ export function subscribeGeneratedCharacters(listener) {
   return () => listeners.delete(listener);
 }
 
-// Concurrent callers share one request. Failures keep the current pool.
-export function refreshGeneratedCharacters() {
-  inflight ??= fetch("/api/characters", { cache: "no-store" })
+function load() {
+  return fetch("/api/characters", { cache: "no-store" })
     .then((response) => response.ok ? response.json() : null)
     .then((body) => {
       if (!body) return;
-      pool = body.characters.filter((character) => character.generated);
+      const fetched = body.characters.filter((character) => character.generated);
+      // Characters are never deleted, so keep any we already have that this response predates
+      // (e.g. one added locally while the request was in flight).
+      const fetchedIds = new Set(fetched.map((character) => character.id));
+      pool = [...fetched, ...pool.filter((character) => !fetchedIds.has(character.id))];
       notify();
     })
-    .catch(() => {})
-    .finally(() => {
+    .catch(() => {});
+}
+
+// A request already in flight may have been answered before the change the caller wants to see,
+// so callers arriving meanwhile share one fresh request that starts after it. Failures keep the current pool.
+export function refreshGeneratedCharacters() {
+  if (!inflight) {
+    inflight = load().finally(() => {
       inflight = null;
     });
-  return inflight;
+    return inflight;
+  }
+  queued ??= inflight.then(() => {
+    queued = null;
+    return refreshGeneratedCharacters();
+  });
+  return queued;
 }

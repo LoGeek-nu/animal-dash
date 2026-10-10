@@ -45,7 +45,13 @@ export async function logout(returnTo) {
   window.location.assign(loginPath(returnTo));
 }
 
+const SAME_SITE_BASE = "https://same-site.invalid";
+
 // Only same-site paths, so /login?next=https://evil.example cannot redirect away.
+// The path is resolved the way the browser will (it drops tabs/newlines and reads "\" as "/"),
+// so tricks like "/\t/evil.example" end up on another origin and are refused.
 export function safeNextPath(next) {
-  return typeof next === "string" && next.startsWith("/") && !next.startsWith("//") && !next.startsWith("/\\") ? next : "/admin";
+  if (typeof next !== "string" || !next.startsWith("/")) return "/admin";
+  const url = new URL(next, SAME_SITE_BASE);
+  return url.origin === SAME_SITE_BASE ? `${url.pathname}${url.search}${url.hash}` : "/admin";
 }

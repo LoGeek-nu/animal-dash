@@ -21,12 +21,13 @@ class FakeWebSocket {
 }
 
 const timeouts = [];
+const intervals = [];
 globalThis.WebSocket = FakeWebSocket;
 globalThis.location = { protocol: "https:", host: "animaldash.logeek.tech" };
 globalThis.window = {
   setTimeout: (callback) => timeouts.push(callback),
   clearTimeout() {},
-  setInterval: () => 0,
+  setInterval: (callback) => intervals.push(callback),
   clearInterval() {},
   addEventListener() {},
   removeEventListener() {},
@@ -47,4 +48,30 @@ test("the sync status follows the WebSocket so screens can show when they are of
 
   assert.deepEqual(statuses, ["connecting", "open", "offline", "connecting", "open"]);
   channel.close();
+});
+
+test("a silent connection is replaced without waiting for its close event", (t) => {
+  const statuses = [];
+  const channel = createRaceSessionChannel(() => {}, { onSyncStatus: (status) => statuses.push(status) });
+  t.after(() => channel.close());
+  const stalled = FakeWebSocket.instances.at(-1);
+  stalled.emit("open");
+
+  const realNow = Date.now;
+  Date.now = () => realNow() + 60_000;
+  try {
+    intervals.at(-1)();
+  } finally {
+    Date.now = realNow;
+  }
+  assert.equal(statuses.at(-1), "offline");
+
+  timeouts.shift()();
+  const replacement = FakeWebSocket.instances.at(-1);
+  assert.notEqual(replacement, stalled);
+  // The stalled socket's close finally arrives; it must not start another reconnect.
+  stalled.emit("close");
+  assert.equal(timeouts.length, 0);
+  replacement.emit("open");
+  assert.equal(statuses.at(-1), "open");
 });

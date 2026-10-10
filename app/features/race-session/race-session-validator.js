@@ -1,7 +1,8 @@
 import { isKnownCharacterId } from "../../domain/characters.js";
 import { RACE_PHASES } from "../../domain/race-session.js";
 
-export function validSession(value) {
+// isKnownId is swapped out by the sync room, which checks generated characters against R2 instead of the local pool.
+export function validSession(value, isKnownId = isKnownCharacterId) {
   if (!value || typeof value !== "object") return false;
 
   return value.version === 3
@@ -15,7 +16,7 @@ export function validSession(value) {
     && value.lanes.length === 4
     && value.lanes.every((lane) => lane === null || (
       typeof lane === "object"
-      && isKnownCharacterId(lane.characterId)
+      && isKnownId(lane.characterId)
       && typeof lane.isBot === "boolean"
     ));
 }
