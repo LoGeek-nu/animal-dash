@@ -50,3 +50,7 @@
 .attract-program > div { padding: .5rem .8rem; display: grid; grid-template-columns: auto 1fr; column-gap: .6rem; align-content: center; overflow: hidden; position: relative; border: 3px dashed #a7b8c2; border-radius: 13px; }.attract-program > div.is-active { color: white; background: #7a42d3; border: 3px solid #183447; }.attract-program span { grid-row: 1 / 3; align-self: center; color: #ffcc30; font-size: 1.8rem; font-weight: 1000; }.attract-program strong { font-size: clamp(.7rem, 1vw, 1.1rem); letter-spacing: .04em; }.attract-program small { font-size: .62rem; font-weight: 800; }.attract-program i { height: 5px; position: absolute; left: 0; right: 0; bottom: 0; background: #ffe039; transform-origin: left; animation: sceneProgress var(--scene-duration) linear forwards; }
 .attract-footer { height: 9vh; min-height: 68px; padding: 1vh 5vw; display: flex; align-items: center; justify-content: center; gap: 1rem; position: relative; z-index: 3; }.attract-footer strong { padding: .65rem 1rem; color: white; background: #183447; border-radius: 99px; }.attract-footer span { font-size: .78rem; font-weight: 900; }
 
+.attract-ranking-scene > header .ranking-metric { margin: .6rem 0 0; padding: 0; color: white; background: none; border-radius: 0; font-size: .65rem; text-align: center; }
+.attract-rank-row > div:not(.character-avatar) { min-width: 0; }
+.attract-rank-row b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.attract-rank-row time { flex-shrink: 0; font-variant-numeric: tabular-nums; }

@@ -50,6 +50,18 @@ test("the sync status follows the WebSocket so screens can show when they are of
   channel.close();
 });
 
+test("save notifications reach the ranking refresh only while the channel is active", () => {
+  const saved = [];
+  const channel = createRaceSessionChannel(() => {}, { onResultsSaved: (raceId) => saved.push(raceId) });
+  const socket = FakeWebSocket.instances.at(-1);
+  socket.emit("message", { data: JSON.stringify({ type: "results-saved", raceId: "race-new" }) });
+  socket.emit("message", { data: JSON.stringify({ type: "results-saved" }) });
+  assert.deepEqual(saved, ["race-new"]);
+  channel.close();
+  socket.emit("message", { data: JSON.stringify({ type: "results-saved", raceId: "race-late" }) });
+  assert.deepEqual(saved, ["race-new"]);
+});
+
 test("a silent connection is replaced without waiting for its close event", (t) => {
   const statuses = [];
   const channel = createRaceSessionChannel(() => {}, { onSyncStatus: (status) => statuses.push(status) });

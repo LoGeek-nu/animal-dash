@@ -2,8 +2,8 @@
 
 import { getCharacter } from "../../../domain/characters.js";
 
-export function CharacterAvatar({ id, compact = false }) {
-  const character = getCharacter(id);
+export function CharacterAvatar({ id, character: snapshot, compact = false }) {
+  const character = snapshot ?? getCharacter(id);
   return (
     <div className={`character-avatar ${compact ? "is-compact" : ""}`} style={{ "--char": character.color, "--char-pale": character.pale }}>
       <img

@@ -45,7 +45,7 @@ npm test
 | アトラクト画面 | 誰もプレイしていない待ち受け中に流れる紹介・チュートリアル・ランキング演出。 | `app/domain/attract.js` |
 | コース／障害物 | レースコースの区間（`courseSegments`）と、区間内に配置された障害物（`courseObstacles`）。ジャンプで避けられなかった場合はペナルティ（`penaltyMs`など）が発生します。 | `app/domain/course.js` |
 | キャラクター | プレイヤーが選べる動物と、その能力値（`speed`/`acceleration`/`stamina`）。 | `app/domain/characters.js` |
-| ランキング | 過去の記録（`staticRanking`）と当日の結果を合成して上位を出す処理。 | `app/domain/rankings.js` |
+| ランキング | D1の保存済み記録から、日本時間の開催日ごとにキャラクター別の最短クリアタイムを集計して表示します。 | `worker/data-store.js`, `app/features/rankings/`, `app/domain/rankings.js` |
 | レーン | 最大4体の動物が同時に走る枠。管理画面からキャラクターをドラッグ＆ドロップで割り当てます。 | `app/features/admin/` |
 | BOT | 人が操作しない自動制御のキャラクター。管理画面の「BOTで埋める」操作で空きレーンに割り当てられます。 | `app/features/game/race/` |
 
@@ -71,6 +71,8 @@ npm test
 | `tests/deployment.test.mjs` | `wrangler.jsonc`など、デプロイ設定に不整合がないかを検証します。 |
 | `tests/data-store.test.mjs` | 独立したMiniflareの実D1・R2で関連付け、再送、日次集計、取り込み、WebSocketからの保存を検証します。 |
 | `tests/race-timing.test.mjs` | レースID、クリアタイムの固定、DNF、連続レースと古い通知・タイマーの拒否を検証します。 |
+| `tests/ranking-client.test.mjs` | 保存待ち・更新・失敗・再試行、日付変更、古い通信の拒否を検証します。 |
+| `tests/ranking-views.test.mjs` | APIデータを使う両画面の順位・名前・画像・タイム・ラベル・DNF・取得状態を描画して検証します。 |
 | `tests/race-session-room.test.mjs` | 同期の採用順序と、D1障害・再起動・画面リセット後も結果outboxが残ることを検証します。 |
 
 ## Issue / Pull Request テンプレート

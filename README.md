@@ -34,6 +34,7 @@
 - [デプロイ手順](./docs/deployment.md) — Cloudflare Workersへのデプロイ方法
 - [D1とランキングの仕様](./docs/race-storage.md) — DB導入、R2からの取り込み、結果保存、取得API
 - [クリアタイム計測の仕様](./docs/race-timing.md) — レースID、開始時刻、タイム確定、DNF、保存への受け渡し
+- [ランキング表示の仕様](./docs/ranking-display.md) — 実データのTOP 3／TOP 10、保存待ち、取得状態
 
 ## クイックスタート
 

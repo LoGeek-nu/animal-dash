@@ -8,6 +8,7 @@ import { createRaceSessionChannel } from "./race-session-channel.js";
 import { raceSessionReducer } from "./race-session-reducer.js";
 import { saveRaceSession } from "./race-session-storage.js";
 import { usePhaseTimers } from "./usePhaseTimers.js";
+import { dailyRankings } from "../rankings/ranking-client.js";
 
 export function useRaceSession(role = "viewer") {
   const [session, setSession] = useState(() => createInitialSession());
@@ -24,7 +25,10 @@ export function useRaceSession(role = "viewer") {
       saveRaceSession(incoming);
       setSession(incoming);
     };
-    const channel = createRaceSessionChannel(adoptNewer, { role, onSyncStatus: setSyncStatus });
+    const channel = createRaceSessionChannel(adoptNewer, { role,
+      onSyncStatus: (status) => { setSyncStatus(status); if (status === "open") void dailyRankings.refresh(); },
+      onResultsSaved: () => { void dailyRankings.refresh(); }, onResultsFailed: () => { void dailyRankings.refresh(); },
+    });
     channelRef.current = channel;
 
     // Load generated characters first so a saved session that references them still validates.

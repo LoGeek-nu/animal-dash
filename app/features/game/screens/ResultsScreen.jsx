@@ -5,7 +5,7 @@ import { SectionKicker } from "../../../components/ui/atoms/SectionKicker.jsx";
 import { GameHeader } from "../components/GameHeader.jsx";
 import { ResultsBoard } from "../components/ResultsBoard.jsx";
 
-export function ResultsScreen({ results, resultsEndsAt }) {
+export function ResultsScreen({ raceId, results, resultsEndsAt }) {
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -21,7 +21,7 @@ export function ResultsScreen({ results, resultsEndsAt }) {
         <div><SectionKicker>RACE COMPLETE</SectionKicker><h1>ゴール！<span>おつかれさま！</span></h1></div>
         <div className="reset-clock"><span>NEXT RACE</span><strong>00:{String(left).padStart(2, "0")}</strong></div>
       </section>
-      <ResultsBoard results={results} />
+      <ResultsBoard raceId={raceId} results={results} />
       <footer className="results-footer"><div><strong>また遊んでね！</strong><span>作品展示もぜひ見ていってください</span></div><p>SAKURABITO CREATIVE CIRCLE <i>→</i></p></footer>
     </main>
   );

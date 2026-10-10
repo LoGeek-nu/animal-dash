@@ -15,7 +15,8 @@ export function GamePhaseRenderer({ session, onFinished, onInput }) {
       return <RacingScreen key={getRaceId(session)} raceId={getRaceId(session)} lanes={session.lanes}
         raceStartedAt={session.raceStartedAt} onFinished={onFinished} onInput={onInput} />;
     case "RESULTS":
-      return <ResultsScreen results={session.results} resultsEndsAt={session.resultsEndsAt} />;
+      return <ResultsScreen raceId={session.raceStartedAt ? getRaceId(session) : null}
+        results={session.results} resultsEndsAt={session.resultsEndsAt} />;
     default:
       return <WaitingScreen lanes={session.lanes} />;
   }

@@ -132,6 +132,19 @@ test("TOP 3/TOP 10 API limits and errors are explicit and import requires staff 
   assert.equal((await response.json()).done, true);
 });
 
+test("rankings confirm persistence before returning the current race's leaderboard", async (t) => {
+  const { db, bucket } = await fixture(t);
+  const query = new Request("https://example.test/api/rankings?date=2026-10-10&afterRaceId=race-pending");
+  const pending = await (await rankingsResponse(query, { DB: db })).json();
+  assert.equal(pending.raceSaved, false);
+  await saveRace(db, bucket, race("race-pending"));
+  const committed = await (await rankingsResponse(query, { DB: db })).json();
+  assert.equal(committed.raceSaved, true);
+  assert.equal(committed.afterRaceId, "race-pending");
+  assert.equal(committed.rankings[0].raceId, "race-pending");
+  assert.equal((await rankingsResponse(new Request("https://example.test/api/rankings?afterRaceId="), { DB: db })).status, 400);
+});
+
 test("session adapter distinguishes consecutive races and rejects invalid or mismatched results", () => {
   const session = { phase: "RESULTS", sessionId: "session-demo", raceStartedAt: startedAt, lastSync: startedAt + 60000,
     courseSeed: "course", lanes: [{ characterId: "momo", isBot: false }, null, null, null], results: [result("momo", 1, 30000)] };

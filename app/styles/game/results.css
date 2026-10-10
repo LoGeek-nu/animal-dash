@@ -31,3 +31,16 @@
 .results-footer p { margin: 0; padding: .8rem 1.1rem; color: white; background: var(--ink); border-radius: 99px; font-size: .65rem; font-weight: 1000; letter-spacing: .08em; }
 .results-footer i { color: #ffe064; font-style: normal; }
 
+.ranking-metric { margin: .55rem 0; font-size: .78rem; font-weight: 900; }
+.ranking-metric small { display: block; margin-top: .15rem; font-size: .6rem; font-weight: 700; color: var(--ink-soft); }
+.today-ranking, .current-results { display: flex; flex-direction: column; min-height: 0; }
+.results-board .ranking-row, .results-board .result-row { min-height: 0; flex: 1; }
+.ranking-status { grid-column: 1 / -1; grid-row: 1 / -1; flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: .65rem; padding: 1rem; text-align: center; color: var(--ink); }
+.ranking-status p { margin: 0; font-size: clamp(.85rem, 1.4vw, 1.3rem); font-weight: 900; }
+.ranking-status small { font-size: .7rem; }
+.ranking-status button { padding: .55rem 1rem; color: var(--ink); font: inherit; font-weight: 900; background: white; border: 2px solid var(--ink); border-radius: 10px; cursor: pointer; }
+.ranking-status.is-error p { color: #bd294b; }
+.ranking-row > div:not(.character-avatar), .result-row > div:not(.character-avatar) { min-width: 0; }
+.ranking-row b, .result-row b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.result-row time { flex-shrink: 0; }
+.ranking-row .ranking-time { font-size: clamp(1rem, 1.4vw, 1.5rem); color: var(--ink); font-variant-numeric: tabular-nums; }
