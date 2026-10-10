@@ -8,6 +8,7 @@
 - [Cloudflare R2](https://developers.cloudflare.com/r2/) — AI生成したキャラクターの透過PNGとステータスを保存します（バケット`animaldash-characters`、binding名`CHARACTERS`）。ステータスはオブジェクトの`customMetadata`にJSONで持たせています。処理は`app/api/characters/character-store.js`にあります。
 - [Durable Objects](https://developers.cloudflare.com/durable-objects/) / WebSocket — 別端末（スタッフのスマホとプロジェクター接続PCなど）の間でレースセッションをリアルタイムに同期します。全画面が`/api/sync`のWebSocketで1つのDurable Object（`RaceSessionRoom`、binding名`RACE_SESSION`）につながり、最新のセッションの保存と中継を行います。処理は`worker/race-session-room.js`にあります。
 - [Wrangler](https://developers.cloudflare.com/workers/wrangler/) — Cloudflare Workersのローカル起動、ビルド結果の確認、デプロイに使用するCLIです。
+- [Cloudflare D1](https://developers.cloudflare.com/d1/) — キャラクター、レース、出走結果を保存し、クリアタイムランキングを集計します（DB名`animaldash-races`、binding名`DB`）。画像はR2に残します。処理は`worker/data-store.js`、スキーマは`migrations/`です。
 - [dnd kit](https://dndkit.com/) — 管理画面でキャラクターをレーンへ割り当てるドラッグ＆ドロップ操作に使用しています。
 - [Tailwind CSS 4](https://tailwindcss.com/) / CSS — Tailwind CSSをCSS処理の基盤として読み込み、画面固有の見た目は主に`app/styles/`以下の通常のCSSで管理しています。
 - React Reducer — レースセッションの状態遷移を一か所にまとめるために使用しています。処理は`app/features/race-session/`以下にあります。
@@ -18,7 +19,7 @@
 
 ## 現状の制約
 
-このリポジトリは現在、操作検証用のモックとして実装されています。D1は使っていません。
+レース結果をD1へ保存し、`GET /api/rankings`で実データを集計できます。画面の固定ランキングは#46で接続予定です。保存・集計仕様と既存R2データの取り込みは[D1とランキングの仕様](./race-storage.md)を参照してください。
 
 同期（`/api/sync`）とキャラクター生成は、スタッフログイン済みの端末だけが使えます。`/login`で合言葉（シークレット`STAFF_PASSCODE`）を入力すると、合言葉から作ったHttpOnly Cookieが発行され、fetchとWebSocketの両方で自動的に送られます。処理は`worker/auth.js`にあります。キャラクター一覧と画像の取得は誰でも可能です。
 

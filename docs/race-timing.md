@@ -1,6 +1,6 @@
 # レースのクリアタイム計測
 
-Issue #45の計測・確定結果の仕様です。保存と日次集計は後続のIssue #44、画面のランキングAPI接続は#46で扱います。
+Issue #45の計測・確定結果の仕様です。保存と日次集計は[#44のD1基盤](./race-storage.md)、画面のランキングAPI接続は#46で扱います。
 
 ## レースの識別と開始
 
@@ -41,7 +41,7 @@ Issue #45の計測・確定結果の仕様です。保存と日次集計は後�
 
 ## 検証
 
-`tests/race-timing.test.mjs`で複数のゴール時刻、ゴール後の固定、60秒の期限、連続レース、古い通知・タイマー、不正結果を確認します。D1への保存とランキング集計の結合テストは、後続の#44で追加します。
+`tests/race-timing.test.mjs`で複数のゴール時刻、ゴール後の固定、60秒の期限、連続レース、古い通知・タイマー、不正結果を確認します。`tests/data-store.test.mjs`では、計測結果を実際のWorkers WebSocketからD1に保存し、再送の重複防止とDNFのランキング除外まで確認します。
 
 時計・フレームの仕様: [Performance.now](https://developer.mozilla.org/en-US/docs/Web/API/Performance/now)。
 

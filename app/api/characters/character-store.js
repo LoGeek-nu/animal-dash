@@ -6,7 +6,7 @@ export function characterImageUrl(id) {
   return `/api/characters/${encodeURIComponent(id)}/image`;
 }
 
-function imageKey(id) {
+export function characterImageKey(id) {
   return `${PREFIX}${id}.png`;
 }
 
@@ -18,7 +18,7 @@ function decodeBase64(base64) {
 }
 
 export async function saveGeneratedCharacter(bucket, character, imageBase64) {
-  await bucket.put(imageKey(character.id), decodeBase64(imageBase64), {
+  await bucket.put(characterImageKey(character.id), decodeBase64(imageBase64), {
     httpMetadata: { contentType: "image/png" },
     customMetadata: { character: JSON.stringify(character) },
   });
@@ -47,9 +47,9 @@ export async function listGeneratedCharacters(bucket) {
 }
 
 export async function generatedCharacterExists(bucket, id) {
-  return (await bucket.head(imageKey(id))) !== null;
+  return (await bucket.head(characterImageKey(id))) !== null;
 }
 
 export function getGeneratedCharacterImage(bucket, id) {
-  return bucket.get(imageKey(id));
+  return bucket.get(characterImageKey(id));
 }

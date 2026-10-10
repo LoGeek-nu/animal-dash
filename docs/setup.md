@@ -19,6 +19,7 @@ nvm use 22.13.0
 git clone https://github.com/LoGeek-nu/animal-dash.git
 cd animal-dash
 npm install
+npm run db:migrate:local
 npm run dev
 ```
 
@@ -29,6 +30,8 @@ npm run dev
 - ヘルスチェック: `http://localhost:3000/health`
 
 Cloudflareへ公開する場合は、追加でCloudflareアカウントとWranglerのログインが必要です（[デプロイ手順](./deployment.md)を参照）。
+
+`db:migrate:local`はローカルD1のテーブルと静的キャラクター10体を用意します。本番DBには接続しません。新しいマイグレーションを取り込んだ際にも実行してください。R2に既存の生成キャラクターがある場合の取り込みは[D1とランキングの仕様](./race-storage.md)を参照してください。
 
 ## `.dev.vars`のセットアップ（キャラクター生成機能を試す場合のみ）
 

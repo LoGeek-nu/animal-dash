@@ -24,7 +24,6 @@
 
 ### 開発
 
-- [クリアタイム計測の仕様](./docs/race-timing.md) — レースID、開始時刻、タイム確定、DNF、保存への受け渡し
 - [開発ガイドライン](./docs/development-guide.md) — コマンド、ゲームドメイン用語集、テスト構成
 - [ディレクトリ構成](./docs/directory-structure.md) — プロジェクトのディレクトリ構造
 - [開発フロー](./docs/development-flow.md) — Issue作成からPRマージまでの手順
@@ -33,6 +32,8 @@
 ### デプロイ
 
 - [デプロイ手順](./docs/deployment.md) — Cloudflare Workersへのデプロイ方法
+- [D1とランキングの仕様](./docs/race-storage.md) — DB導入、R2からの取り込み、結果保存、取得API
+- [クリアタイム計測の仕様](./docs/race-timing.md) — レースID、開始時刻、タイム確定、DNF、保存への受け渡し
 
 ## クイックスタート
 
@@ -42,6 +43,7 @@
 git clone https://github.com/LoGeek-nu/animal-dash.git
 cd animal-dash
 npm install
+npm run db:migrate:local
 npm run dev
 ```
 
