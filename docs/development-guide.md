@@ -68,6 +68,7 @@ npm test
 | --- | --- |
 | `tests/domain.test.mjs` | `app/domain/`のレースルール・ランキング計算など、表示に依存しないロジックを検証します。 |
 | `tests/rendered-html.test.mjs` | ビルド後の画面が期待通りHTMLとして描画されるかを検証します。 |
+| `tests/race-timing.test.mjs` | レースID、タイムの固定、DNF、連続レースと古い通知・タイマーの拒否を検証します。 |
 | `tests/deployment.test.mjs` | `wrangler.jsonc`など、デプロイ設定に不整合がないかを検証します。 |
 
 ## Issue / Pull Request テンプレート

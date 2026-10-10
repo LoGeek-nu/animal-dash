@@ -1,3 +1,4 @@
+import { getRaceId } from "../../domain/race-session.js";
 import { AttractScreen } from "./screens/AttractScreen.jsx";
 import { CountdownScreen } from "./screens/CountdownScreen.jsx";
 import { RacingScreen } from "./screens/RacingScreen.jsx";
@@ -11,7 +12,8 @@ export function GamePhaseRenderer({ session, onFinished }) {
     case "COUNTDOWN":
       return <CountdownScreen lanes={session.lanes} countdownEndsAt={session.countdownEndsAt} />;
     case "RACING":
-      return <RacingScreen lanes={session.lanes} raceStartedAt={session.raceStartedAt} onFinished={onFinished} />;
+      return <RacingScreen key={getRaceId(session)} raceId={getRaceId(session)} lanes={session.lanes}
+        raceStartedAt={session.raceStartedAt} onFinished={onFinished} />;
     case "RESULTS":
       return <ResultsScreen results={session.results} resultsEndsAt={session.resultsEndsAt} />;
     default:

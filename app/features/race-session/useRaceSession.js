@@ -59,7 +59,7 @@ export function useRaceSession() {
     removeCharacter: (laneIndex) => dispatch(raceSessionActions.removeCharacter(laneIndex)),
     fillBots: (startAfterFill = false) => dispatch(raceSessionActions.fillBots(startAfterFill)),
     startRace: () => dispatch(raceSessionActions.startCountdown()),
-    finishRace: (results) => dispatch(raceSessionActions.finishRace(results)),
+    finishRace: (result) => dispatch(raceSessionActions.finishRace(result)),
     forceFinish: () => dispatch(raceSessionActions.forceFinish()),
     resetSession: () => dispatch(raceSessionActions.resetSession()),
     showAttract: () => dispatch(raceSessionActions.showAttract()),

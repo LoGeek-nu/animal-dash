@@ -4,8 +4,8 @@ import { useRaceEngine } from "../race/useRaceEngine.js";
 import { GameHeader } from "./GameHeader.jsx";
 import { RaceLane } from "./RaceLane.jsx";
 
-export function RaceArena({ lanes, raceStartedAt, onFinished }) {
-  const { runners, ranks } = useRaceEngine({ lanes, raceStartedAt, onFinished });
+export function RaceArena({ raceId, lanes, raceStartedAt, onFinished }) {
+  const { runners, ranks } = useRaceEngine({ raceId, lanes, raceStartedAt, onFinished });
 
   return (
     <main className="game-stage racing-stage">
