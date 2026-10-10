@@ -5,9 +5,6 @@ import test from "node:test";
 import { Miniflare, convertV4MiniflareOptions } from "miniflare";
 import { characters } from "../app/domain/characters.js";
 import { createInitialSession } from "../app/domain/race-session.js";
-import { raceSessionActions } from "../app/features/race-session/race-session-actions.js";
-import { raceSessionReducer } from "../app/features/race-session/race-session-reducer.js";
-import { advanceRaceRuntime, createRaceRuntime, takeRaceCompletion } from "../app/features/game/race/race-runtime.js";
 import { characterImageKey, saveGeneratedCharacter } from "../app/api/characters/character-store.js";
 import { getDailyRankings, getStoredCharacter, importCharacterPage, rankingDay, saveCharacter, saveRace } from "../worker/data-store.js";
 import { charactersResponse, importCharactersResponse, rankingsResponse } from "../worker/data-api.js";
@@ -18,7 +15,10 @@ import { staffCookie } from "../worker/auth.js";
 async function fixture(t, runtimeRoom = false) {
   const modulePaths = ["tests/fixtures/race-worker.mjs", "worker/race-session-room.js", "worker/data-store.js", "worker/race-record.js",
     "app/api/characters/character-store.js", "app/domain/characters.js", "app/domain/generated-characters.js",
-    "app/features/race-session/race-session-validator.js", "app/domain/race-session.js", "app/domain/race-results.js"];
+    "app/features/race-session/race-session-validator.js", "app/domain/race-session.js", "app/domain/race-results.js",
+    "app/features/race-session/constants.js", "worker/race-authority.js", "app/domain/course.js",
+    "app/features/game/race/race-runtime.js", "app/features/game/race/race-engine.js", "app/features/game/race/race-ranking.js",
+    "app/features/game/race/bot-controller.js", "app/features/game/race/constants.js"];
   const modules = runtimeRoom ? await Promise.all(modulePaths.map(async (path) => ({ type: "ESModule",
     path: fileURLToPath(new URL(`../${path}`, import.meta.url)), contents: await readFile(new URL(`../${path}`, import.meta.url), "utf8") }))) : true;
   const script = runtimeRoom ? {
@@ -144,60 +144,60 @@ test("session adapter distinguishes consecutive races and rejects invalid or mis
   assert.equal(validRaceRecord(race("fraction", [result("momo", 1, 1.5)])), false);
 });
 
-test("workerd WebSocket commits the result outbox and saves D1 before notifying clients", { timeout: 15000 }, async (t) => {
+test("workerd validates race registration, ownership, canonical times, immutability and DNF persistence", { timeout: 15000 }, async (t) => {
   const { db, mf } = await fixture(t, true);
-  const response = await mf.dispatchFetch("https://example.test/sync", { headers: { Upgrade: "websocket" } });
-  assert.equal(response.status, 101);
-  const socket = response.webSocket;
-  socket.accept();
-  t.after(() => socket.close());
-  const saved = new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error("Missing results-saved notification")), 10000);
-    socket.addEventListener("message", (event) => {
-      const data = JSON.parse(event.data);
-      if (data.type === "results-saved") { clearTimeout(timeout); resolve(data); }
-      if (data.type === "error") { clearTimeout(timeout); reject(new Error(data.error)); }
-    });
-  });
-  socket.send(JSON.stringify({ type: "session", session: {
-    version: 3, sequence: 1, phase: "RESULTS", sessionId: "runtime", raceStartedAt: startedAt,
-    lastSync: startedAt + 60000, courseSeed: "course", lanes: [{ characterId: "momo", isBot: false }, null, null, null],
-    results: [result("momo", 1, 30000)],
-  } }));
-  assert.equal((await saved).raceId, `runtime:${startedAt}`);
-  assert.equal((await db.prepare("SELECT finish_ms FROM race_results").first()).finish_ms, 30000);
-});
-
-test("measured race IDs and fixed millisecond results reach D1 once and DNF stays out of the rankings", { timeout: 15000 }, async (t) => {
-  const { db, mf } = await fixture(t, true);
-  const lanes = [{ characterId: "momo", isBot: false }, { characterId: "toramaru", isBot: false }, null, null];
-  const countdown = raceSessionReducer({ ...createInitialSession(), phase: "WAITING", lanes }, raceSessionActions.startCountdown(), startedAt);
-  const racing = raceSessionReducer(countdown, raceSessionActions.startRace(countdown.raceId), countdown.countdownEndsAt + 100);
-  const runtime = createRaceRuntime({ raceId: racing.raceId, raceStartedAt: racing.raceStartedAt, lanes, now: 0, epochNow: racing.raceStartedAt });
-  runtime.runners[0].progress = 99.99;
-  advanceRaceRuntime(runtime, { now: 33.4, epochNow: racing.raceStartedAt + 33, obstacles: [] });
-  advanceRaceRuntime(runtime, { now: 60000, epochNow: racing.raceStartedAt + 60000, obstacles: [] });
-  const completed = takeRaceCompletion(runtime);
-  const session = { ...raceSessionReducer(racing, raceSessionActions.finishRace(completed), completed.completedAt), sequence: 2, lastSync: completed.completedAt + 10 };
-  const response = await mf.dispatchFetch("https://example.test/sync", { headers: { Upgrade: "websocket" } });
-  const socket = response.webSocket;
-  socket.accept();
-  t.after(() => socket.close());
-  const saved = new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error("Measured results were not saved")), 10000);
-    socket.addEventListener("message", (event) => {
-      const data = JSON.parse(event.data);
-      if (data.type === "results-saved") { clearTimeout(timeout); resolve(data); }
-      if (data.type === "error") { clearTimeout(timeout); reject(new Error(data.error)); }
-    });
-  });
-  socket.send(JSON.stringify({ type: "session", session }));
-  assert.equal((await saved).raceId, racing.raceId);
-  const record = raceRecordFromSession(session);
-  assert.equal(record.completedAt, completed.completedAt);
-  assert.equal((await saveRace(db, undefined, raceRecordFromSession({ ...session, lastSync: session.lastSync + 1000 }))).duplicate, true);
-  const rows = await db.prepare("SELECT character_id, finish_ms FROM race_results WHERE race_id = ? ORDER BY lane").bind(racing.raceId).all();
-  assert.deepEqual(rows.results, [{ character_id: "momo", finish_ms: 33 }, { character_id: "toramaru", finish_ms: null }]);
-  assert.equal((await db.prepare("SELECT COUNT(*) AS count FROM races").first()).count, 1);
-  assert.deepEqual((await getDailyRankings(db, { date: "2026-10-10" })).rankings.map((result) => [result.characterId, result.finishMs]), [["momo", 33]]);
+  const messages = new Map();
+  const connect = async (role) => {
+    const response = await mf.dispatchFetch(`https://example.test/sync?role=${role}`, { headers: { Upgrade: "websocket" } });
+    const ws = response.webSocket;
+    const frames = []; messages.set(ws, frames);
+    ws.addEventListener("message", (event) => frames.push(JSON.parse(event.data)));
+    ws.accept(); t.after(() => ws.close()); return ws;
+  };
+  const admin = await connect("admin"); const game = await connect("game"); const other = await connect("game");
+  const received = messages.get(game);
+  const wait = async (predicate) => {
+    const deadline = Date.now() + 5000;
+    while (!await predicate()) { if (Date.now() > deadline) throw new Error("Missing worker acknowledgement"); await new Promise((resolve) => setTimeout(resolve, 10)); }
+  };
+  const clock = (now) => mf.dispatchFetch(`https://example.test/test-clock?now=${now}`);
+  let current = createInitialSession();
+  const send = async (ws, patch, accepted = true) => {
+    const next = { ...current, sequence: current.sequence + 1, ...patch };
+    const frames = messages.get(ws);
+    const offset = frames.length;
+    ws.send(JSON.stringify({ type: "session", session: next }));
+    await wait(() => frames.slice(offset).some((m) => accepted ? m.session?.sequence === next.sequence : m.type === "error"));
+    if (accepted) current = frames.slice(offset).find((m) => m.session?.sequence === next.sequence).session;
+  };
+  await clock(startedAt);
+  await send(admin, { phase: "RESULTS", raceId: "forged", raceStartedAt: startedAt - 1000, raceCompletedAt: startedAt,
+    results: [result("momo", 1, 1)] }, false);
+  assert.equal((await db.prepare("SELECT COUNT(*) AS count FROM races").first()).count, 0);
+  await send(admin, { phase: "WAITING" });
+  await send(admin, { phase: "COUNTDOWN", raceId: "chosen-by-client" });
+  assert.notEqual(current.raceId, "chosen-by-client");
+  await clock(current.countdownEndsAt);
+  await send(game, { phase: "RACING" });
+  const start = current.raceStartedAt;
+  await clock(start + 20000);
+  await send(other, { phase: "RESULTS", results: [result("momo", 1, 1)] }, false);
+  await send(game, { phase: "RESULTS", results: [result("momo", 1, 1)], raceCompletedAt: start + 1 });
+  const canonical = current;
+  await wait(() => received.some((m) => m.type === "results-saved" && m.raceId === canonical.raceId));
+  const rows = (await db.prepare("SELECT character_id, finish_ms FROM race_results WHERE race_id=? ORDER BY lane").bind(canonical.raceId).all()).results;
+  assert.deepEqual(rows.map((r) => r.finish_ms), canonical.results.map((r) => r.finishMs));
+  assert.ok(rows.every((r) => r.finish_ms > 10000));
+  await send(game, { results: canonical.results.map((r) => ({ ...r, finishMs: 900 })) }, false);
+  assert.equal((await db.prepare("SELECT finish_ms FROM race_results WHERE race_id=? AND lane=1").bind(canonical.raceId).first()).finish_ms, canonical.results[0].finishMs);
+  await send(admin, { phase: "WAITING" });
+  await send(admin, { phase: "COUNTDOWN" });
+  await clock(current.countdownEndsAt);
+  await send(game, { phase: "RACING" });
+  await clock(current.raceStartedAt + 1000);
+  await send(admin, { phase: "RESULTS", resultsForced: true });
+  await wait(() => received.some((m) => m.type === "results-saved" && m.raceId === current.raceId));
+  assert.ok((await db.prepare("SELECT finish_ms FROM race_results WHERE race_id=?").bind(current.raceId).all()).results.every((r) => r.finish_ms === null));
+  assert.equal((await db.prepare("SELECT COUNT(*) AS count FROM races").first()).count, 2);
+  assert.equal((await getDailyRankings(db, { date: "2026-10-10" })).rankings.length, 2);
 });

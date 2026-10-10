@@ -2,6 +2,10 @@ import { characters } from "../app/domain/characters.js";
 import { characterImageUrl, characterImageKey } from "../app/api/characters/character-store.js";
 import { validRaceRecord } from "./race-record.js";
 
+export class RaceStorageError extends Error {
+  constructor(code, message) { super(message); this.code = code; this.permanent = true; }
+}
+
 function characterFromRow(row) {
   const character = JSON.parse(row.data_json);
   return { ...character, name: row.name, stats: { speed: row.speed, acceleration: row.acceleration, stamina: row.stamina },
@@ -59,20 +63,22 @@ export async function importCharacterPage(db, bucket, cursor) {
   return { imported: statements.length, skipped, cursor: page.truncated ? page.cursor : null, done: !page.truncated };
 }
 
-async function resolveCharacter(db, bucket, id) {
+export async function resolveCharacter(db, bucket, id) {
   const builtin = characters.find((character) => character.id === id);
   if (builtin) return builtin;
   const stored = await getStoredCharacter(db, id);
   if (stored) return stored;
   const object = await bucket?.head(characterImageKey(id));
-  if (!object) throw new Error(`Unknown character: ${id}`);
-  const character = JSON.parse(object.customMetadata?.character ?? "");
-  if (character.id !== id || !character.generated || !validCharacter(character)) throw new Error("Invalid character metadata");
+  if (!object) throw new RaceStorageError("unknown_character", `Unknown character: ${id}`);
+  let character;
+  try { character = JSON.parse(object.customMetadata?.character ?? ""); }
+  catch { throw new RaceStorageError("invalid_character", "Invalid character metadata"); }
+  if (character.id !== id || !character.generated || !validCharacter(character)) throw new RaceStorageError("invalid_character", "Invalid character metadata");
   return character;
 }
 
 export async function saveRace(db, bucket, race) {
-  if (!validRaceRecord(race)) throw new Error("Invalid race results");
+  if (!validRaceRecord(race)) throw new RaceStorageError("invalid_results", "Invalid race results");
   // First submission wins, including DNF. A resend never rewrites a finalized result.
   const normalized = { raceId: race.raceId, startedAt: race.startedAt, completedAt: race.completedAt, courseSeed: race.courseSeed,
     results: race.results.map(({ characterId, lane, rank, finishMs, isBot }) => ({ characterId, lane, rank, finishMs, isBot }))
@@ -80,7 +86,7 @@ export async function saveRace(db, bucket, race) {
   const payload = JSON.stringify(normalized);
   const existing = await db.prepare("SELECT payload_json FROM races WHERE id = ?").bind(race.raceId).first();
   if (existing) {
-    if (existing.payload_json !== payload) throw new Error("Race already saved with different results");
+    if (existing.payload_json !== payload) throw new RaceStorageError("result_conflict", "Race already saved with different results");
     return { raceId: race.raceId, duplicate: true };
   }
   const entrants = await Promise.all(race.results.map((result) => resolveCharacter(db, bucket, result.characterId)));
@@ -98,7 +104,7 @@ export async function saveRace(db, bucket, race) {
   // D1 batch is atomic: character relations, race and every entrant commit together.
   await db.batch(statements);
   const saved = await db.prepare("SELECT payload_json FROM races WHERE id = ?").bind(race.raceId).first();
-  if (saved.payload_json !== payload) throw new Error("Race already saved with different results");
+  if (saved.payload_json !== payload) throw new RaceStorageError("result_conflict", "Race already saved with different results");
   return { raceId: race.raceId, duplicate: false };
 }
 

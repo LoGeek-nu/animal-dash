@@ -39,7 +39,7 @@ test("the sync status follows the WebSocket so screens can show when they are of
   const statuses = [];
   const channel = createRaceSessionChannel(() => {}, { onSyncStatus: (status) => statuses.push(status) });
   const first = FakeWebSocket.instances.at(-1);
-  assert.equal(first.url, "wss://animaldash.logeek.tech/api/sync");
+  assert.equal(first.url, "wss://animaldash.logeek.tech/api/sync?role=viewer");
 
   first.emit("open");
   first.emit("close");

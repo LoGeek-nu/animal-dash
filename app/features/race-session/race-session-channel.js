@@ -1,5 +1,4 @@
 import { refreshGeneratedCharacters } from "../../domain/generated-characters.js";
-import { CHANNEL_NAME, STORAGE_KEY } from "./constants.js";
 import { validSession } from "./race-session-validator.js";
 
 const SYNC_PATH = "/api/sync";
@@ -11,9 +10,9 @@ const RECONNECT_MAX_DELAY = 10_000;
 // Keeps one WebSocket to the sync room open, reconnecting with backoff and
 // detecting silently dropped connections (common on phones) with ping/pong.
 // onStatus receives "connecting" | "open" | "offline", so screens can show whether they really sync.
-function createSyncSocket({ onSession, onCharactersChanged, onStatus }) {
+function createSyncSocket({ role, onSession, onCharactersChanged, onStatus }) {
   if (typeof WebSocket === "undefined" || typeof location === "undefined") {
-    return { send() {}, close() {} };
+    return { send() {}, sendInput() {}, close() {} };
   }
 
   let socket = null;
@@ -24,7 +23,7 @@ function createSyncSocket({ onSession, onCharactersChanged, onStatus }) {
   let lastHeard = 0;
   let pending = null;
 
-  const url = `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}${SYNC_PATH}`;
+  const url = `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}${SYNC_PATH}?role=${encodeURIComponent(role)}`;
 
   const scheduleReconnect = () => {
     window.clearInterval(heartbeatTimer);
@@ -85,6 +84,9 @@ function createSyncSocket({ onSession, onCharactersChanged, onStatus }) {
       pending = JSON.stringify({ type: "session", session });
       if (socket?.readyState === WebSocket.OPEN) socket.send(pending);
     },
+    sendInput(input) {
+      if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: "input", ...input }));
+    },
     close() {
       closed = true;
       window.clearTimeout(reconnectTimer);
@@ -94,48 +96,17 @@ function createSyncSocket({ onSession, onCharactersChanged, onStatus }) {
   };
 }
 
-export function createRaceSessionChannel(onSession, { onSyncStatus = () => {} } = {}) {
-  const channel = typeof BroadcastChannel === "undefined" ? null : new BroadcastChannel(CHANNEL_NAME);
-
+export function createRaceSessionChannel(onSession, { onSyncStatus = () => {}, role = "viewer" } = {}) {
   let closed = false;
-
   const accept = async (candidate) => {
-    if (validSession(candidate)) {
-      onSession(candidate);
-      return;
-    }
-    // The session may reference a character generated on another screen; reload the pool and retry once.
-    await refreshGeneratedCharacters();
+    if (!validSession(candidate)) await refreshGeneratedCharacters();
     if (!closed && validSession(candidate)) onSession(candidate);
   };
-
-  const onMessage = (event) => accept(event.data);
-  const onStorage = (event) => {
-    if (event.key !== STORAGE_KEY || !event.newValue) return;
-    try {
-      accept(JSON.parse(event.newValue));
-    } catch {
-      // Ignore incomplete writes from another tab.
-    }
-  };
-
-  if (channel) channel.addEventListener("message", onMessage);
-  if (typeof window !== "undefined") window.addEventListener("storage", onStorage);
-  const sync = createSyncSocket({ onSession: accept, onCharactersChanged: refreshGeneratedCharacters, onStatus: onSyncStatus });
-
+  const sync = createSyncSocket({ role, onSession: accept, onCharactersChanged: refreshGeneratedCharacters, onStatus: onSyncStatus });
+  // Local storage/BroadcastChannel must never bypass the room's validation.
   return {
-    publish(session) {
-      channel?.postMessage(session);
-      sync.send(session);
-    },
-    close() {
-      closed = true;
-      sync.close();
-      if (channel) {
-        channel.removeEventListener("message", onMessage);
-        channel.close();
-      }
-      if (typeof window !== "undefined") window.removeEventListener("storage", onStorage);
-    },
+    publish(session) { sync.send(session); },
+    sendInput(input) { sync.sendInput(input); },
+    close() { closed = true; sync.close(); },
   };
 }
