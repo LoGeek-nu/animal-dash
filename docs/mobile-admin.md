@@ -75,6 +75,19 @@ IMAGE_POC_API_KEY=local-ui-fixture
 
 実機の背面カメラ・OSの許可画面・iOS Safari・物理コントローラーは今回の環境では未検証。長押しは入力認識の自動テストで検証した。
 
+## 既存PRとの併用確認
+
+以下のHEADと今回のコード（`0905cca`）について、`git merge-tree --write-tree` による試験マージを行い、すべてコンフリクトなし。
+
+| 対象 | PR | 確認したHEAD | 結果 |
+| --- | --- | --- | --- |
+| クリアタイム計測 #45 | #49 | `1927d548` | clean |
+| D1保存 #44 | #48 | `44a027e6` | clean |
+| 実ランキング #46 | #50 | `11c4ae5e` | clean |
+| develop | — | `004f02c9` | clean |
+
+#50のスタック全体（#45→#44→#46）と今回の変更を合わせたツリーを別ディレクトリに展開し、ビルド成功・自動テスト82件成功（失敗0件）を確認した。試験マージの内容を今回のブランチへ取り込んではいない。
+
 ## スクリーンショット
 
 すべて実装した画面のスクリーンショットで、生成したデザイン画像ではない。
@@ -98,3 +111,4 @@ IMAGE_POC_API_KEY=local-ui-fixture
 | PC管理画面 | [15](images/mobile-admin/15-desktop-admin.jpg) |
 | 一覧の最下部 | [16](images/mobile-admin/16-characters-scrolled.jpg) |
 | 結果表示中 | [17](images/mobile-admin/17-results.jpg) |
+| ゲーム画面の共有待機状態 | [19](images/mobile-admin/19-game-waiting.jpg) |
