@@ -2,8 +2,9 @@ import { env } from "cloudflare:workers";
 import { characters } from "../../../domain/characters.js";
 import { isStaffRequest, unauthorizedResponse } from "../../../../worker/auth.js";
 import { takeGenerationSlot } from "../../../../worker/generation-quota.js";
+import { saveCharacter } from "../../../../worker/data-store.js";
 import { notifyCharactersChanged } from "../../../../worker/sync.js";
-import { saveGeneratedCharacter } from "../character-store.js";
+import { characterImageKey, saveGeneratedCharacter } from "../character-store.js";
 
 const PALETTE = characters.map(({ color, pale }) => ({ color, pale }));
 
@@ -42,7 +43,7 @@ function toRaceCharacter(status) {
 
 function missingEnvResponse() {
   return Response.json(
-    { error: "server_misconfigured", detail: "IMAGE_POC_API_URL/IMAGE_POC_API_KEY/CHARACTERS is not configured", retryable: false },
+    { error: "server_misconfigured", detail: "IMAGE_POC_API_URL/IMAGE_POC_API_KEY/CHARACTERS/DB is not configured", retryable: false },
     { status: 500 },
   );
 }
@@ -53,8 +54,8 @@ export async function POST(request) {
   // IMAGE_POC_BYPASS_SECRET is optional: it's only needed if Vercel's own
   // Deployment Protection is ever turned on for the production alias domain
   // (it currently isn't — the app-level X-API-Key is the real gate).
-  const { IMAGE_POC_API_URL, IMAGE_POC_API_KEY, IMAGE_POC_BYPASS_SECRET, CHARACTERS } = env;
-  if (!IMAGE_POC_API_URL || !IMAGE_POC_API_KEY || !CHARACTERS) {
+  const { IMAGE_POC_API_URL, IMAGE_POC_API_KEY, IMAGE_POC_BYPASS_SECRET, CHARACTERS, DB } = env;
+  if (!IMAGE_POC_API_URL || !IMAGE_POC_API_KEY || !CHARACTERS || !DB) {
     return missingEnvResponse();
   }
 
@@ -110,6 +111,8 @@ export async function POST(request) {
   let character;
   try {
     character = await saveGeneratedCharacter(CHARACTERS, toRaceCharacter(body.status), body.image_base64);
+    // Keep R2 metadata for recovery via /api/characters/import if the D1 write fails.
+    await saveCharacter(DB, character, characterImageKey(character.id));
   } catch (cause) {
     return Response.json({ error: "storage_failed", detail: String(cause), retryable: true }, { status: 500 });
   }

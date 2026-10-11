@@ -74,7 +74,7 @@ export function stepRaceRunner({ runner, character, input, obstacles, now, dt, e
 
   next.collision = next.collisionUntil > now;
   if (next.progress >= 100) {
-    if (next.finishedAt === null) next.finishedAt = elapsed;
+    if (next.finishedAt === null) next.finishedAt = Math.max(0, Math.round(elapsed));
     next.boosting = false;
     next.collision = false;
     next.collisionUntil = 0;

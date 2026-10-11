@@ -8,11 +8,12 @@
 │   ├── api/
 │   │   ├── auth/route.js             # スタッフログイン（POST）・状態確認（GET）・ログアウト（DELETE）
 │   │   ├── characters/
-│   │   │   ├── route.js              # キャラクター一覧（静的10体＋R2の生成キャラ）
+│   │   │   ├── route.js              # D1のキャラクター一覧（静的10体＋生成キャラ）
 │   │   │   ├── character-store.js    # 生成キャラのR2保存・一覧・画像取得
-│   │   │   ├── generate/route.js     # 画像からキャラ生成（image-pocへ中継しR2へ保存）
+│   │   │   ├── generate/route.js     # 画像からキャラ生成（image-pocへ中継しR2・D1へ保存）
+│   │   │   ├── import/route.js       # 既存R2メタデータをD1へ取り込み（スタッフ用）
 │   │   │   └── [id]/image/route.js   # 生成キャラの画像配信
-│   │   └── rankings/route.js         # ランキング一覧のサンプルAPI
+│   │   └── rankings/route.js         # 日本時間の日次クリアタイムランキングAPI
 │   ├── components/ui/                # 複数画面で再利用する共通UI
 │   │   ├── atoms/                    # Button、Badgeなど最小単位のUI
 │   │   ├── molecules/                # 検索欄、能力値表示など複合UI
@@ -22,7 +23,7 @@
 │   │   ├── characters.js             # キャラクター定義
 │   │   ├── course.js                 # コース区間と障害物定義
 │   │   ├── race-session.js           # レースセッションの初期データ
-│   │   └── rankings.js               # ランキングデータ
+│   │   └── rankings.js               # タイムと対象日の表示フォーマット
 │   ├── features/                     # 機能ごとの画面とロジック
 │   │   ├── auth/                     # ログイン画面、未ログイン時の案内、認証状態のHook
 │   │   ├── admin/
@@ -36,6 +37,7 @@
 │   │   │   ├── screens/              # 各ゲームフェーズの画面
 │   │   │   ├── GamePage.jsx          # ゲーム画面の組み立て
 │   │   │   └── GamePhaseRenderer.jsx # 現在のフェーズに対応する画面を表示
+│   │   ├── rankings/                 # 日次ランキングの共通取得状態・保存待ち・再試行
 │   │   └── race-session/             # 画面間で共有するセッション管理
 │   │       ├── race-session-reducer.js # 状態遷移
 │   │       ├── race-session-storage.js # localStorageへの保存
@@ -53,6 +55,7 @@
 │   └── page.jsx                      # /gameへのリダイレクト
 ├── doc/                               # 初期計画とバージョン別の実装計画
 ├── docs/                              # 開発者向けドキュメント（本ディレクトリ）
+├── migrations/                      # D1スキーマと静的キャラクターの登録
 ├── public/
 │   ├── characters/                   # キャラクターごとのランナー画像
 │   └── og.png                        # og画像
@@ -61,6 +64,9 @@
 ├── worker/
 │   ├── index.js                      # Cloudflare Workersの起動処理（/api/syncをDurable Objectへ振り分け）
 │   ├── auth.js                       # スタッフログイン（合言葉とCookie）
+│   ├── data-store.js                 # D1キャラクター・結果保存・日次ランキング集計
+│   ├── data-api.js                   # データAPIの検証・エラー処理
+│   ├── race-record.js                # #45から受け取る確定結果の保存契約
 │   ├── race-session-room.js          # 端末間同期のDurable Object
 │   └── sync.js                       # 同期用Durable Objectの取得とキャラ追加通知
 ├── eslint.config.mjs                 # ESLint設定

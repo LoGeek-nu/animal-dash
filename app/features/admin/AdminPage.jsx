@@ -21,7 +21,7 @@ import { laneOnlyCollisionDetection } from "./model/lane-collision.js";
 
 export function AdminPage() {
   const auth = useRequireStaff("/admin");
-  const { session, ready, syncStatus, actions } = useRaceSession();
+  const { session, ready, syncStatus, actions } = useRaceSession("admin");
   const [confirm, setConfirm] = useState(null);
   const [generateOpen, setGenerateOpen] = useState(false);
   const selection = useCharacterSelection({ lanes: session.lanes });
@@ -108,7 +108,7 @@ export function AdminPage() {
         {confirm === "finish" && (
           <ConfirmDialog
             title={session.phase === "RESULTS" ? "リザルトを終了しますか？" : "レースを強制終了しますか？"}
-            copy={session.phase === "RESULTS" ? "次の上映のためアトラクト画面へ戻ります。" : "現在の順位を仮タイムで確定してリザルトへ進みます。"}
+            copy={session.phase === "RESULTS" ? "次の上映のためアトラクト画面へ戻ります。" : "全員を未完走（DNF）として記録し、リザルトへ進みます。"}
             actionLabel={session.phase === "RESULTS" ? "アトラクトへ戻す" : "リザルトへ進む"}
             onCancel={() => setConfirm(null)}
             onConfirm={confirmFinish}

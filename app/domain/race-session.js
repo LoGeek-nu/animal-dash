@@ -1,7 +1,19 @@
 /** @typedef {"ATTRACT"|"WAITING"|"COUNTDOWN"|"RACING"|"RESULTS"|"RECOVERY"} RacePhase */
 /** @typedef {{characterId:string, isBot:boolean}} LaneAssignment */
 /** @typedef {{characterId:string, lane:number, rank:number, finishMs:number|null, isBot:boolean}} RaceResult */
-/** @typedef {{version:3, sequence:number, sessionId:string, phase:RacePhase, lanes:Array<LaneAssignment|null>, lastSync:number, courseSeed:string, countdownEndsAt:number|null, raceStartedAt:number|null, resultsEndsAt:number|null, results:RaceResult[], attractIndex?:number}} RaceSession */
+/** @typedef {{version:3, sequence:number, sessionId:string, raceId?:string|null, phase:RacePhase, lanes:Array<LaneAssignment|null>, lastSync:number, courseSeed:string, countdownEndsAt:number|null, raceStartedAt:number|null, raceCompletedAt?:number|null, resultsEndsAt:number|null, results:RaceResult[], resultsForced?:boolean, attractIndex?:number}} RaceSession */
+
+export function createRaceId() {
+  // getRandomValues also works on the plain HTTP LAN used for local device tests.
+  const id = globalThis.crypto.randomUUID?.()
+    ?? [...globalThis.crypto.getRandomValues(new Uint8Array(16))].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+  return `race_${id}`;
+}
+
+export function getRaceId(session) {
+  return session.raceId ?? (Number.isSafeInteger(session.raceStartedAt) && session.raceStartedAt > 0
+    ? `${session.sessionId}:${session.raceStartedAt}` : null);
+}
 
 export const RACE_PHASES = ["ATTRACT", "WAITING", "COUNTDOWN", "RACING", "RESULTS", "RECOVERY"];
 
@@ -20,6 +32,7 @@ export function createInitialSession() {
     version: 3,
     sequence: 1,
     sessionId: "session_demo01",
+    raceId: null,
     phase: "ATTRACT",
     attractIndex: 0,
     lanes: [
@@ -32,6 +45,7 @@ export function createInitialSession() {
     courseSeed: "oureisai-2026-demo",
     countdownEndsAt: null,
     raceStartedAt: null,
+    raceCompletedAt: null,
     resultsEndsAt: null,
     results: [],
   };

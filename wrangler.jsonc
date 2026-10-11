@@ -19,6 +19,13 @@
       "bucket_name": "animaldash-characters"
     }
   ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "animaldash-races",
+      "migrations_dir": "migrations"
+    }
+  ],
   "durable_objects": {
     "bindings": [
       {

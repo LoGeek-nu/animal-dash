@@ -1,78 +1,62 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { getCharacter } from "../../../domain/characters.js";
 import { courseObstacles } from "../../../domain/course.js";
 import { getBotInput } from "./bot-controller.js";
-import { MAX_FRAME_DELTA, PAINT_INTERVAL, RACE_TIMEOUT } from "./constants.js";
-import { createRuntimeRunner, stepRaceRunner, toRenderableRunner } from "./race-engine.js";
-import { buildFinalResults, calculateLiveRanks } from "./race-ranking.js";
+import { PAINT_INTERVAL } from "./constants.js";
+import { createRuntimeRunner, toRenderableRunner } from "./race-engine.js";
+import { calculateLiveRanks } from "./race-ranking.js";
+import { advanceRaceRuntime, createRaceRuntime } from "./race-runtime.js";
 import { useRaceControls } from "./useRaceControls.js";
 
-export function useRaceEngine({ lanes, raceStartedAt, onFinished }) {
-  const initialRunners = useMemo(() => lanes.map(() => createRuntimeRunner()), [lanes]);
-  const [runners, setRunners] = useState(() => initialRunners.map((runner) => toRenderableRunner(runner, 0)));
-  const runtimeRef = useRef(initialRunners);
-  const sentRef = useRef(false);
+export function useRaceEngine({ raceId, lanes, raceStartedAt, onFinished, onInput }) {
+  const [runners, setRunners] = useState(() => lanes.map(() => toRenderableRunner(createRuntimeRunner(), 0)));
+  const runtimeRef = useRef(null);
   const { readInput, consumeJump } = useRaceControls(lanes.length);
 
   useEffect(() => {
-    runtimeRef.current = lanes.map(() => createRuntimeRunner());
-    sentRef.current = false;
-  }, [lanes]);
-
-  useEffect(() => {
+    // Sync replaces lane objects and callbacks. Preserve this race's runners, clock and completion.
+    if (!runtimeRef.current || runtimeRef.current.raceId !== raceId) {
+      runtimeRef.current = createRaceRuntime({ raceId, raceStartedAt, lanes, now: performance.now(), epochNow: Date.now() });
+    }
+    const runtime = runtimeRef.current;
     let frame = 0;
-    let last = performance.now();
     let lastPaint = 0;
-    const started = raceStartedAt ?? Date.now();
+    let lastReport = -Infinity;
+    let lastButtons = null;
+    let lastInputAt = -Infinity;
 
     const tick = (now) => {
-      const dt = Math.min(MAX_FRAME_DELTA, (now - last) / 1000);
-      last = now;
-      const elapsed = Date.now() - started;
       const gamepads = navigator.getGamepads?.() ?? [];
-
-      runtimeRef.current = runtimeRef.current.map((runner, laneIndex) => {
-        const lane = lanes[laneIndex];
-        if (!lane || (runner.finishedAt !== null && runner.y === 0)) return runner;
-
-        const manualInput = runner.finishedAt !== null ? { jump: false, boost: false } : readInput(laneIndex, gamepads[laneIndex]);
-        const botInput = lane.isBot && runner.finishedAt === null
-          ? getBotInput({ laneIndex, runner, now, obstacles: courseObstacles })
-          : { jump: false, boost: false };
-        const input = { jump: manualInput.jump || botInput.jump, boost: manualInput.boost || botInput.boost };
-        const stepped = stepRaceRunner({
-          runner,
-          character: getCharacter(lane.characterId),
-          input,
-          obstacles: courseObstacles,
-          now,
-          dt,
-          elapsed,
-        });
-        if (stepped.jumped) consumeJump(laneIndex);
-        return stepped.runner;
+      const buttons = runtime.lanes.reduce((mask, lane, index) => {
+        if (!lane || lane.isBot) return mask;
+        const input = readInput(index, gamepads[index]);
+        return mask | (input.jump ? 1 << index : 0) | (input.boost ? 1 << (index + 4) : 0);
+      }, 0);
+      if (!runtime.completed && (buttons !== lastButtons || now - lastInputAt >= 250)) { onInput?.({ raceId, buttons }); lastButtons = buttons; lastInputAt = now; }
+      advanceRaceRuntime(runtime, {
+        now, epochNow: Date.now(), onJump: consumeJump,
+        readInput: (laneIndex, runner, lane, simulationNow) => {
+          const manual = readInput(laneIndex, gamepads[laneIndex]);
+          const bot = lane.isBot ? getBotInput({ laneIndex, runner, now: simulationNow, obstacles: courseObstacles }) : { jump: false, boost: false };
+          return { jump: manual.jump || bot.jump, boost: manual.boost || bot.boost };
+        },
       });
 
-      if (now - lastPaint > PAINT_INTERVAL) {
-        setRunners(runtimeRef.current.map((runner) => toRenderableRunner(runner, now)));
+      if (runtime.completed || now - lastPaint > PAINT_INTERVAL) {
+        setRunners(runtime.runners.map((runner) => toRenderableRunner(runner, runtime.simulatedElapsed)));
         lastPaint = now;
       }
 
-      const active = runtimeRef.current.filter((_, laneIndex) => lanes[laneIndex]);
-      if (!sentRef.current && (active.every((runner) => runner.finishedAt !== null) || elapsed >= RACE_TIMEOUT)) {
-        sentRef.current = true;
-        onFinished(buildFinalResults(runtimeRef.current, lanes));
-        return;
-      }
-
+      // Keep reporting until the room replies with its canonical RESULTS. A
+      // slightly earlier local goal must not strand a race waiting for its owner.
+      if (runtime.completed && now - lastReport >= 250) { onFinished(runtime.completed); lastReport = now; }
       frame = requestAnimationFrame(tick);
     };
 
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [consumeJump, lanes, onFinished, raceStartedAt, readInput]);
+  }, [raceId, raceStartedAt, lanes, onFinished, onInput, consumeJump, readInput]);
 
   const ranks = useMemo(() => calculateLiveRanks(runners, lanes), [lanes, runners]);
   return { runners, ranks };
