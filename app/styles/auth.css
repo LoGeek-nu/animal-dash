@@ -1,0 +1,8 @@
+.staff-login { display: grid; min-height: 100dvh; place-items: center; padding: 1rem; background: var(--cream); }
+.staff-login-field { display: grid; gap: .35rem; margin: 0 0 1rem; text-align: left; font-size: .75rem; font-weight: 700; }
+.staff-login-field input { width: 100%; padding: .65rem .8rem; font-size: 1rem; border: 2px solid var(--ink); border-radius: 10px; }
+.staff-login-error { color: var(--red) !important; font-weight: 700; }
+.staff-login-notice { position: fixed; z-index: 90; right: 1rem; bottom: 1rem; left: 1rem; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: .4rem .8rem; padding: .6rem 1rem; color: white; font-size: .75rem; font-weight: 700; background: var(--red); border-radius: 12px; box-shadow: 0 6px 0 rgba(23,48,71,.25); }
+.staff-login-notice a { color: white; text-decoration: underline; }
+.admin-logout { padding: .35rem .7rem; color: white; font-size: .68rem; font-weight: 800; background: transparent; border: 2px solid rgba(255,255,255,.6); border-radius: 999px; cursor: pointer; }
+.admin-logout:hover { background: rgba(255,255,255,.12); }

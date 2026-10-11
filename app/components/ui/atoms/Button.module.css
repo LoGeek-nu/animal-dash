@@ -1,0 +1,30 @@
+.dialogAction {
+  min-width: 120px;
+  padding: .7rem 1rem;
+  border-radius: 8px;
+  font-size: .65rem;
+  font-weight: 900;
+}
+
+.primary { color: white; background: var(--blue); border: 1px solid var(--blue); }
+.secondary { background: white; border: 1px solid #c7d3da; }
+.danger { color: white; background: var(--red); border: 1px solid var(--red); }
+
+.adminAction {
+  min-height: 42px;
+  padding: .65rem .85rem;
+  border-radius: 8px;
+  font-size: .6rem;
+  font-weight: 900;
+}
+
+.ghost { background: white; border: 1px solid #cad5dc; }
+.secondaryStart { color: #145f34; background: #e0f6e7; border: 1px solid #9fd3ae; }
+.raceStart { min-width: 145px; color: white; background: #fb5e7d; border: 2px solid var(--ink); box-shadow: 0 4px 0 var(--ink); }
+.raceStart span { margin-right: .4rem; color: #ffe16a; }
+
+.assign { margin-left: auto; padding: .52rem .65rem; color: white; background: var(--blue); border: 0; border-radius: 7px; font-size: .55rem; font-weight: 900; }
+.assign:disabled { color: #98a8b2; background: #e1e7ea; }
+.icon { width: 1.8rem; height: 1.8rem; flex: 0 0 auto; color: var(--ink-soft); background: white; border: 1px solid #cad5dc; border-radius: 7px; }
+.icon:hover:not(:disabled) { color: var(--red); border-color: var(--red); }
+.clear { padding: .45rem .65rem; color: var(--red); background: #fff1f3; border: 0; border-radius: 7px; font-size: .58rem; font-weight: 900; }

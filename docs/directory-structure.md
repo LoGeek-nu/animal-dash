@@ -1,0 +1,89 @@
+# ディレクトリ構成
+
+```text
+.
+├── app/                              # アプリケーション本体
+│   ├── admin/
+│   │   └── page.jsx                  # 管理画面 /admin のルート
+│   ├── api/
+│   │   ├── auth/route.js             # スタッフログイン（POST）・状態確認（GET）・ログアウト（DELETE）
+│   │   ├── characters/
+│   │   │   ├── route.js              # D1のキャラクター一覧（静的10体＋生成キャラ）
+│   │   │   ├── character-store.js    # 生成キャラのR2保存・一覧・画像取得
+│   │   │   ├── generate/route.js     # 画像からキャラ生成（image-pocへ中継しR2・D1へ保存）
+│   │   │   ├── import/route.js       # 既存R2メタデータをD1へ取り込み（スタッフ用）
+│   │   │   └── [id]/image/route.js   # 生成キャラの画像配信
+│   │   └── rankings/route.js         # 日本時間の日次クリアタイムランキングAPI
+│   ├── components/ui/                # 複数画面で再利用する共通UI
+│   │   ├── atoms/                    # Button、Badgeなど最小単位のUI
+│   │   ├── molecules/                # 検索欄、能力値表示など複合UI
+│   │   └── organisms/                # ダイアログなどまとまった共通UI
+│   ├── domain/                       # 表示に依存しないゲームデータとルール
+│   │   ├── attract.js                # アトラクト画面の構成と再生時間
+│   │   ├── characters.js             # キャラクター定義
+│   │   ├── course.js                 # コース区間と障害物定義
+│   │   ├── race-session.js           # レースセッションの初期データ
+│   │   └── rankings.js               # タイムと対象日の表示フォーマット
+│   ├── features/                     # 機能ごとの画面とロジック
+│   │   ├── auth/                     # ログイン画面、未ログイン時の案内、認証状態のHook
+│   │   ├── admin/
+│   │   │   ├── components/           # 管理画面専用コンポーネント
+│   │   │   ├── hooks/                # Drag & Drop、選択処理のカスタムHook
+│   │   │   ├── model/                # レーンへのドロップ判定
+│   │   │   └── AdminPage.jsx         # 管理画面の組み立て
+│   │   ├── game/
+│   │   │   ├── components/           # ゲーム画面専用コンポーネント
+│   │   │   ├── race/                 # レース計算、操作、BOT制御
+│   │   │   ├── screens/              # 各ゲームフェーズの画面
+│   │   │   ├── GamePage.jsx          # ゲーム画面の組み立て
+│   │   │   └── GamePhaseRenderer.jsx # 現在のフェーズに対応する画面を表示
+│   │   ├── rankings/                 # 日次ランキングの共通取得状態・保存待ち・再試行
+│   │   └── race-session/             # 画面間で共有するセッション管理
+│   │       ├── race-session-reducer.js # 状態遷移
+│   │       ├── race-session-storage.js # localStorageへの保存
+│   │       ├── race-session-channel.js # BroadcastChannelとWebSocketでの同期
+│   │       └── useRaceSession.js      # 各画面から利用するHook
+│   ├── game/
+│   │   └── page.jsx                  # ゲーム画面 /game のルート
+│   ├── login/
+│   │   └── page.jsx                  # スタッフログイン /login のルート
+│   ├── health/
+│   │   └── route.js                  # ヘルスチェック用
+│   ├── styles/                       # 共通・ゲーム・管理画面のCSS
+│   ├── globals.css                   # 全CSSの読み込み口
+│   ├── layout.jsx                    # 全ページ共通レイアウトとmetadata
+│   └── page.jsx                      # /gameへのリダイレクト
+├── doc/                               # 初期計画とバージョン別の実装計画
+├── docs/                              # 開発者向けドキュメント（本ディレクトリ）
+├── migrations/                      # D1スキーマと静的キャラクターの登録
+├── public/
+│   ├── characters/                   # キャラクターごとのランナー画像
+│   └── og.png                        # og画像
+├── scripts/                          # ビルド後処理などの補助スクリプト
+├── tests/                            # Node.js標準テスト
+├── worker/
+│   ├── index.js                      # Cloudflare Workersの起動処理（/api/syncをDurable Objectへ振り分け）
+│   ├── auth.js                       # スタッフログイン（合言葉とCookie）
+│   ├── data-store.js                 # D1キャラクター・結果保存・日次ランキング集計
+│   ├── data-api.js                   # データAPIの検証・エラー処理
+│   ├── race-record.js                # #45から受け取る確定結果の保存契約
+│   ├── race-session-room.js          # 端末間同期のDurable Object
+│   └── sync.js                       # 同期用Durable Objectの取得とキャラ追加通知
+├── eslint.config.mjs                 # ESLint設定
+├── next.config.js                    # Next.js互換レイヤーの設定
+├── package.json                      # 依存パッケージとnpmコマンド
+├── postcss.config.mjs                # Tailwind CSSのPostCSS設定
+├── vite.config.js                    # Vinext、Vite、Cloudflare開発設定
+└── wrangler.jsonc                    # Cloudflare Workersの公開設定
+```
+
+`.next/`、`.vinext/`、`.wrangler/`、`dist/`、`node_modules/`はコマンド実行時に自動生成されるため、人が直接編集する必要はありません。これらはGitでも管理しません。
+
+## `doc/`と`docs/`の違い
+
+- `doc/` — バージョンごとの実装計画（設計記録）専用です。一覧は[`doc/README.md`](../doc/README.md)にあります。通常の機能変更に合わせて都度更新する必要はありません。
+- `docs/` — このファイルを含む、開発に参加するために読む開発者向けドキュメントです。
+
+---
+
+[目次に戻る](../README.md#ドキュメント目次)

@@ -1,0 +1,16 @@
+.game-stage { min-height: 100vh; overflow: hidden; position: relative; }
+.game-stage::after { content: ""; pointer-events: none; position: fixed; inset: 0; opacity: .075; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 140 140' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.72' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.45'/%3E%3C/svg%3E"); mix-blend-mode: multiply; z-index: 40; }
+.game-header { height: 11vh; min-height: 78px; padding: 2.4vh 3vw 0; display: flex; justify-content: space-between; align-items: flex-start; position: relative; z-index: 20; }
+.game-logo span { display: block; margin-left: .25rem; font-size: clamp(.58rem, .75vw, .9rem); font-weight: 1000; letter-spacing: .25em; }
+.game-logo strong { display: block; margin-top: -.05em; font-size: clamp(2rem, 3.25vw, 4rem); line-height: .9; font-weight: 1000; letter-spacing: -.075em; text-shadow: 3px 3px 0 white; transform: rotate(-1deg); }
+.game-header-status { display: flex; align-items: center; gap: .65rem; }
+.connection-badge, .phase-chip { display: flex; align-items: center; min-height: 2.2rem; padding: .45rem .8rem; background: rgba(255,255,255,.92); border: 2px solid var(--ink); border-radius: 999px; box-shadow: 2px 3px 0 rgba(23,48,71,.12); font-size: .65rem; font-weight: 1000; letter-spacing: .1em; }
+.connection-badge span { width: .58rem; height: .58rem; margin-right: .45rem; border-radius: 50%; background: #2ec770; box-shadow: 0 0 0 3px #d7f7e3; animation: livePulse 1.8s infinite; }
+.phase-chip { border-color: transparent; box-shadow: none; }
+.phase-waiting { background: #fff2ba; }
+.phase-attract { color: white; background: #8c43d7; }
+.phase-countdown { background: #ffd4de; }
+.phase-racing { background: #d7f7e3; }
+.phase-results { background: #dedbff; }
+.section-kicker { margin: 0 0 .5rem; font-size: clamp(.65rem, .82vw, 1rem); font-weight: 1000; letter-spacing: .22em; }
+
