@@ -120,6 +120,7 @@
   .mobile-character-copy b { width: fit-content; border-radius: 99px; background: #e1e7ea; padding: 2px 6px; color: var(--ink-soft); font-size: .5rem; }
   .mobile-character-info { position: absolute; right: 0; top: 0; width: 44px; height: 44px; display: flex; justify-content: flex-end; align-items: flex-start; padding: 5px; border: 0; background: transparent; font-size: 1rem; }
   .mobile-character-dock .primary-button:disabled { background: #e1e7ea; color: #72838f; border-color: #cad5dc; opacity: 1; }
+  .mobile-set-lock { display: inline-block; margin-right: 8px; vertical-align: -3px; }
   .mobile-character-dock > small { display: block; text-align: center; color: var(--ink-soft); font-size: .62rem; margin-top: 7px; }
   .mobile-empty-search { text-align: center; color: var(--ink-soft); padding: 1.5rem 0; font-size: .8rem; }
   .admin-native-modal .dialogAction, .admin-native-modal .primary-button, .admin-native-modal .secondary-button { min-height: 44px; min-width: 0; font-size: .8rem; }
