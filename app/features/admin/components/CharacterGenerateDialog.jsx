@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "../../../components/ui/atoms/Button.jsx";
 import { addGeneratedCharacter } from "../../../domain/generated-characters.js";
 import { AdminModal } from "./AdminModal.jsx";
@@ -31,6 +31,9 @@ export function CharacterGenerateDialog({ onClose, session, ready, syncStatus })
   const [previewUrl, setPreviewUrl] = useState(null);
   const [error, setError] = useState(null);
   const inputRef = useRef(null);
+  const requestRef = useRef(null);
+
+  useEffect(() => () => requestRef.current?.abort(), []);
 
   const handleFileChange = async (event) => {
     const picked = event.target.files?.[0];
@@ -58,18 +61,22 @@ export function CharacterGenerateDialog({ onClose, session, ready, syncStatus })
   };
 
   const close = () => {
+    requestRef.current?.abort();
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     onClose();
   };
 
   const submit = async () => {
-    if (!file) return;
+    if (!file || requestRef.current) return;
+    const controller = new AbortController();
+    requestRef.current = controller;
     setStage("loading");
     try {
       const formData = new FormData();
       formData.append("image", file, "capture.jpg");
-      const response = await fetch("/api/characters/generate", { method: "POST", body: formData });
+      const response = await fetch("/api/characters/generate", { method: "POST", body: formData, signal: controller.signal });
       const body = await response.json();
+      if (controller.signal.aborted) return;
 
       if (!response.ok) {
         setError({ message: body.detail ?? body.error ?? "生成に失敗しました。", retryable: body.retryable === true });
@@ -80,13 +87,16 @@ export function CharacterGenerateDialog({ onClose, session, ready, syncStatus })
       addGeneratedCharacter(body);
       close();
     } catch {
+      if (controller.signal.aborted) return;
       setError({ message: "通信に失敗しました。ネットワークを確認してください。", retryable: true });
       setStage("error");
+    } finally {
+      if (requestRef.current === controller) requestRef.current = null;
     }
   };
 
   return (
-    <AdminModal title={stage === "preview" ? "撮影画像の確認" : "キャラクターを撮影して追加"} onClose={close} dismissible={stage !== "loading"} className={`generate-dialog ${stage === "idle" ? "mobile-capture-entry-dialog" : "mobile-generation-dialog"}`}>
+    <AdminModal title={stage === "preview" ? "撮影画像の確認" : "キャラクターを撮影して追加"} onClose={close} className={`generate-dialog ${stage === "idle" ? "mobile-capture-entry-dialog" : "mobile-generation-dialog"}`}>
         {session && <div className="mobile-capture-header"><AdminHeader ready={ready} syncStatus={syncStatus} /><AdminStatusBar session={session} participantCount={session.lanes.filter(Boolean).length} /></div>}
 
         <input
