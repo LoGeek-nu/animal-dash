@@ -1,0 +1,56 @@
+[
+  {
+    "desktop": "none",
+    "mobile": "block",
+    "scroll": 320,
+    "width": 320
+  },
+  {
+    "desktop": "none",
+    "mobile": "block",
+    "scroll": 375,
+    "width": 375
+  },
+  {
+    "desktop": "none",
+    "mobile": "block",
+    "scroll": 390,
+    "width": 390
+  },
+  {
+    "desktop": "none",
+    "mobile": "block",
+    "scroll": 430,
+    "width": 430
+  },
+  {
+    "desktop": "none",
+    "mobile": "block",
+    "scroll": 700,
+    "width": 700
+  },
+  {
+    "desktop": "none",
+    "mobile": "block",
+    "scroll": 900,
+    "width": 900
+  },
+  {
+    "desktop": "grid",
+    "mobile": "none",
+    "scroll": 901,
+    "width": 901
+  },
+  {
+    "desktop": "grid",
+    "mobile": "none",
+    "scroll": 1024,
+    "width": 1024
+  },
+  {
+    "desktop": "grid",
+    "mobile": "none",
+    "scroll": 1280,
+    "width": 1280
+  }
+]

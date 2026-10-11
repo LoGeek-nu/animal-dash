@@ -3,6 +3,9 @@
 import { useRef, useState } from "react";
 import { Button } from "../../../components/ui/atoms/Button.jsx";
 import { addGeneratedCharacter } from "../../../domain/generated-characters.js";
+import { AdminModal } from "./AdminModal.jsx";
+import { AdminHeader } from "./AdminHeader.jsx";
+import { AdminStatusBar } from "./AdminStatusBar.jsx";
 
 const MAX_DIMENSION = 1600;
 
@@ -22,7 +25,7 @@ async function resizeImageFile(file, maxDimension) {
   });
 }
 
-export function CharacterGenerateDialog({ onClose }) {
+export function CharacterGenerateDialog({ onClose, session, ready, syncStatus }) {
   const [stage, setStage] = useState("idle");
   const [file, setFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
@@ -83,9 +86,8 @@ export function CharacterGenerateDialog({ onClose }) {
   };
 
   return (
-    <div className="dialog-backdrop" role="presentation">
-      <div className="generate-dialog" role="dialog" aria-modal="true" aria-labelledby="generate-dialog-title">
-        <h2 id="generate-dialog-title">キャラクターを撮影して追加</h2>
+    <AdminModal title={stage === "preview" ? "撮影画像の確認" : "キャラクターを撮影して追加"} onClose={close} dismissible={stage !== "loading"} className="generate-dialog mobile-generation-dialog">
+        {session && <div className="mobile-capture-header"><AdminHeader ready={ready} syncStatus={syncStatus} /><AdminStatusBar session={session} participantCount={session.lanes.filter(Boolean).length} /></div>}
 
         <input
           ref={inputRef}
@@ -108,11 +110,14 @@ export function CharacterGenerateDialog({ onClose }) {
 
         {stage === "preview" && previewUrl && (
           <>
+            <p className="mobile-capture-copy">動物の絵が写っているか確認してください。</p>
             <img className="generate-dialog-preview" src={previewUrl} alt="選択した画像のプレビュー" />
+            <p className="mobile-capture-copy">この画像からキャラクターを生成します。</p>
             <div className="generate-dialog-actions">
-              <Button variant="secondary" onClick={retake}>選び直す</Button>
+              <Button variant="secondary" onClick={retake}>撮り直す・選び直す</Button>
               <Button variant="primary" onClick={submit}>この画像で生成する</Button>
             </div>
+            <small className="mobile-capture-copy">生成には10〜20秒ほどかかります。</small>
           </>
         )}
 
@@ -132,7 +137,6 @@ export function CharacterGenerateDialog({ onClose }) {
             </div>
           </>
         )}
-      </div>
-    </div>
+    </AdminModal>
   );
 }

@@ -15,6 +15,7 @@ import { CharacterDragOverlay } from "./components/CharacterDragOverlay.jsx";
 import { CharacterGenerateDialog } from "./components/CharacterGenerateDialog.jsx";
 import { CharacterLibrary } from "./components/CharacterLibrary.jsx";
 import { LaneManagement } from "./components/LaneManagement.jsx";
+import { MobileAdminWorkspace } from "./components/MobileAdminWorkspace.jsx";
 import { useCharacterDragAndDrop } from "./hooks/useCharacterDragAndDrop.js";
 import { useCharacterSelection } from "./hooks/useCharacterSelection.js";
 import { laneOnlyCollisionDetection } from "./model/lane-collision.js";
@@ -62,6 +63,9 @@ export function AdminPage() {
       <main className={`admin-shell ${drag.activeCharacterId ? "is-dragging-character" : ""} ${drag.overLaneId ? "is-over-lane-zone" : ""}`}>
         <AdminHeader ready={ready} syncStatus={syncStatus} canLogout={auth?.loginRequired === true} />
         <AdminStatusBar session={session} participantCount={participantCount} />
+        <MobileAdminWorkspace session={session} selection={selection} actions={actions}
+          canLogout={auth?.loginRequired === true} onRequestGenerate={() => setGenerateOpen(true)}
+          onRequestFinish={() => setConfirm("finish")} onRequestReset={() => setConfirm("reset")} />
         <section className="admin-workspace">
           <CharacterLibrary
             query={selection.query}
@@ -114,7 +118,7 @@ export function AdminPage() {
             onConfirm={confirmFinish}
           />
         )}
-        {generateOpen && <CharacterGenerateDialog onClose={() => setGenerateOpen(false)} />}
+        {generateOpen && <CharacterGenerateDialog session={session} ready={ready} syncStatus={syncStatus} onClose={() => setGenerateOpen(false)} />}
         <VisuallyHidden aria-live="polite">{drag.announcement}</VisuallyHidden>
       </main>
       <DragOverlay dropAnimation={{ duration: 180, easing: "ease-out" }}>
