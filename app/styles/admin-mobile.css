@@ -98,6 +98,17 @@
   .mobile-library .search-box { width: 100%; height: 44px; margin-bottom: 10px; }
   .mobile-library .search-box input { font-size: 16px; }
   .mobile-character-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .admin-shell:has(> .mobile-admin-workspace.is-character-view) { height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+  .admin-shell:has(> .mobile-admin-workspace.is-character-view) > .admin-header,
+  .admin-shell:has(> .mobile-admin-workspace.is-character-view) > .admin-statusbar { flex-shrink: 0; }
+  .mobile-admin-workspace.is-character-view { display: flex; flex-direction: column; flex: 1; min-height: 0; padding-bottom: 0; }
+  .is-character-view .mobile-admin-tabs,
+  .is-character-view .mobile-panel-heading,
+  .is-character-view .mobile-info-hint,
+  .is-character-view .search-box { flex-shrink: 0; }
+  .is-character-view .mobile-library { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+  .is-character-view .mobile-character-grid { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior-y: contain; align-content: start; grid-auto-rows: max-content; }
+  .is-character-view .mobile-character-dock { position: static; flex-shrink: 0; margin: 12px -12px 0; }
   .mobile-character-card { position: relative; min-width: 0; border: 1px solid #dbe4e9; border-radius: 10px; background: white; overflow: hidden; }
   .mobile-character-card.is-selected { border: 2px solid var(--ink); background: #eff6fb; }
   .mobile-character-main { display: flex; align-items: center; gap: 4px; width: 100%; min-height: 86px; padding: 8px 5px; border: 0; background: transparent; text-align: left; touch-action: pan-y; user-select: none; -webkit-touch-callout: none; }

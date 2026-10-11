@@ -79,7 +79,7 @@ export function MobileAdminWorkspace({ session, selection, actions, canLogout, o
   const requestConfirmation = (callback) => { setOperationsOpen(false); callback(); };
   const info = infoId ? getCharacter(infoId) : null;
 
-  return <div ref={workspaceRef} className="mobile-admin-workspace">
+  return <div ref={workspaceRef} className={`mobile-admin-workspace ${tab === "characters" ? "is-character-view" : ""}`}>
     <nav className="mobile-admin-tabs" aria-label="管理画面の表示">
       <button type="button" aria-current={tab === "lanes" ? "page" : undefined} onClick={() => changeTab("lanes")}>参加枠</button>
       <button type="button" aria-current={tab === "characters" ? "page" : undefined} onClick={() => changeTab("characters")}>キャラクター</button>
