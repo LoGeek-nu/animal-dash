@@ -1,0 +1,54 @@
+{
+  "date": "2026-10-11",
+  "scope": "追加した4点のUIだけを軽く確認。全体テスト・ビルドは再実行していない。",
+  "scroll": {
+    "before": {
+      "dockTop": 751.1171875,
+      "headerTop": 0,
+      "searchTop": 287.4765625,
+      "tabTop": 138
+    },
+    "after": {
+      "dockTop": 751.1171875,
+      "headerTop": 0,
+      "searchTop": 287.4765625,
+      "tabTop": 138
+    },
+    "result": {
+      "listScroll": 183.5,
+      "overflow": false,
+      "pageScroll": 0
+    }
+  },
+  "reference": {
+    "disabled": true,
+    "lockVisible": true,
+    "pageHeight": 844,
+    "viewportHeight": 844
+  },
+  "smallViewport": {
+    "dockBottom": 568,
+    "headerTop": 0,
+    "horizontalOverflow": false,
+    "listHeight": 109,
+    "pageHeight": 568,
+    "viewportHeight": 568,
+    "width": 320
+  },
+  "capture": {
+    "entryHeight": 181.4296875,
+    "cancel": true,
+    "fileSelectionToPreview": true,
+    "retakeToEntry": true
+  },
+  "assignment": {
+    "enabled": true,
+    "lockAbsent": true
+  },
+  "desktopBoundary": {
+    "width": 901,
+    "mobileHidden": true,
+    "desktopVisible": true,
+    "horizontalOverflow": false
+  }
+}
