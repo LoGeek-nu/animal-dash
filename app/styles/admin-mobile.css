@@ -124,6 +124,8 @@
   .mobile-empty-search { text-align: center; color: var(--ink-soft); padding: 1.5rem 0; font-size: .8rem; }
   .admin-native-modal .dialogAction, .admin-native-modal .primary-button, .admin-native-modal .secondary-button { min-height: 44px; min-width: 0; font-size: .8rem; }
   .mobile-capture-copy { display: block; }
+  .mobile-capture-entry-dialog .generate-dialog-actions { margin-top: 20px; }
+  .mobile-capture-entry-dialog .generate-dialog-actions button { flex: 1; }
   .mobile-generation-dialog { width: 100%; max-width: none; height: 100dvh; max-height: 100dvh; border: 0; border-radius: 0; box-shadow: none; }
   .mobile-generation-dialog .admin-native-modal-content { min-height: 100%; display: flex; flex-direction: column; padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); }
   .mobile-generation-dialog .mobile-capture-header { display: block; order: -1; margin: -16px -16px 16px; text-align: left; }

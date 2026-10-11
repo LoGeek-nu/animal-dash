@@ -86,7 +86,7 @@ export function CharacterGenerateDialog({ onClose, session, ready, syncStatus })
   };
 
   return (
-    <AdminModal title={stage === "preview" ? "撮影画像の確認" : "キャラクターを撮影して追加"} onClose={close} dismissible={stage !== "loading"} className="generate-dialog mobile-generation-dialog">
+    <AdminModal title={stage === "preview" ? "撮影画像の確認" : "キャラクターを撮影して追加"} onClose={close} dismissible={stage !== "loading"} className={`generate-dialog ${stage === "idle" ? "mobile-capture-entry-dialog" : "mobile-generation-dialog"}`}>
         {session && <div className="mobile-capture-header"><AdminHeader ready={ready} syncStatus={syncStatus} /><AdminStatusBar session={session} participantCount={session.lanes.filter(Boolean).length} /></div>}
 
         <input
