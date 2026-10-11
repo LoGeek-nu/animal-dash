@@ -64,7 +64,7 @@
   .mobile-panel-heading h1 { margin: 0; font-size: 1rem; }
   .mobile-panel-heading p { color: var(--ink-soft); margin: .25rem 0 0; font-size: .62rem; }
   .mobile-lanes { display: grid; gap: 10px; }
-  .mobile-lane { display: flex; align-items: center; gap: 7px; min-height: 78px; padding: 8px; border: 1px dashed #cbd6dc; border-left: 5px solid var(--lane); border-radius: 9px; background: #f6f8f9; }
+  .mobile-lane { display: flex; align-items: center; gap: 12px; min-height: 78px; padding: 8px; border: 1px dashed #cbd6dc; border-left: 5px solid var(--lane); border-radius: 9px; background: #f6f8f9; }
   .mobile-lane.has-racer { border-style: solid; border-color: color-mix(in srgb, var(--lane) 60%, white); border-left-color: var(--lane); background: color-mix(in srgb, var(--lane) 4%, white); }
   .mobile-lane-number { display: grid; gap: 2px; width: 27px; flex-shrink: 0; }
   .mobile-lane-number small { color: var(--ink-soft); font-size: .42rem; }
@@ -74,6 +74,7 @@
   .mobile-lane-copy > strong { display: block; font-size: .8rem; overflow-wrap: anywhere; }
   .mobile-lane-copy > strong b { font-size: .5rem; padding: .15rem .25rem; border-radius: 5px; background: var(--ink); color: white; }
   .mobile-lane-copy > small { display: block; line-height: 1.25; font-size: .58rem; color: var(--ink-soft); }
+  .mobile-lane-copy .mobile-stats { width: min(125px, 100%); margin-top: 4px; }
   .mobile-stats.is-compact > div { grid-template-columns: 1.6rem 1fr; font-size: .5rem; line-height: 1; gap: 4px; margin: 2px 0; }
   .mobile-stats.is-compact meter { height: 6px; }
   .mobile-remove { flex: 0 0 44px; height: 44px; border: 1px solid #cad5dc; border-radius: 8px; background: white; font-size: 1.1rem; }
