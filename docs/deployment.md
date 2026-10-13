@@ -12,13 +12,15 @@ npx wrangler r2 bucket create animaldash-characters
 
 ローカル開発（`npm run dev`）ではWranglerのローカルR2が自動で使われるため、この作成は不要です。
 
-## D1の作成とマイグレーション
+## D1の接続先確認とマイグレーション
 
-初回は対象CloudflareアカウントにDBを作成し、出力された実際のUUIDを`wrangler.jsonc`の`d1_databases`内に`database_id`として追加します。既存の`animaldash-races`がある場合はそのUUIDを使ってください。
+本番D1 `animaldash-races`は作成済みで、`wrangler.jsonc`の`d1_databases`には`database_id`（`b2fdef8d-f99e-45d3-ba75-17caf4deba80`）を固定しています。各自でDBを作成したりUUIDを追加したりする必要はありません。
 
 ```bash
-npx wrangler d1 create animaldash-races
+npx wrangler d1 info animaldash-races --config wrangler.jsonc
 ```
+
+DBの名前・UUIDが設定と一致することを確認します。一致しない場合はマイグレーションやデプロイを進めず、ログイン先と設定を確認してください。別のDBへ変更する場合は`wrangler.jsonc`を更新し、PRで接続先の変更をレビューします。
 
 Workerのビルド・デプロイより先に、スキーマと静的キャラクターを本番D1へ反映します。以後もマイグレーション追加時に実行します。
 
@@ -26,7 +28,7 @@ Workerのビルド・デプロイより先に、スキーマと静的キャラ�
 npm run db:migrate:remote
 ```
 
-ローカル確認では`npm run db:migrate:local`を使います。D1のUUIDは初回設定前には省略されています。先にDBを作成してUUIDを設定し、マイグレーションを適用してからビルドしてください。マイグレーションはWorkerのデプロイだけでは実行されません。
+ローカル確認では`npm run db:migrate:local`を使います。本番用の`database_id`が設定されていても、`--local`を使うローカルマイグレーションは本番DBを更新しません。マイグレーションはWorkerのデプロイだけでは実行されません。
 
 既存R2キャラクターはデプロイ後にスタッフログインし、[取り込み手順](./race-storage.md#既存r2キャラクターの取り込み)でD1へ登録します。取り込まれるまで生成キャラクターは一覧に表示されません。
 
@@ -57,7 +59,7 @@ npx wrangler secret put IMAGE_POC_API_KEY
 
 ## 1. デプロイ内容の確認（dry-run）
 
-デプロイ前に内容を確認します。Cloudflareへは反映されません。
+デプロイ前に内容を確認します。Cloudflareへは反映されません。ビルド後の`dist/server/wrangler.json`にも、`wrangler.jsonc`と同じ`database_id`が引き継がれます。生成物は直接編集せず、接続先の変更は`wrangler.jsonc`で行ってください。
 
 ```bash
 npm run deploy:dry-run
