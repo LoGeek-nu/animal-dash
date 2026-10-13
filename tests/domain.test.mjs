@@ -108,14 +108,16 @@ test("waiting cards use the new copy without plus or avatar dot decorations", as
   assert.doesNotMatch(avatarSource, /avatar-spark|spark-one|spark-two/);
 });
 
-test("admin character library offers a gated capture button that uses the camera/file picker", async () => {
+test("admin character library offers a gated image picker without forcing camera capture", async () => {
   const [librarySource, dialogSource] = await Promise.all([
     readFile(new URL("../app/features/admin/components/CharacterLibrary.jsx", import.meta.url), "utf8"),
     readFile(new URL("../app/features/admin/components/CharacterGenerateDialog.jsx", import.meta.url), "utf8"),
   ]);
   assert.match(librarySource, /撮影して追加/);
   assert.match(librarySource, /disabled=\{!mutable\}/);
-  assert.match(dialogSource, /capture="environment"/);
+  assert.match(dialogSource, /type="file"/);
+  assert.match(dialogSource, /accept="image\/\*"/);
+  assert.doesNotMatch(dialogSource, /\bcapture\s*=/);
   assert.match(dialogSource, /\/api\/characters\/generate/);
 });
 

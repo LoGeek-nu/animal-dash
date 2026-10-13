@@ -103,7 +103,6 @@ export function CharacterGenerateDialog({ onClose, session, ready, syncStatus })
           ref={inputRef}
           type="file"
           accept="image/*"
-          capture="environment"
           className="sr-only"
           onChange={handleFileChange}
         />
