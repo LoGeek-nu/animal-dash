@@ -62,20 +62,16 @@ PRの取り込み順は **[PR #49 / Issue #45](https://github.com/LoGeek-nu/anim
 
 ### 初回導入だけ行うこと
 
-**1. D1を作成し、UUIDを設定する。**
+**1. 固定済みのD1接続先を確認する。**
+
+`wrangler.jsonc`には、本番D1 `animaldash-races`の`database_id`（`b2fdef8d-f99e-45d3-ba75-17caf4deba80`）を設定済みです。各自でDBを作成したりUUIDを設定したりする必要はありません。
 
 ```bash
 npx wrangler whoami
-npx wrangler d1 list
+npx wrangler d1 info animaldash-races --config wrangler.jsonc
 ```
 
-対象アカウントであることを確認します。`animaldash-races`が既にあればそのUUIDを使います。存在しない場合だけ作成します。
-
-```bash
-npx wrangler d1 create animaldash-races
-```
-
-出力されたUUIDを`wrangler.jsonc`の`d1_databases`内の`database_id`に設定し、設定変更をGitへ反映します。DB名だけの設定でデプロイせず、使用するDBのUUIDを明示してください。
+対象アカウント（`bd6022bab607c76f306d3a313431d8f6`）とDBの名前・UUIDが設定と一致することを確認します。一致しない場合はデプロイを進めず、ログイン先と設定を確認してください。別のDBへ変更する場合は`wrangler.jsonc`を更新し、PRで接続先の変更をレビューします。
 
 **2. R2とシークレットを準備する。**
 
@@ -168,7 +164,7 @@ npm run deploy:dry-run
 npm run deploy
 ```
 
-UUIDを設定した状態でビルド・デプロイします。`dist/server/wrangler.json`は生成物なので直接編集しません。dry-runだけでは本番のDB疎通は確認できません。
+固定済みの`wrangler.jsonc`からビルド・デプロイします。ビルド後の`dist/server/wrangler.json`にも同じ`database_id`が引き継がれます。`dist/server/wrangler.json`は生成物なので直接編集しません。dry-runだけでは本番のDB疎通は確認できません。
 
 **5. 画面を再読み込みして疎通を確認する。**
 

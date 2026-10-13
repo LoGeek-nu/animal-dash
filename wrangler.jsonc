@@ -23,6 +23,7 @@
     {
       "binding": "DB",
       "database_name": "animaldash-races",
+      "database_id": "b2fdef8d-f99e-45d3-ba75-17caf4deba80",
       "migrations_dir": "migrations"
     }
   ],
