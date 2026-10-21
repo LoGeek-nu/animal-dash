@@ -15,7 +15,6 @@
 .mobile-stats-dialog h3 { text-align: center; margin: .75rem 0 .3rem; font-size: 1.3rem; }
 .mobile-stats-dialog p { text-align: center; color: var(--ink-soft); font-size: .8rem; }
 .mobile-stats-dialog .mobile-stats { margin: 1.4rem 0; }
-.mobile-stats-dialog .secondary-button, .mobile-operations-dialog .secondary-button { width: 100%; min-height: 44px; font-size: .85rem; }
 .mobile-stats > div { display: grid; grid-template-columns: 5rem 1fr 3.3rem; align-items: center; gap: .5rem; margin: .5rem 0; font-size: .8rem; }
 .mobile-stats meter { width: 100%; height: 12px; border: 0; background: #dbe4e9; border-radius: 99px; appearance: none; }
 .mobile-stats meter::-webkit-meter-bar { background: #dbe4e9; border: 0; border-radius: 99px; }

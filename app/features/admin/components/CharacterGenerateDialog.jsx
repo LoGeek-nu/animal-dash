@@ -140,10 +140,12 @@ export function CharacterGenerateDialog({ onClose, session, ready, syncStatus })
         {stage === "error" && (
           <>
             <p className="generate-dialog-error">{error?.message}</p>
-            <div className="generate-dialog-actions">
-              <Button variant="secondary" onClick={close}>閉じる</Button>
-              {error?.retryable && <Button variant="primary" onClick={submit}>もう一度試す</Button>}
-            </div>
+            {error?.retryable && (
+              <div className="generate-dialog-actions">
+                <Button variant="secondary" onClick={close}>閉じる</Button>
+                <Button variant="primary" onClick={submit}>もう一度試す</Button>
+              </div>
+            )}
           </>
         )}
     </AdminModal>
