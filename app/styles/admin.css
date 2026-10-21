@@ -62,7 +62,8 @@
 .lane-character-copy > div strong { font-size: .78rem; }
 .lane-character-copy > div b { padding: .16rem .34rem; color: white; background: var(--ink); border-radius: 99px; font-size: .43rem; }
 .lane-character-copy > span { color: var(--ink-soft); font-size: .5rem; }
-.lane-character-copy > .stat-bars { display: grid; width: min(180px, 100%); margin-top: .25rem; }
+.lane-character-copy > .stat-bars { display: grid; width: min(180px, 100%); margin-top: .15rem; gap: .1rem; }
+.lane-character-copy .stat-row span { line-height: 1.15; }
 .empty-lane-mark { width: 55px; color: #a2b1ba; font-size: 2.2rem; font-weight: 1000; text-align: center; }
 .empty-lane-copy { display: grid; gap: .12rem; }
 .empty-lane-copy strong { font-size: .7rem; }

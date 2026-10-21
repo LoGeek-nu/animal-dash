@@ -17,7 +17,7 @@ export function LaneDropTarget({ lane, index, selectedId, mutable, dragging, onA
         <div className="lane-character-copy">
           <div><strong>{getCharacter(lane.characterId).name}</strong>{lane.isBot && <b>BOT</b>}</div>
           <span>{getCharacter(lane.characterId).preset}タイプ</span>
-          <StatBars id={lane.characterId} small compact />
+          <StatBars id={lane.characterId} small />
         </div>
         {isOver && <div className="drop-replace-label">ここに交代</div>}
         <Button variant="icon" disabled={!mutable} onClick={() => onRemove(index)} aria-label={`レーン${index + 1}から解除`}>×</Button>

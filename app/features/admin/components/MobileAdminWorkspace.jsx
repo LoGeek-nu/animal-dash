@@ -11,8 +11,7 @@ import { createLongPressGesture } from "../model/long-press.js";
 import { AdminModal } from "./AdminModal.jsx";
 
 function MobileStats({ character, compact = false }) {
-  const stats = compact ? [["スピード", character.stats.speed], ["スタミナ", character.stats.stamina]]
-    : [["スピード", character.stats.speed], ["かそく", character.stats.acceleration], ["スタミナ", character.stats.stamina]];
+  const stats = [["スピード", character.stats.speed], ["かそく", character.stats.acceleration], ["スタミナ", character.stats.stamina]];
   return <div className={`mobile-stats ${compact ? "is-compact" : ""}`}>{stats.map(([label, value]) => (
     <div key={label}><span>{label}</span><meter min="0" max="10" value={value} aria-label={label}>{value} / 10</meter>{!compact && <strong>{value} / 10</strong>}</div>
   ))}</div>;
