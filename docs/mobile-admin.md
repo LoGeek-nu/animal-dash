@@ -20,7 +20,7 @@
 
 - 「撮影 / 選択する」からファイル選択が開く。
 - 実際のDOMは `type="file"`、`accept="image/*"`、`capture` 属性なし。
-- `public/characters/keroppin/runner.png` の選択後、640×640の画像がプレビューに表示される。
+- `public/characters/penta/runner.png` の選択後、640×640の画像がプレビューに表示される。
 - 「撮り直す・選び直す」で入口に戻り、同じ画像を再選択してプレビューを表示できる。
 - ダイアログの「キャンセル」で管理画面に戻り、撮影入口へフォーカスが戻る。
 - 確認中のブラウザのエラー・警告は0件。ビルド・既存テスト82件・lintは成功。
@@ -104,7 +104,7 @@ IMAGE_POC_API_URL=http://127.0.0.1:39002
 IMAGE_POC_API_KEY=local-ui-fixture
 ```
 
-3. `/admin` にログインし、撮影入口から `public/characters/keroppin/runner.png` を選択して生成する。
+3. `/admin` にログインし、撮影入口から `public/characters/penta/runner.png` を選択して生成する。
 4. `.wrangler/ui-test/mode.txt` を `retry` にすると503を1回返した後で成功する。`success` は成功、`invalid` は再試行不可の422を返す。
 
 実機の背面カメラ・OSの許可画面・iOS Safari・物理コントローラーは今回の環境では未検証。長押しは入力認識の自動テストで検証した。

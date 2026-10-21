@@ -142,3 +142,14 @@ test("a saved race conflict is quarantined permanently rather than retried", asy
   assert.equal(f.data.has("result:conflict"), false);
   assert.equal(f.data.has("alarm"), false);
 });
+
+test("a stored session holding removed characters frees those lanes instead of stranding clients", async () => {
+  const f = fixture();
+  const stored = { ...createInitialSession(), phase: "WAITING", lanes: [{ characterId: "keroppin", isBot: true }, { characterId: "momo", isBot: true }, { characterId: "koro", isBot: true }, null] };
+  f.data.set("session", stored);
+  const session = await f.room.session();
+  assert.deepEqual(session.lanes, [null, { characterId: "momo", isBot: true }, null, null]);
+  assert.equal(session.sequence, stored.sequence + 1);
+  assert.deepEqual(f.data.get("session"), session);
+  assert.equal(await f.room.session(), f.data.get("session"));
+});

@@ -36,8 +36,8 @@ export function createInitialSession() {
     phase: "ATTRACT",
     attractIndex: 0,
     lanes: [
-      { characterId: "momo", isBot: false },
-      { characterId: "toramaru", isBot: false },
+      { characterId: "momo", isBot: true },
+      { characterId: "toramaru", isBot: true },
       null,
       null,
     ],

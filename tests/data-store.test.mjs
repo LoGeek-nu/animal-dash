@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 import { Miniflare, convertV4MiniflareOptions } from "miniflare";
-import { characters } from "../app/domain/characters.js";
+import { characters, retiredCharacterIds } from "../app/domain/characters.js";
 import { createInitialSession } from "../app/domain/race-session.js";
 import { characterImageKey, saveGeneratedCharacter } from "../app/api/characters/character-store.js";
 import { getDailyRankings, getStoredCharacter, importCharacterPage, rankingDay, saveCharacter, saveRace } from "../worker/data-store.js";
@@ -67,7 +67,8 @@ test("D1 preserves character IDs, stats and image keys; imports old R2 metadata 
   await importCharacterPage(db, bucket);
   const response = await charactersResponse({ DB: db });
   const body = await response.json();
-  assert.equal(body.total, characters.length + 4);
+  // D1 keeps removed built-ins so their past race results stay valid.
+  assert.equal(body.total, characters.length + retiredCharacterIds.length + 4);
   assert.equal(body.characters.find((c) => c.id === "gen-old-a").name, "生成うさぎ");
   assert.equal(await (await bucket.get("characters/gen-old-a.png")).text(), "png");
 });
@@ -114,7 +115,8 @@ test("daily rankings use JST, per-character bests, competition ties and exclude 
 
 test("TOP 3/TOP 10 API limits and errors are explicit and import requires staff authorization", async (t) => {
   const { db, bucket } = await fixture(t);
-  for (let i = 0; i < characters.length; i++) await saveRace(db, bucket, race(`limit-${i}`, [result(characters[i].id, 1, 1000 + i)]));
+  const storedIds = [...characters.map(({ id }) => id), ...retiredCharacterIds];
+  for (let i = 0; i < storedIds.length; i++) await saveRace(db, bucket, race(`limit-${i}`, [result(storedIds[i], 1, 1000 + i)]));
   const env = { DB: db, CHARACTERS: bucket, STAFF_PASSCODE: "test-passcode" };
   const request = (query = "") => new Request(`https://example.test/api/rankings?${query}`);
   assert.equal((await (await rankingsResponse(request("date=2026-10-10&limit=3"), env)).json()).rankings.length, 3);
@@ -187,7 +189,8 @@ test("workerd validates race registration, ownership, canonical times, immutabil
   await send(admin, { phase: "RESULTS", raceId: "forged", raceStartedAt: startedAt - 1000, raceCompletedAt: startedAt,
     results: [result("momo", 1, 1)] }, false);
   assert.equal((await db.prepare("SELECT COUNT(*) AS count FROM races").first()).count, 0);
-  await send(admin, { phase: "WAITING" });
+  // Human-controlled lanes, so the finished race reaches the daily ranking.
+  await send(admin, { phase: "WAITING", lanes: [{ characterId: "momo", isBot: false }, { characterId: "toramaru", isBot: false }, null, null] });
   await send(admin, { phase: "COUNTDOWN", raceId: "chosen-by-client" });
   assert.notEqual(current.raceId, "chosen-by-client");
   await clock(current.countdownEndsAt);

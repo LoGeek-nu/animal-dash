@@ -3,7 +3,7 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 const modeFile = new URL('../../.wrangler/ui-test/mode.txt', import.meta.url);
 mkdirSync(new URL('../../.wrangler/ui-test', import.meta.url), { recursive: true });
 if (!existsSync(modeFile)) writeFileSync(modeFile, 'retry');
-const png = readFileSync(new URL('../../public/characters/keroppin/runner.png', import.meta.url));
+const png = readFileSync(new URL('../../public/characters/penta/runner.png', import.meta.url));
 http.createServer(async (request, response) => {
   for await (const chunk of request) { void chunk; }
   let mode = readFileSync(modeFile, 'utf8').trim();

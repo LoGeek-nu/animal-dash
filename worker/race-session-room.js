@@ -1,6 +1,6 @@
 /* global WebSocketPair, WebSocketRequestResponsePair -- Workers runtime globals */
 import { generatedCharacterExists } from "../app/api/characters/character-store.js";
-import { characters } from "../app/domain/characters.js";
+import { characters, retiredCharacterIds } from "../app/domain/characters.js";
 import { createInitialSession, createRaceId } from "../app/domain/race-session.js";
 import { validSession } from "../app/features/race-session/race-session-validator.js";
 import { COUNTDOWN_DURATION, RESULTS_DURATION } from "../app/features/race-session/constants.js";
@@ -9,6 +9,7 @@ import { raceRecordFromSession } from "./race-record.js";
 import { replayRace } from "./race-authority.js";
 
 const BUILT_IN_IDS = new Set(characters.map((character) => character.id));
+const RETIRED_IDS = new Set(retiredCharacterIds);
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 async function acceptableSession(session, bucket) {
   if (!validSession(session, (id) => typeof id === "string")) return false;
@@ -29,7 +30,13 @@ export class RaceSessionRoom {
 
   async session() {
     const stored = await this.ctx.storage.get("session");
-    if (validSession(stored, (id) => typeof id === "string")) return stored;
+    if (validSession(stored, (id) => typeof id === "string")) {
+      // Free lanes held by removed characters; clients would otherwise reject the whole session.
+      if (!stored.lanes.some((lane) => RETIRED_IDS.has(lane?.characterId))) return stored;
+      const freed = { ...stored, lanes: stored.lanes.map((lane) => RETIRED_IDS.has(lane?.characterId) ? null : lane), sequence: stored.sequence + 1, lastSync: this.now() };
+      await this.ctx.storage.put("session", freed);
+      return freed;
+    }
     // Recover legacy poisoned counters rather than reflecting them to clients.
     const initial = { ...createInitialSession(), sequence: 1, lastSync: this.now() };
     await this.ctx.storage.put("session", initial);
