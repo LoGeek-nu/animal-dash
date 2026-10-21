@@ -1,8 +1,12 @@
 import { getCharacter } from "../../../domain/characters.js";
 
-export function StatBars({ id, small = false }) {
+export function StatBars({ id, small = false, compact = false }) {
   const character = getCharacter(id);
-  const stats = [
+  // Compact lanes only have room for two bars, matching the mobile admin lanes.
+  const stats = compact ? [
+    ["SPD", character.stats.speed],
+    ["STM", character.stats.stamina],
+  ] : [
     ["SPD", character.stats.speed],
     ["ACC", character.stats.acceleration],
     ["STM", character.stats.stamina],
