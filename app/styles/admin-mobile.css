@@ -35,6 +35,14 @@
 .admin-shell > .admin-controlbar .admin-actions { flex-wrap: wrap; justify-content: flex-end; }
 @media (min-width: 901px) and (max-width: 1050px) {
   .admin-shell > .admin-workspace { grid-template-columns: minmax(0, .92fr) minmax(0, 1.08fr); }
+  /* Too narrow for the drag hint beside the character name. */
+  .library-character > i { display: none; }
+}
+/* Too narrow for the title and search on one row. */
+@media (min-width: 901px) and (max-width: 1200px) {
+  .character-library .panel-heading { flex-wrap: wrap; row-gap: .5rem; padding-bottom: .65rem; }
+  .character-library .panel-heading-actions { flex: 1 0 100%; }
+  .character-library .panel-heading-actions .search-box { flex: 1 1 auto; }
 }
 @media (max-width: 900px) {
   .admin-shell { min-height: 100dvh; }
@@ -42,7 +50,7 @@
   .admin-header { height: 60px; padding: 0 14px; gap: .5rem; }
   .admin-brand { flex-wrap: wrap; column-gap: .4rem; row-gap: 0; }
   .admin-brand strong { font-size: 1.05rem; }
-  .admin-brand span { font-size: .42rem; }
+  .admin-brand span { font-size: .58rem; }
   .admin-header nav { flex-shrink: 0; }
   .admin-header nav > a, .admin-header .admin-logout { display: none; }
   .admin-header .connection-badge { padding: .4rem .6rem; min-height: 30px; font-size: .52rem; }
