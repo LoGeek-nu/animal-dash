@@ -17,13 +17,13 @@ export async function generateMetadata() {
   const host = incomingHeaders.get("x-forwarded-host") ?? incomingHeaders.get("host") ?? "localhost:3000";
   const protocol = incomingHeaders.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
   const origin = `${protocol}://${host}`;
-  const title = "ANIMAL DASH! | 桜麗祭2026";
+  const title = "アニマルダッシュ！ | 桜麗祭2026";
   const description = "手描きキャラクターで競う、4人対応の2Dレースゲームモック。";
   return {
     metadataBase: new URL(origin),
     title,
     description,
-    openGraph: { title, description, type: "website", locale: "ja_JP", images: [{ url: "/og.png", width: 1200, height: 630, alt: "ANIMAL DASH! OUREISAI 2026" }] },
+    openGraph: { title, description, type: "website", locale: "ja_JP", images: [{ url: "/og.png", width: 1200, height: 630, alt: "アニマルダッシュ！ 桜麗祭2026" }] },
     twitter: { card: "summary_large_image", title, description, images: ["/og.png"] },
   };
 }
