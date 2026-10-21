@@ -4,12 +4,12 @@ export function StatBars({ id, small = false, compact = false }) {
   const character = getCharacter(id);
   // Compact lanes only have room for two bars, matching the mobile admin lanes.
   const stats = compact ? [
-    ["SPD", character.stats.speed],
-    ["STM", character.stats.stamina],
+    ["スピード", character.stats.speed],
+    ["スタミナ", character.stats.stamina],
   ] : [
-    ["SPD", character.stats.speed],
-    ["ACC", character.stats.acceleration],
-    ["STM", character.stats.stamina],
+    ["スピード", character.stats.speed],
+    ["かそく", character.stats.acceleration],
+    ["スタミナ", character.stats.stamina],
   ];
 
   return (

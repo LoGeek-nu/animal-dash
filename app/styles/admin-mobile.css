@@ -81,8 +81,8 @@
   .mobile-lane-copy > strong { display: block; font-size: .8rem; overflow-wrap: anywhere; }
   .mobile-lane-copy > strong b { font-size: .5rem; padding: .15rem .25rem; border-radius: 5px; background: var(--ink); color: white; }
   .mobile-lane-copy > small { display: block; line-height: 1.25; font-size: .58rem; color: var(--ink-soft); }
-  .mobile-lane-copy .mobile-stats { width: min(125px, 100%); margin-top: 4px; }
-  .mobile-stats.is-compact > div { grid-template-columns: 1.6rem 1fr; font-size: .5rem; line-height: 1; gap: 4px; margin: 2px 0; }
+  .mobile-lane-copy .mobile-stats { width: min(140px, 100%); margin-top: 4px; }
+  .mobile-stats.is-compact > div { grid-template-columns: 2.4rem 1fr; font-size: .5rem; line-height: 1; gap: 4px; margin: 2px 0; }
   .mobile-stats.is-compact meter { height: 6px; }
   .mobile-remove { flex: 0 0 44px; height: 44px; border: 1px solid #cad5dc; border-radius: 8px; background: white; font-size: 1.1rem; }
   .mobile-empty-mark { width: 50px; flex: 0 0 50px; text-align: center; color: #98a8b2; font-size: 1.8rem; }
