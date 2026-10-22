@@ -17,7 +17,7 @@ async function fixture(t, runtimeRoom = false) {
     "app/api/characters/character-store.js", "app/domain/characters.js", "app/domain/generated-characters.js", "app/domain/generated-stats.js",
     "app/features/race-session/race-session-validator.js", "app/domain/race-session.js", "app/domain/race-results.js",
     "app/features/race-session/constants.js", "worker/race-authority.js", "app/domain/course.js",
-    "app/features/game/race/race-runtime.js", "app/features/game/race/race-engine.js", "app/features/game/race/race-ranking.js",
+    "app/features/game/race/race-replay.js", "app/features/game/race/race-runtime.js", "app/features/game/race/race-engine.js", "app/features/game/race/race-ranking.js",
     "app/features/game/race/bot-controller.js", "app/features/game/race/race-input.js", "app/features/game/race/constants.js"];
   const modules = runtimeRoom ? await Promise.all(modulePaths.map(async (path) => ({ type: "ESModule",
     path: fileURLToPath(new URL(`../${path}`, import.meta.url)), contents: await readFile(new URL(`../${path}`, import.meta.url), "utf8") }))) : true;
