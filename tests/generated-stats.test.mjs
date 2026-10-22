@@ -6,12 +6,12 @@ const total = (stats) => stats.speed + stats.acceleration + stats.stamina;
 const inRange = (stats) => Object.values(stats).every((value) => Number.isInteger(value) && value >= GENERATED_STAT_MIN && value <= GENERATED_STAT_MAX);
 
 test("new and old image-poc keys both map to speed / acceleration / stamina", () => {
-  assert.deepEqual(readGeneratedStats({ speed: 9, acceleration: 7, stamina: 6 }), { speed: 9, acceleration: 7, stamina: 6 });
+  assert.deepEqual(readGeneratedStats({ speed: 18, acceleration: 12, stamina: 10 }), { speed: 18, acceleration: 12, stamina: 10 });
   // Before the prompt change, jump meant acceleration and power meant stamina.
-  assert.deepEqual(readGeneratedStats({ speed: 9, jump: 7, power: 6 }), { speed: 9, acceleration: 7, stamina: 6 });
+  assert.deepEqual(readGeneratedStats({ speed: 18, jump: 12, power: 10 }), { speed: 18, acceleration: 12, stamina: 10 });
 });
 
-test("old 1–20 output is brought onto the game's scale without changing which stat is strongest", () => {
+test("output that misses the total is brought onto it without changing which stat is strongest", () => {
   const stats = readGeneratedStats({ speed: 18, jump: 8, power: 4 });
   assert.equal(total(stats), GENERATED_STAT_TOTAL);
   assert.ok(inRange(stats));

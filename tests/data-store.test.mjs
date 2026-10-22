@@ -29,7 +29,7 @@ async function fixture(t, runtimeRoom = false) {
   t.after(() => mf.dispose());
   const db = await mf.getD1Database("DB");
   const bucket = await mf.getR2Bucket("CHARACTERS");
-  for (const migration of ["0001_race_storage.sql", "0002_builtin_characters.sql"]) {
+  for (const migration of ["0001_race_storage.sql", "0002_builtin_characters.sql", "0003_builtin_stats_40.sql"]) {
     const sql = await readFile(new URL(`../migrations/${migration}`, import.meta.url), "utf8");
     await db.batch(sql.split(";").map((s) => s.trim()).filter(Boolean).map((s) => db.prepare(s)));
   }
@@ -227,4 +227,13 @@ test("API reports permanent outbox failures after a missed notification", async 
   assert.equal(response.status, 200);
   assert.equal(body.raceSaved, false);
   assert.equal(body.raceFailed, true);
+});
+
+test("after migrations, the built-in rows carry the same stats the race uses", async (t) => {
+  const { db } = await fixture(t);
+  for (const character of characters) {
+    const row = await db.prepare("SELECT speed, acceleration, stamina, data_json FROM characters WHERE id=?").bind(character.id).first();
+    assert.deepEqual({ speed: row.speed, acceleration: row.acceleration, stamina: row.stamina }, character.stats, character.id);
+    assert.deepEqual(JSON.parse(row.data_json).stats, character.stats, character.id);
+  }
 });

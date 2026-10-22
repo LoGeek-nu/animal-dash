@@ -1,4 +1,4 @@
-import { getCharacter } from "../../../domain/characters.js";
+import { getCharacter, STAT_MAX } from "../../../domain/characters.js";
 
 export function StatBars({ id, small = false }) {
   const character = getCharacter(id);
@@ -12,7 +12,7 @@ export function StatBars({ id, small = false }) {
     <div className={`stat-bars ${small ? "is-small" : ""}`}>
       {stats.map(([label, value]) => (
         <div className="stat-row" key={label}>
-          <span>{label}</span><i><b style={{ width: `${value * 10}%` }} /></i>
+          <span>{label}</span><i><b style={{ width: `${Math.min(100, value / STAT_MAX * 100)}%` }} /></i>
         </div>
       ))}
     </div>

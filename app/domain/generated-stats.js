@@ -1,8 +1,10 @@
-// Generated characters race against the built-ins (stats 6–10, totals 21–24), so AI output is
-// fitted to the same scale before it is saved. The model cannot be trusted to hit the total exactly.
-export const GENERATED_STAT_MIN = 4;
-export const GENERATED_STAT_MAX = 10;
-export const GENERATED_STAT_TOTAL = 22;
+import { STAT_MAX, STAT_MIN, STAT_TOTAL } from "./characters.js";
+
+// Generated characters race against the built-ins on the same scale, so AI output is fitted to it
+// before it is saved. The model cannot be trusted to hit the total exactly.
+export const GENERATED_STAT_MIN = STAT_MIN;
+export const GENERATED_STAT_MAX = STAT_MAX;
+export const GENERATED_STAT_TOTAL = STAT_TOTAL;
 
 const KEYS = ["speed", "acceleration", "stamina"];
 const clamp = (value) => Math.min(GENERATED_STAT_MAX, Math.max(GENERATED_STAT_MIN, value));
