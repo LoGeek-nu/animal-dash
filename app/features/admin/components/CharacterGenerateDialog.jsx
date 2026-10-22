@@ -3,11 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "../../../components/ui/atoms/Button.jsx";
 import { CharacterAvatar } from "../../../components/ui/molecules/CharacterAvatar.jsx";
+import { StatMeters } from "../../../components/ui/molecules/StatMeters.jsx";
 import { addGeneratedCharacter } from "../../../domain/generated-characters.js";
 import { AdminModal } from "./AdminModal.jsx";
 import { AdminHeader } from "./AdminHeader.jsx";
 import { AdminStatusBar } from "./AdminStatusBar.jsx";
-import { MobileStats } from "./MobileAdminWorkspace.jsx";
 
 const MAX_DIMENSION = 1600;
 // Gemini usually answers in 10–20s. Past this the staff are told it is busy; past the limit the request is dropped.
@@ -167,7 +167,7 @@ export function CharacterGenerateDialog({ onClose, session, ready, syncStatus })
             <CharacterAvatar character={created} />
             <h3>{created.name}</h3>
             <p>{created.preset}タイプ<br />{created.caption}</p>
-            <MobileStats character={created} />
+            <StatMeters character={created} />
             <p>キャラクター一覧に追加しました。レーンにセットして遊べます。</p>
             <div className="generate-dialog-actions">
               <Button variant="secondary" onClick={retake}>もう1体撮影する</Button>

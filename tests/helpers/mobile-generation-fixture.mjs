@@ -17,6 +17,6 @@ http.createServer(async (request, response) => {
     response.writeHead(422);
     response.end(JSON.stringify({error:'fixture_invalid', detail:'テスト用：動物の絵を選んでください。', retryable:false}));
   } else {
-    response.end(JSON.stringify({status:{title:'テストけろ',animal_type:'カエル',personality:'元気',stats:{speed:6,jump:7,power:7}},image_base64:png.toString('base64')}));
+    response.end(JSON.stringify({status:{title:'テストけろ',animal_type:'カエル',personality:'元気',catchphrase:'ぴょんと跳ねる元気ガエル',stats:{speed:14,acceleration:16,stamina:10}},image_base64:png.toString('base64')}));
   }
 }).listen(39002,'127.0.0.1',()=>console.log('Local generation fixture listening on 39002'));

@@ -106,7 +106,7 @@ GET /api/rankings?limit=10&date=2026-10-10&afterRaceId=確認するレースID
       "rank": 1,
       "characterId": "momo",
       "displayName": "ももラビ",
-      "character": { "id": "momo", "name": "ももラビ", "stats": { "speed": 9, "acceleration": 8, "stamina": 6 } },
+      "character": { "id": "momo", "name": "ももラビ", "stats": { "speed": 18, "acceleration": 12, "stamina": 10 } },
       "finishMs": 30000,
       "raceId": "race-unique-id"
     }
