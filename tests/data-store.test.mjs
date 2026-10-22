@@ -13,7 +13,7 @@ import { staffCookie } from "../worker/auth.js";
 
 // Actual workerd D1/R2 bindings, isolated from the app's local and remote data.
 async function fixture(t, runtimeRoom = false) {
-  const modulePaths = ["tests/fixtures/race-worker.mjs", "worker/race-session-room.js", "worker/data-store.js", "worker/race-record.js",
+  const modulePaths = ["tests/fixtures/race-worker.mjs", "app/api/characters/generate/route.js", "app/api/characters/import/route.js", "worker/generation-quota.js", "worker/data-api.js", "worker/sync-access.js", "worker/auth.js", "worker/sync.js", "worker/race-session-room.js", "worker/data-store.js", "worker/race-record.js",
     "app/api/characters/character-store.js", "app/domain/characters.js", "app/domain/generated-characters.js", "app/domain/generated-stats.js",
     "app/features/race-session/race-session-validator.js", "app/domain/race-session.js", "app/domain/race-results.js",
     "app/features/race-session/constants.js", "worker/race-authority.js", "app/domain/course.js",
@@ -25,7 +25,7 @@ async function fixture(t, runtimeRoom = false) {
     durableObjects: { ROOM: { className: "RaceSessionRoom", useSQLite: true } } }
     : { script: "export default { fetch() { return new Response('ok'); } };" };
   const mf = new Miniflare(convertV4MiniflareOptions({ modules, ...script,
-    compatibilityDate: "2026-08-19", d1Databases: { DB: "test-races" }, r2Buckets: ["CHARACTERS"] }));
+    compatibilityDate: "2026-08-19", bindings: { STAFF_PASSCODE: "test-spectator-passcode" }, d1Databases: { DB: "test-races" }, r2Buckets: ["CHARACTERS"] }));
   t.after(() => mf.dispose());
   const db = await mf.getD1Database("DB");
   const bucket = await mf.getR2Bucket("CHARACTERS");
@@ -250,4 +250,83 @@ test("generated characters saved before the total of 40 are read back fitted, wi
   }
   // Built-ins are left exactly as defined.
   assert.deepEqual((await listStoredCharacters(db)).find((c) => c.id === "momo").stats, characters[0].stats);
+});
+
+
+test("public spectators join mid-race, reconnect and watch canonical results without acquiring control", { timeout: 15000 }, async (t) => {
+  const { db, mf } = await fixture(t, true);
+  const wait = async (predicate) => {
+    const deadline = Date.now() + 5000;
+    while (!await predicate()) { if (Date.now() > deadline) throw new Error("Missing spectator update"); await new Promise((resolve) => setTimeout(resolve, 10)); }
+  };
+  const cookie = (await staffCookie(new Request("https://example.test/api/auth"), { STAFF_PASSCODE: "test-spectator-passcode" })).split(";")[0];
+  const connect = async (role, authenticated = false) => {
+    const response = await mf.dispatchFetch(`https://example.test/api/sync?role=${role}`, { headers: {
+      Upgrade: "websocket", Origin: "https://example.test", ...(authenticated ? { Cookie: cookie } : {}) } });
+    assert.equal(response.status, 101);
+    const ws = response.webSocket, frames = [];
+    ws.addEventListener("message", (event) => frames.push(JSON.parse(event.data)));
+    ws.accept(); t.after(() => { try { ws.close(); } catch { /* already closed */ } });
+    await wait(() => frames.some((m) => m.type === "session"));
+    return { ws, frames };
+  };
+  for (const path of ["/api/characters/generate", "/api/characters/import"]) {
+    assert.equal((await mf.dispatchFetch(`https://example.test${path}`, { method: "POST" })).status, 401, path);
+  }
+  for (const role of ["game", "admin"]) {
+    assert.equal((await mf.dispatchFetch(`https://example.test/api/sync?role=${role}`, { headers: { Upgrade: "websocket" } })).status, 401);
+  }
+  const viewer = await connect("viewer");
+  const admin = await connect("admin", true);
+  const initial = admin.frames.find((m) => m.type === "session").session;
+  admin.ws.send(JSON.stringify({ type: "session", session: { ...initial, phase: "COUNTDOWN", sequence: initial.sequence + 1 } }));
+  await wait(() => admin.frames.some((m) => m.error === "game_not_connected"));
+  const game = await connect("game", true);
+  const otherGame = await connect("game", true);
+  await wait(() => game.frames.some((m) => m.canControl === true));
+  assert.equal(viewer.frames.some((m) => m.canControl === true), false);
+  assert.equal(otherGame.frames.some((m) => m.canControl === true), false);
+  const session = () => admin.frames.filter((m) => m.type === "session").at(-1).session;
+  const send = async (actor, patch) => {
+    const sequence = session().sequence + 1;
+    actor.ws.send(JSON.stringify({ type: "session", session: { ...session(), ...patch, sequence } }));
+    await wait(() => session().sequence === sequence);
+  };
+  const clock = (now) => mf.dispatchFetch(`https://example.test/test-clock?now=${now}`);
+  await clock(startedAt);
+  await send(admin, { phase: "WAITING", lanes: [{ characterId: "momo", isBot: false }, { characterId: "kon", isBot: true }, null, null] });
+  await send(admin, { phase: "COUNTDOWN" });
+  await clock(session().countdownEndsAt);
+  await send(game, { phase: "RACING" });
+  const start = session().raceStartedAt, raceId = session().raceId;
+  await clock(start + 500);
+  game.ws.send(JSON.stringify({ type: "input", raceId, buttons: 17 }));
+  await wait(() => viewer.frames.some((m) => m.type === "race-input" && m.input.buttons === 17));
+  await clock(start + 5000);
+  const late = await connect("viewer");
+  await wait(() => late.frames.some((m) => m.type === "race"));
+  const snapshot = late.frames.find((m) => m.type === "race").race;
+  assert.deepEqual(snapshot.inputs, [{ at: 500, buttons: 17 }]);
+  assert.equal(snapshot.raceId, raceId);
+  const before = session().sequence;
+  late.ws.send(JSON.stringify({ type: "session", session: { ...session(), phase: "RESULTS", sequence: before + 1, resultsForced: true } }));
+  await wait(() => late.frames.some((m) => m.error === "read_only"));
+  assert.equal(session().sequence, before);
+  late.ws.send(JSON.stringify({ type: "input", raceId, buttons: 255 }));
+  await wait(() => late.frames.filter((m) => m.error === "read_only").length === 2);
+  late.ws.close();
+  const reconnected = await connect("viewer");
+  await wait(() => reconnected.frames.some((m) => m.type === "race"));
+  assert.deepEqual(reconnected.frames.find((m) => m.type === "race").race.inputs, snapshot.inputs);
+  assert.equal(reconnected.frames.some((m) => m.canControl === true), false);
+  game.ws.close();
+  await wait(() => otherGame.frames.some((m) => m.canControl === true));
+  assert.equal(viewer.frames.some((m) => m.canControl === true), false);
+  await clock(start + 59_000);
+  await send(otherGame, { phase: "RESULTS" });
+  await wait(() => reconnected.frames.some((m) => m.session?.phase === "RESULTS") && viewer.frames.some((m) => m.type === "results-saved"));
+  const expected = session().results;
+  assert.deepEqual(reconnected.frames.filter((m) => m.session?.phase === "RESULTS").at(-1).session.results, expected);
+  const rows = (await db.prepare("SELECT finish_ms FROM race_results WHERE race_id=? ORDER BY lane").bind(raceId).all()).results;
+  assert.deepEqual(rows.map((row) => row.finish_ms), [...expected].sort((a, b) => a.lane - b.lane).map((r) => r.finishMs));
 });
