@@ -13,7 +13,7 @@
 - [Tailwind CSS 4](https://tailwindcss.com/) / CSS — Tailwind CSSをCSS処理の基盤として読み込み、画面固有の見た目は主に`app/styles/`以下の通常のCSSで管理しています。
 - React Reducer — レースセッションの状態遷移を一か所にまとめるために使用しています。処理は`app/features/race-session/`以下にあります。
 - [`localStorage`](https://developer.mozilla.org/ja/docs/Web/API/Window/localStorage) — レーン割り当てやゲームフェーズなど、セッションをブラウザ内にも保存し、リロード時に復元します。
-- [`BroadcastChannel`](https://developer.mozilla.org/ja/docs/Web/API/BroadcastChannel) — 同じブラウザで開いたゲーム画面と管理画面の状態を同期します（別端末はDurable Objects経由）。
+- WebSocket — 同じブラウザ内も別端末も、Durable Objectが確定した状態を採用します。localStorageやBroadcastChannelを操作してサーバーの検証を迂回することはできません。
 - [Node.js Test Runner](https://nodejs.org/api/test.html) — ドメインロジック、画面レンダリング、デプロイ設定の自動テストに使用しています。
 - [ESLint](https://eslint.org/) — JavaScript / JSXの静的チェックに使用しています。
 
@@ -21,9 +21,9 @@
 
 レース結果をD1へ保存し、`GET /api/rankings`の実データをレース後TOP 3とアトラクトTOP 10へ表示します。保存・集計仕様と既存R2データの取り込みは[D1とランキングの仕様](./race-storage.md)、表示・取得状態は[ランキング表示の仕様](./ranking-display.md)を参照してください。
 
-同期（`/api/sync`）とキャラクター生成は、スタッフログイン済みの端末だけが使えます。`/login`で合言葉（シークレット`STAFF_PASSCODE`）を入力すると、合言葉から作ったHttpOnly Cookieが発行され、fetchとWebSocketの両方で自動的に送られます。処理は`worker/auth.js`にあります。キャラクター一覧と画像の取得は誰でも可能です。
+`/game` の観戦同期（`/api/sync?role=viewer`）はログイン不要です。ゲーム入力・管理操作に使う同期接続とキャラクター生成は、スタッフログイン済みの端末だけが使えます。`/login`で合言葉（シークレット`STAFF_PASSCODE`）を入力すると、合言葉から作ったHttpOnly Cookieが発行され、fetchとWebSocketの両方で自動的に送られます。処理は`worker/auth.js`にあります。キャラクター一覧と画像の取得は誰でも可能です。
 
-同期は「`sequence`が大きいセッションを採用する」ルールで行います。Durable Objectは保存中のものより新しいセッションだけを受け付けて他の画面へ配り、古いセッションを送ってきた画面には最新のものを送り返します。
+状態変更は、権限を確認したうえで保存中の `sequence` の次の1件だけを受け付け、ルームが確定したセッションを全端末へ配ります。レース中はサーバー時刻付きの入力履歴を観戦端末へ配信し、確定結果と共通の処理で走行を再生します。途中参加・再接続時は履歴をまとめて受け取り、現在の進行に追従します。操作端末の選定や閲覧専用の制約は[観戦と操作権限](./spectating.md)を参照してください。
 
 キャラクターは`public/characters/`の静的な10体と、管理画面で撮影した画像から生成したキャラクター（R2に保存）を合わせて使います。生成はanimal-dash Workerが[animal-dash-image-poc](https://github.com/minmmmmin/animal-dash-image-poc)のAPIへ中継して行います。生成キャラクターの一覧は`GET /api/characters`、画像は`GET /api/characters/<id>/image`から取得します。
 

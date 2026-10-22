@@ -26,6 +26,7 @@
 
 - [開発ガイドライン](./docs/development-guide.md) — コマンド、ゲームドメイン用語集、テスト構成
 - [ディレクトリ構成](./docs/directory-structure.md) — プロジェクトのディレクトリ構造
+- [観戦と操作権限](./docs/spectating.md) — ログイン不要の観戦、操作端末の選定、WebSocketによる走行同期
 - [開発フロー](./docs/development-flow.md) — Issue作成からPRマージまでの手順
 - [本番リリースフロー](./docs/release-flow.md) — develop確認から本番反映までの手順
 
