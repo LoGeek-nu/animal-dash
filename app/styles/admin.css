@@ -109,7 +109,11 @@
 
 .panel-heading-actions { min-width: 0; display: flex; align-items: center; justify-content: flex-end; gap: .5rem; }
 .panel-heading-actions .search-box { width: auto; min-width: 0; flex: 0 1 230px; }
-.capture-button { white-space: nowrap; }
+/* The main way to add a racer, so it reads as a primary action next to the search field. */
+.panel-heading-actions .capture-button { min-height: 42px; padding: .6rem 1rem; display: inline-flex; align-items: center; gap: .45rem; white-space: nowrap; color: white; background: var(--blue); border: 2px solid var(--ink); border-radius: 10px; box-shadow: 0 3px 0 var(--ink); font-size: .72rem; transition: transform .12s ease, box-shadow .12s ease; }
+.panel-heading-actions .capture-button:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 0 var(--ink); }
+.panel-heading-actions .capture-button:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 var(--ink); }
+.panel-heading-actions .capture-button:disabled { color: #98a8b2; background: #e1e7ea; border-color: #c7d3da; box-shadow: none; }
 .connection-badge.is-pending span { background: #f2b630; box-shadow: 0 0 0 3px #fcefc8; }
 .connection-badge.is-offline span { background: var(--red); box-shadow: 0 0 0 3px #fbd9dd; animation: none; }
 .admin-header .connection-badge.is-offline { color: white; background: var(--red); }

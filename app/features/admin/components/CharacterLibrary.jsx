@@ -9,7 +9,7 @@ export function CharacterLibrary({ query, onQueryChange, filteredCharacters, use
         <div><span>01</span><div><h1>キャラクターを選ぶ</h1><p>登録済みのキャラクター {totalCount}体</p></div></div>
         <div className="panel-heading-actions">
           <SearchField value={query} onChange={(event) => onQueryChange(event.target.value)} placeholder="名前・タイプで検索" />
-          <Button variant="ghost" className="capture-button" disabled={!mutable} onClick={onRequestGenerate}>撮影して追加</Button>
+          <Button variant="ghost" className="capture-button" disabled={!mutable} onClick={onRequestGenerate}><svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M3 7h5l2-3h4l2 3h5v13H3Z" /><circle cx="12" cy="13" r="4" /></svg>撮影して追加</Button>
         </div>
       </div>
       <div className="character-list">
