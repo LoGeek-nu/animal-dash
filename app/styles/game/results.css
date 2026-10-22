@@ -20,9 +20,10 @@
 .ranking-row b, .result-row b { font-size: clamp(.85rem, 1.05vw, 1.25rem); }
 .ranking-row span, .result-row span { color: var(--ink-soft); font-size: .58rem; font-weight: 800; letter-spacing: .04em; }
 .ranking-row > i { margin-left: auto; padding: .25rem .45rem; color: #8a6414; background: #ffe68c; border-radius: 99px; font-size: .52rem; font-style: normal; font-weight: 1000; }
-/* Coloured figure with an ink outline and a pale offset shadow, matching the game's hand-drawn panels. */
-.result-row > strong { --place: #a9bac6; width: 4.8rem; flex-shrink: 0; display: flex; align-items: baseline; justify-content: center; color: var(--place); font-size: clamp(2.4rem, 3.5vw, 4rem); font-weight: 1000; line-height: 1; letter-spacing: -.04em; -webkit-text-stroke: 6px var(--ink); paint-order: stroke fill; filter: drop-shadow(3px 4px 0 color-mix(in srgb, var(--place) 40%, white)); transform: rotate(-5deg); }
+.result-row > strong { width: 4.8rem; flex-shrink: 0; display: flex; align-items: baseline; justify-content: center; font-size: clamp(2.4rem, 3.5vw, 4rem); font-weight: 1000; line-height: 1; letter-spacing: -.04em; }
 .result-row > strong small { margin-left: .12em; color: var(--ink); font-size: .3em; -webkit-text-stroke: 0; }
+/* TOP 3: coloured figure with an ink outline and a pale offset shadow, matching the game's hand-drawn panels. */
+.result-row:is(.place-1, .place-2, .place-3) > strong { color: var(--place); -webkit-text-stroke: 6px var(--ink); paint-order: stroke fill; filter: drop-shadow(3px 4px 0 color-mix(in srgb, var(--place) 40%, white)); }
 .result-row.place-1 > strong { --place: #ffc928; font-size: clamp(2.8rem, 4.1vw, 4.7rem); }
 .result-row.place-2 > strong { --place: #7fb2e5; }
 .result-row.place-3 > strong { --place: #f0905a; }
