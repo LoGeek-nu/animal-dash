@@ -11,12 +11,67 @@ import { raceRecordFromSession } from "../worker/race-record.js";
 import { characters } from "../app/domain/characters.js";
 import { getBotInput } from "../app/features/game/race/bot-controller.js";
 import { courseObstacles } from "../app/domain/course.js";
+import { getRaceInput } from "../app/features/game/race/race-input.js";
+import { calculateLiveRanks } from "../app/features/game/race/race-ranking.js";
+import { replayRace } from "../worker/race-authority.js";
 
 const lanes = [{ characterId: "momo", isBot: false }, { characterId: "toramaru", isBot: true }, null, null];
 const waiting = () => ({ ...createInitialSession(), phase: "WAITING", lanes });
 const startedAt = 100_000;
 const runtime = (raceId = "test-race") => createRaceRuntime({ raceId, raceStartedAt: startedAt, lanes, now: 1000, epochNow: startedAt });
 const step = (run, elapsed) => advanceRaceRuntime(run, { now: 1000 + elapsed, epochNow: startedAt + elapsed, obstacles: [] });
+
+test("keyboard/gamepad input on BOT lanes cannot change displayed goals or ranks from the server result", () => {
+  const botLanes = ["kon", "momo", "toramaru", "panko"].map((characterId) => ({ characterId, isBot: true }));
+  const canonical = replayRace({ raceId: "bot-input", startedAt, lanes: botLanes,
+    characters: botLanes.map(({ characterId }) => characters.find(({ id }) => id === characterId)), inputs: [] }, startedAt + 59_000);
+  // Even if every controller is pressed, the on-screen BOTs must keep their automatic inputs.
+  for (const fps of [120, 60, 20]) {
+    const run = createRaceRuntime({ raceId: "bot-input", raceStartedAt: startedAt, lanes: botLanes, now: 0, epochNow: startedAt });
+    for (let frame = 1; frame <= fps * 59 && !run.completed; frame++) {
+      const now = frame * 1000 / fps;
+      advanceRaceRuntime(run, { now, epochNow: startedAt + now,
+        readInput: (laneIndex, runner, lane, simulationNow) => getRaceInput({ lane, laneIndex, runner,
+          now: simulationNow, obstacles: courseObstacles, manualInput: { jump: true, boost: true } }) });
+    }
+    assert.deepEqual(run.completed.results, canonical.results, `${fps} FPS`);
+    const liveRanks = calculateLiveRanks(run.runners, botLanes);
+    for (const result of canonical.results) assert.equal(liveRanks[result.lane - 1], result.rank);
+  }
+  assert.ok(canonical.results.every(({ finishMs }) => finishMs !== null));
+  const withBotInputs = replayRace({ raceId: "bot-input", startedAt, lanes: botLanes,
+    characters: botLanes.map(({ characterId }) => characters.find(({ id }) => id === characterId)),
+    inputs: [{ at: 0, buttons: 255 }, { at: 500, buttons: 0 }, { at: 1000, buttons: 255 }] }, startedAt + 59_000);
+  assert.deepEqual(withBotInputs.results, canonical.results);
+});
+
+test("player jump input still reaches the runner", () => {
+  const lane = { characterId: "kon", isBot: false };
+  const run = createRaceRuntime({ raceId: "player-jump", raceStartedAt: startedAt, lanes: [lane], now: 0, epochNow: startedAt });
+  let consumed = 0;
+  advanceRaceRuntime(run, { now: 10, epochNow: startedAt + 10, obstacles: [],
+    readInput: (laneIndex, runner, raceLane, now) => getRaceInput({ lane: raceLane, laneIndex, runner, now,
+      obstacles: [], manualInput: { jump: true, boost: false } }),
+    onJumpInput: () => { consumed++; } });
+  assert.ok(run.runners[0].y > 0);
+  assert.equal(consumed, 1);
+});
+
+test("player lanes still use manual boost while BOT lanes ignore it", () => {
+  const finish = (isBot, boost) => {
+    const lane = { characterId: "kon", isBot };
+    const run = createRaceRuntime({ raceId: "player-input", raceStartedAt: startedAt, lanes: [lane], now: 0, epochNow: startedAt });
+    for (let frame = 1; frame <= 60 * 59 && !run.completed; frame++) {
+      const now = frame * 1000 / 60;
+      advanceRaceRuntime(run, { now, epochNow: startedAt + now,
+        readInput: (laneIndex, runner) => getRaceInput({ lane, laneIndex, runner, now, obstacles: courseObstacles,
+          manualInput: { jump: false, boost } }) });
+    }
+    return run.completed.results[0].finishMs;
+  };
+  assert.ok(finish(false, true) < finish(false, false));
+  assert.equal(finish(true, true), finish(true, false));
+});
 
 test("120/60/20/10/1 FPS produce the same goals and BOT controls on the actual course", () => {
   const measured = [120, 60, 20, 10, 1].map((fps) => {
