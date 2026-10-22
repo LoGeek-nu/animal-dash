@@ -31,7 +31,7 @@ function completeRace(runtime) {
 }
 
 // The hook owns scheduling and browser input. This owns one race's timing and finalization.
-export function advanceRaceRuntime(runtime, { now, epochNow, readInput = () => ({ jump: false, boost: false }), onJump = () => {}, obstacles = courseObstacles }) {
+export function advanceRaceRuntime(runtime, { now, epochNow, readInput = () => ({ jump: false, boost: false }), onJumpInput = () => {}, obstacles = courseObstacles }) {
   if (runtime.completed) return;
   const elapsed = runtime.elapsedAtOrigin + now - runtime.origin;
   runtime.elapsed = Math.max(runtime.elapsed, 0, Math.round(elapsed));
@@ -56,7 +56,8 @@ export function advanceRaceRuntime(runtime, { now, epochNow, readInput = () => (
     const input = runner.finishedAt !== null ? { jump: false, boost: false } : readInput(index, runner, lane, simulationNow);
     const stepped = stepRaceRunner({ runner, character: runtime.characters[index], input, obstacles,
       now: simulationNow, dt: SIMULATION_STEP_MS / 1000, elapsed: simulationNow });
-    if (stepped.jumped) onJump(index);
+    // A press is read once: one taken mid-air is dropped rather than replayed on landing.
+    if (input.jump) onJumpInput(index);
     return stepped.runner;
     });
     if (runtime.runners.every((runner, index) => !runtime.lanes[index] || runner.finishedAt !== null)) {

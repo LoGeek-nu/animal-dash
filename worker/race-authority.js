@@ -22,7 +22,7 @@ export function replayRace(race, now) {
       readInput: (index, runner, lane, simulationNow) => lane.isBot
         ? getBotInput({ laneIndex: index, runner, now: simulationNow, obstacles: courseObstacles })
         : { jump: Boolean(jumps & (1 << index)), boost: Boolean(buttons & (1 << (index + 4))) },
-      onJump: (index) => { jumps &= ~(1 << index); } });
+      onJumpInput: (index) => { jumps &= ~(1 << index); } });
   }
   return runtime.completed;
 }

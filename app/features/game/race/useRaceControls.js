@@ -4,14 +4,15 @@ import { useCallback, useEffect, useRef } from "react";
 import { BOOST_KEY_MAP, JUMP_KEY_MAP } from "./constants.js";
 
 export function useRaceControls(laneCount) {
-  const controlsRef = useRef(Array.from({ length: laneCount }, () => ({ boost: false, jump: false })));
+  const controlsRef = useRef(Array.from({ length: laneCount }, () => ({ boost: false, jump: false, padJumpHeld: false })));
 
   useEffect(() => {
     const onKeyDown = (event) => {
       const jumpLane = JUMP_KEY_MAP[event.key];
       const boostLane = BOOST_KEY_MAP[event.key];
       if (jumpLane !== undefined) {
-        controlsRef.current[jumpLane].jump = true;
+        // Holding a key auto-repeats keydown; only the first press is a jump.
+        if (!event.repeat) controlsRef.current[jumpLane].jump = true;
         event.preventDefault();
       }
       if (boostLane !== undefined) {
@@ -33,8 +34,17 @@ export function useRaceControls(laneCount) {
     };
   }, []);
 
+  // Call once per frame: a gamepad jump counts on the press, like a keydown, not while held.
+  const pollGamepads = useCallback((gamepads) => {
+    controlsRef.current.forEach((control, laneIndex) => {
+      const held = Boolean(gamepads[laneIndex]?.buttons[0]?.pressed);
+      if (held && !control.padJumpHeld) control.jump = true;
+      control.padJumpHeld = held;
+    });
+  }, []);
+
   const readInput = useCallback((laneIndex, gamepad) => ({
-    jump: controlsRef.current[laneIndex]?.jump || Boolean(gamepad?.buttons[0]?.pressed),
+    jump: Boolean(controlsRef.current[laneIndex]?.jump),
     boost: controlsRef.current[laneIndex]?.boost || Boolean(gamepad?.buttons[1]?.pressed),
   }), []);
 
@@ -42,5 +52,5 @@ export function useRaceControls(laneCount) {
     if (controlsRef.current[laneIndex]) controlsRef.current[laneIndex].jump = false;
   }, []);
 
-  return { readInput, consumeJump };
+  return { readInput, consumeJump, pollGamepads };
 }
