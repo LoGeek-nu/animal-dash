@@ -1,5 +1,6 @@
 import { env } from "cloudflare:workers";
 import { characters } from "../../../domain/characters.js";
+import { readGeneratedStats } from "../../../domain/generated-stats.js";
 import { isStaffRequest, unauthorizedResponse } from "../../../../worker/auth.js";
 import { takeGenerationSlot } from "../../../../worker/generation-quota.js";
 import { saveCharacter } from "../../../../worker/data-store.js";
@@ -23,13 +24,8 @@ function pickPreset(stats) {
   return "スタミナ";
 }
 
-function toRaceCharacter(status) {
+function toRaceCharacter(status, stats) {
   const id = `gen-${crypto.randomUUID()}`;
-  const stats = {
-    speed: status.stats.speed,
-    acceleration: status.stats.jump,
-    stamina: status.stats.power,
-  };
   return {
     id,
     name: status.title,
@@ -108,9 +104,14 @@ export async function POST(request) {
     return Response.json(body, { status: upstream.status });
   }
 
+  const stats = readGeneratedStats(body.status?.stats);
+  if (!stats) {
+    return Response.json({ error: "upstream_invalid_response", detail: "キャラクターのステータスを読み取れませんでした。もう一度試してください。", retryable: true }, { status: 502 });
+  }
+
   let character;
   try {
-    character = await saveGeneratedCharacter(CHARACTERS, toRaceCharacter(body.status), body.image_base64);
+    character = await saveGeneratedCharacter(CHARACTERS, toRaceCharacter(body.status, stats), body.image_base64);
     // Keep R2 metadata for recovery via /api/characters/import if the D1 write fails.
     await saveCharacter(DB, character, characterImageKey(character.id));
   } catch (cause) {
