@@ -50,9 +50,9 @@ test("health endpoint reports the mock ready", async () => {
   assert.equal((await response.json()).status, "ok");
 });
 
-test("the sync endpoint refuses unauthenticated and cross-site handshakes", async () => {
+test("the sync endpoint protects writing roles and rejects cross-site handshakes", async () => {
   const worker = await loadWorker("sync");
-  const sync = (headers) => worker.fetch(new Request("https://animaldash.logeek.tech/api/sync", { headers }), env, ctx);
+  const sync = (headers) => worker.fetch(new Request("https://animaldash.logeek.tech/api/sync?role=game", { headers }), env, ctx);
 
   assert.equal((await sync({ Upgrade: "websocket" })).status, 401);
   assert.equal((await sync({ Upgrade: "websocket", Origin: "https://evil.example" })).status, 403);

@@ -153,3 +153,45 @@ test("a stored session holding removed characters frees those lanes instead of s
   assert.deepEqual(f.data.get("session"), session);
   assert.equal(await f.room.session(), f.data.get("session"));
 });
+
+test("spectators cannot change any phase, input, ownership or final result", async (t) => {
+  t.mock.method(console, "error", () => {});
+  const f = fixture();
+  const viewer = socket("viewer", "spectator");
+  f.ctx.getWebSockets = () => [f.admin, f.game, f.observer, viewer];
+  const unchanged = async (payload) => {
+    const before = JSON.stringify([...f.data]);
+    await f.room.webSocketMessage(viewer, JSON.stringify(payload));
+    assert.equal(JSON.stringify([...f.data]), before);
+    assert.equal(viewer.sent.at(-2).error, "read_only");
+  };
+  for (const phase of ["WAITING", "COUNTDOWN", "RACING", "RESULTS", "ATTRACT"]) {
+    await unchanged({ type: "session", session: { ...f.data.get("session"), phase, sequence: 2, resultsForced: true } });
+  }
+  await f.start();
+  const current = f.data.get("session");
+  await unchanged({ type: "input", raceId: current.raceId, buttons: 255, role: "game" });
+  await f.room.webSocketClose(viewer, 1000, "spectator left");
+  assert.equal(f.data.get("activeRace").reporterId, "game");
+  f.setNow(current.raceStartedAt + 20_000);
+  await f.send(f.game, { phase: "RESULTS" });
+  await unchanged({ type: "session", session: { ...f.data.get("session"), sequence: f.data.get("session").sequence + 1, results: [] } });
+});
+
+test("accepted input is broadcast with server time, and reconnect snapshots include its history", async () => {
+  const f = fixture(); await f.start();
+  const race = f.data.get("activeRace");
+  f.setNow(race.startedAt + 500);
+  await f.room.webSocketMessage(f.game, JSON.stringify({ type: "input", raceId: race.raceId, buttons: 17, at: -999 }));
+  for (const ws of [f.admin, f.game, f.observer]) {
+    assert.deepEqual(ws.sent.at(-1), { type: "race-input", raceId: race.raceId, input: { at: 500, buttons: 17 }, serverNow: race.startedAt + 500 });
+  }
+  const viewer = socket("viewer");
+  f.data.set("gameOwner", "game");
+  f.room.sendRace(viewer, race);
+  assert.deepEqual(viewer.sent.at(-1).race.inputs, [{ at: 500, buttons: 17 }]);
+  assert.deepEqual(viewer.sent.at(-1).race.characters, race.characters);
+  await f.room.webSocketClose(f.game, 1000, "owner left");
+  assert.equal(f.data.get("activeRace").inputs.at(-1).buttons, 0);
+  assert.equal(f.observer.sent.at(-1).canControl, true);
+});
