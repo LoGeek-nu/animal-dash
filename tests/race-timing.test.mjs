@@ -258,3 +258,16 @@ test("every built-in character splits exactly 40 points across stats of 1–20",
     assert.equal(values.reduce((sum, value) => sum + value, 0), 40, name);
   }
 });
+
+test("types come from stats by one rule: even spreads are バランス, otherwise the strongest stat", async () => {
+  const { characterType } = await import("../app/domain/characters.js");
+  assert.equal(characterType({ speed: 14, acceleration: 13, stamina: 13 }), "バランス");
+  assert.equal(characterType({ speed: 15, acceleration: 13, stamina: 12 }), "バランス");
+  assert.equal(characterType({ speed: 16, acceleration: 12, stamina: 12 }), "スピード");
+  assert.equal(characterType({ speed: 12, acceleration: 16, stamina: 12 }), "ダッシュ");
+  assert.equal(characterType({ speed: 11, acceleration: 10, stamina: 19 }), "スタミナ");
+  // Ties for the top stat favour speed, then acceleration.
+  assert.equal(characterType({ speed: 18, acceleration: 18, stamina: 4 }), "スピード");
+  assert.equal(characterType({ speed: 4, acceleration: 18, stamina: 18 }), "ダッシュ");
+  for (const character of characters) assert.equal(character.preset, characterType(character.stats), character.name);
+});

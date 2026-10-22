@@ -1,5 +1,5 @@
 import { env } from "cloudflare:workers";
-import { characters } from "../../../domain/characters.js";
+import { characters, characterType } from "../../../domain/characters.js";
 import { readGeneratedStats } from "../../../domain/generated-stats.js";
 import { isStaffRequest, unauthorizedResponse } from "../../../../worker/auth.js";
 import { takeGenerationSlot } from "../../../../worker/generation-quota.js";
@@ -17,22 +17,13 @@ function pickPalette(id) {
   return PALETTE[hash % PALETTE.length];
 }
 
-function pickPreset(stats) {
-  const { speed, acceleration, stamina } = stats;
-  const max = Math.max(speed, acceleration, stamina);
-  if (speed === max && acceleration === max && stamina === max) return "バランス";
-  if (speed === max) return "スピード";
-  if (acceleration === max) return "ダッシュ";
-  return "スタミナ";
-}
-
 function toRaceCharacter(status, stats) {
   const id = `gen-${crypto.randomUUID()}`;
   return {
     id,
     name: status.title,
     ...pickPalette(id),
-    preset: pickPreset(stats),
+    preset: characterType(stats),
     caption: `${status.animal_type}・${status.personality}`,
     stats,
     generated: true,
