@@ -2,12 +2,17 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Button } from "../../../components/ui/atoms/Button.jsx";
+import { CharacterAvatar } from "../../../components/ui/molecules/CharacterAvatar.jsx";
+import { StatMeters } from "../../../components/ui/molecules/StatMeters.jsx";
 import { addGeneratedCharacter } from "../../../domain/generated-characters.js";
 import { AdminModal } from "./AdminModal.jsx";
 import { AdminHeader } from "./AdminHeader.jsx";
 import { AdminStatusBar } from "./AdminStatusBar.jsx";
 
 const MAX_DIMENSION = 1600;
+// Gemini usually answers in 10–20s. Past this the staff are told it is busy; past the limit the request is dropped.
+const SLOW_NOTICE_SECONDS = 25;
+const CLIENT_TIMEOUT_MS = 60_000;
 
 async function resizeImageFile(file, maxDimension) {
   const bitmap = await createImageBitmap(file);
@@ -30,10 +35,20 @@ export function CharacterGenerateDialog({ onClose, session, ready, syncStatus })
   const [file, setFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [error, setError] = useState(null);
+  const [created, setCreated] = useState(null);
+  const [elapsed, setElapsed] = useState(0);
   const inputRef = useRef(null);
   const requestRef = useRef(null);
 
   useEffect(() => () => requestRef.current?.abort(), []);
+
+  useEffect(() => {
+    if (stage !== "loading") return undefined;
+    const startedAt = Date.now();
+    setElapsed(0);
+    const timer = window.setInterval(() => setElapsed(Math.floor((Date.now() - startedAt) / 1000)), 1000);
+    return () => window.clearInterval(timer);
+  }, [stage]);
 
   const handleFileChange = async (event) => {
     const picked = event.target.files?.[0];
@@ -57,6 +72,7 @@ export function CharacterGenerateDialog({ onClose, session, ready, syncStatus })
     setFile(null);
     setPreviewUrl(null);
     setError(null);
+    setCreated(null);
     setStage("idle");
   };
 
@@ -70,6 +86,8 @@ export function CharacterGenerateDialog({ onClose, session, ready, syncStatus })
     if (!file || requestRef.current) return;
     const controller = new AbortController();
     requestRef.current = controller;
+    let timedOut = false;
+    const timeout = window.setTimeout(() => { timedOut = true; controller.abort(); }, CLIENT_TIMEOUT_MS);
     setStage("loading");
     try {
       const formData = new FormData();
@@ -85,18 +103,25 @@ export function CharacterGenerateDialog({ onClose, session, ready, syncStatus })
       }
 
       addGeneratedCharacter(body);
-      close();
+      setCreated(body);
+      setStage("done");
     } catch {
+      if (timedOut) {
+        setError({ message: "時間がかかりすぎたため中断しました。もう一度試してください。", retryable: true });
+        setStage("error");
+        return;
+      }
       if (controller.signal.aborted) return;
       setError({ message: "通信に失敗しました。ネットワークを確認してください。", retryable: true });
       setStage("error");
     } finally {
+      window.clearTimeout(timeout);
       if (requestRef.current === controller) requestRef.current = null;
     }
   };
 
   return (
-    <AdminModal title={stage === "preview" ? "撮影画像の確認" : "キャラクターを撮影して追加"} onClose={close} className={`generate-dialog ${stage === "idle" ? "mobile-capture-entry-dialog" : "mobile-generation-dialog"}`}>
+    <AdminModal title={stage === "preview" ? "撮影画像の確認" : stage === "done" ? "キャラクターができました！" : "キャラクターを撮影して追加"} onClose={close} className={`generate-dialog ${stage === "idle" ? "mobile-capture-entry-dialog" : "mobile-generation-dialog"}`}>
         {session && <div className="mobile-capture-header"><AdminHeader ready={ready} syncStatus={syncStatus} /><AdminStatusBar session={session} participantCount={session.lanes.filter(Boolean).length} /></div>}
 
         <input
@@ -133,8 +158,22 @@ export function CharacterGenerateDialog({ onClose, session, ready, syncStatus })
         {stage === "loading" && (
           <>
             <div className="generate-dialog-spinner" aria-hidden="true" />
-            <p>生成中です…10〜20秒ほどお待ちください。</p>
+            <p role="status">生成中です…（{elapsed}秒）<br />{elapsed < SLOW_NOTICE_SECONDS ? "10〜20秒ほどお待ちください。" : "混み合っているようです。もう少しお待ちください。"}</p>
           </>
+        )}
+
+        {stage === "done" && created && (
+          <div className="generate-dialog-result">
+            <CharacterAvatar character={created} />
+            <h3>{created.name}</h3>
+            <p>{created.preset}タイプ<br />{created.caption}</p>
+            <StatMeters character={created} />
+            <p>キャラクター一覧に追加しました。レーンにセットして遊べます。</p>
+            <div className="generate-dialog-actions">
+              <Button variant="secondary" onClick={retake}>もう1体撮影する</Button>
+              <Button variant="primary" onClick={close}>OK</Button>
+            </div>
+          </div>
         )}
 
         {stage === "error" && (

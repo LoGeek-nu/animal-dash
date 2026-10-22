@@ -207,6 +207,7 @@ test("race engine calculates jump, boost, collision, and rankings without React"
   const preGoalRunner = {
     ...createRuntimeRunner(),
     progress: 99.8,
+    velocity: 9,
     y: 120,
     vy: 200,
     boosting: true,

@@ -1,5 +1,6 @@
 import { env } from "cloudflare:workers";
-import { characters } from "../../../domain/characters.js";
+import { characters, characterType } from "../../../domain/characters.js";
+import { readGeneratedStats } from "../../../domain/generated-stats.js";
 import { isStaffRequest, unauthorizedResponse } from "../../../../worker/auth.js";
 import { takeGenerationSlot } from "../../../../worker/generation-quota.js";
 import { saveCharacter } from "../../../../worker/data-store.js";
@@ -7,6 +8,8 @@ import { notifyCharactersChanged } from "../../../../worker/sync.js";
 import { characterImageKey, saveGeneratedCharacter } from "../character-store.js";
 
 const PALETTE = characters.map(({ color, pale }) => ({ color, pale }));
+// Just under the admin screen's 60s limit, so staff see the server's own timeout message.
+const UPSTREAM_TIMEOUT_MS = 55_000;
 
 function pickPalette(id) {
   let hash = 0;
@@ -14,28 +17,15 @@ function pickPalette(id) {
   return PALETTE[hash % PALETTE.length];
 }
 
-function pickPreset(stats) {
-  const { speed, acceleration, stamina } = stats;
-  const max = Math.max(speed, acceleration, stamina);
-  if (speed === max && acceleration === max && stamina === max) return "バランス";
-  if (speed === max) return "スピード";
-  if (acceleration === max) return "ダッシュ";
-  return "スタミナ";
-}
-
-function toRaceCharacter(status) {
+function toRaceCharacter(status, stats) {
   const id = `gen-${crypto.randomUUID()}`;
-  const stats = {
-    speed: status.stats.speed,
-    acceleration: status.stats.jump,
-    stamina: status.stats.power,
-  };
   return {
     id,
     name: status.title,
     ...pickPalette(id),
-    preset: pickPreset(stats),
-    caption: `${status.animal_type}・${status.personality}`,
+    preset: characterType(stats),
+    // image-poc writes a catchphrase like the built-ins'; older output only has the animal and personality.
+    caption: typeof status.catchphrase === "string" && status.catchphrase.trim() ? status.catchphrase.trim() : `${status.animal_type}・${status.personality}`,
     stats,
     generated: true,
   };
@@ -91,8 +81,12 @@ export async function POST(request) {
         ...(IMAGE_POC_BYPASS_SECRET ? { "x-vercel-protection-bypass": IMAGE_POC_BYPASS_SECRET } : {}),
       },
       body: upstreamForm,
+      signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
     });
   } catch (cause) {
+    if (cause?.name === "TimeoutError") {
+      return Response.json({ error: "upstream_timeout", detail: "画像の生成に時間がかかりすぎました。もう一度試してください。", retryable: true }, { status: 504 });
+    }
     return Response.json({ error: "upstream_unreachable", detail: String(cause), retryable: true }, { status: 502 });
   }
 
@@ -108,9 +102,14 @@ export async function POST(request) {
     return Response.json(body, { status: upstream.status });
   }
 
+  const stats = readGeneratedStats(body.status?.stats);
+  if (!stats) {
+    return Response.json({ error: "upstream_invalid_response", detail: "キャラクターのステータスを読み取れませんでした。もう一度試してください。", retryable: true }, { status: 502 });
+  }
+
   let character;
   try {
-    character = await saveGeneratedCharacter(CHARACTERS, toRaceCharacter(body.status), body.image_base64);
+    character = await saveGeneratedCharacter(CHARACTERS, toRaceCharacter(body.status, stats), body.image_base64);
     // Keep R2 metadata for recovery via /api/characters/import if the D1 write fails.
     await saveCharacter(DB, character, characterImageKey(character.id));
   } catch (cause) {
