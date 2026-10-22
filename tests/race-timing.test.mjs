@@ -179,3 +179,40 @@ test("the runner captures a goal time once and never rewrites it after landing",
   const landed = stepRaceRunner({ ...args, runner: finished, elapsed: 9999, dt: 1 }).runner;
   assert.equal(landed.finishedAt, 1235);
 });
+
+// Count take-offs (leaving the ground) for lane 0 while a latched press is fed in, the way the game screen buffers a keydown.
+const takeOffs = (pressAt) => {
+  const run = runtime("jump-latch");
+  const presses = [...pressAt];
+  let latch = false;
+  let wasGrounded = true;
+  let count = 0;
+  for (let elapsed = 0; elapsed <= 3000; elapsed += 1000 / 60) {
+    if (presses.length && elapsed >= presses[0]) { presses.shift(); latch = true; }
+    advanceRaceRuntime(run, { now: 1000 + elapsed, epochNow: startedAt + elapsed, obstacles: [],
+      readInput: (laneIndex) => ({ jump: laneIndex === 0 && latch, boost: false }),
+      onJumpInput: (laneIndex) => { if (laneIndex === 0) latch = false; } });
+    const grounded = run.runners[0].y === 0;
+    if (wasGrounded && !grounded) count++;
+    wasGrounded = grounded;
+  }
+  return count;
+};
+
+test("jump presses made mid-air are dropped instead of firing again on landing", () => {
+  assert.equal(takeOffs([0]), 1);
+  // Mashing during one jump still gives one jump.
+  assert.equal(takeOffs([0, 100, 200, 300, 400]), 1);
+  // A fresh press after landing jumps again.
+  assert.equal(takeOffs([0, 1500]), 2);
+});
+
+test("the room's replay drops mid-air presses too, so canonical times match the screen", async () => {
+  const { replayRace } = await import("../worker/race-authority.js");
+  const soloLanes = [{ characterId: "momo", isBot: false }, null, null, null];
+  const race = (inputs) => ({ raceId: "replay-jump", startedAt, lanes: soloLanes, characters: [characters[0], null, null, null], courseSeed: "course", inputs });
+  const press = (at) => [{ at, buttons: 1 }, { at: at + 30, buttons: 0 }];
+  // Before the fix the 2.1s press, made mid-air, fired again on landing and changed the goal time.
+  const finish = (inputs) => replayRace(race(inputs), startedAt + 60_000).results[0].finishMs;
+  assert.equal(finish([...press(1800), ...press(2100)]), finish(press(1800)));
+});

@@ -12,7 +12,7 @@ import { useRaceControls } from "./useRaceControls.js";
 export function useRaceEngine({ raceId, lanes, raceStartedAt, onFinished, onInput }) {
   const [runners, setRunners] = useState(() => lanes.map(() => toRenderableRunner(createRuntimeRunner(), 0)));
   const runtimeRef = useRef(null);
-  const { readInput, consumeJump } = useRaceControls(lanes.length);
+  const { readInput, consumeJump, pollGamepads } = useRaceControls(lanes.length);
 
   useEffect(() => {
     // Sync replaces lane objects and callbacks. Preserve this race's runners, clock and completion.
@@ -28,6 +28,7 @@ export function useRaceEngine({ raceId, lanes, raceStartedAt, onFinished, onInpu
 
     const tick = (now) => {
       const gamepads = navigator.getGamepads?.() ?? [];
+      pollGamepads(gamepads);
       const buttons = runtime.lanes.reduce((mask, lane, index) => {
         if (!lane || lane.isBot) return mask;
         const input = readInput(index, gamepads[index]);
@@ -35,7 +36,7 @@ export function useRaceEngine({ raceId, lanes, raceStartedAt, onFinished, onInpu
       }, 0);
       if (!runtime.completed && (buttons !== lastButtons || now - lastInputAt >= 250)) { onInput?.({ raceId, buttons }); lastButtons = buttons; lastInputAt = now; }
       advanceRaceRuntime(runtime, {
-        now, epochNow: Date.now(), onJump: consumeJump,
+        now, epochNow: Date.now(), onJumpInput: consumeJump,
         readInput: (laneIndex, runner, lane, simulationNow) => {
           const manual = readInput(laneIndex, gamepads[laneIndex]);
           const bot = lane.isBot ? getBotInput({ laneIndex, runner, now: simulationNow, obstacles: courseObstacles }) : { jump: false, boost: false };
@@ -56,7 +57,7 @@ export function useRaceEngine({ raceId, lanes, raceStartedAt, onFinished, onInpu
 
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [raceId, raceStartedAt, lanes, onFinished, onInput, consumeJump, readInput]);
+  }, [raceId, raceStartedAt, lanes, onFinished, onInput, consumeJump, readInput, pollGamepads]);
 
   const ranks = useMemo(() => calculateLiveRanks(runners, lanes), [lanes, runners]);
   return { runners, ranks };
