@@ -27,11 +27,11 @@ export function RaceArena({ raceId, lanes, raceStartedAt, onFinished, onInput })
           <div className="race-footer-keys">
             <span className="race-footer-key-hint">
               <span>ジャンプ</span>
-              <kbd className="race-key-pill is-space">Space</kbd>
+              <span className="race-control-button is-jump" aria-hidden="true" />
             </span>
             <span className="race-footer-key-hint">
-              <span>ブースト</span>
-              <kbd className="race-key-pill is-shift">Shift</kbd>
+              <span>ダッシュ</span>
+              <span className="race-control-button is-dash" aria-hidden="true" />
             </span>
           </div>
         </div>
