@@ -106,6 +106,10 @@
 .generate-dialog-preview { width: 100%; max-height: 260px; margin-bottom: 1rem; object-fit: contain; border: 2px solid #dbe4e9; border-radius: 12px; }
 .generate-dialog-spinner { width: 2.4rem; height: 2.4rem; margin: 0 auto .9rem; border: 4px solid #dbe4e9; border-top-color: var(--char, #ff6b8a); border-radius: 50%; animation: dialogSpin .8s linear infinite; }
 .generate-dialog-error { color: #d23b4e; }
+.generate-dialog-result .character-avatar { width: 150px; height: 150px; margin: 0 auto; }
+.generate-dialog-result h3 { margin: .6rem 0 .25rem; font-size: 1.2rem; }
+.generate-dialog-result p { margin-bottom: .8rem; }
+.generate-dialog-result .mobile-stats { margin: .4rem 0 1rem; text-align: left; }
 
 .panel-heading-actions { min-width: 0; display: flex; align-items: center; justify-content: flex-end; gap: .5rem; }
 .panel-heading-actions .search-box { width: auto; min-width: 0; flex: 0 1 230px; }

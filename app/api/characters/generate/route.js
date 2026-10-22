@@ -8,6 +8,8 @@ import { notifyCharactersChanged } from "../../../../worker/sync.js";
 import { characterImageKey, saveGeneratedCharacter } from "../character-store.js";
 
 const PALETTE = characters.map(({ color, pale }) => ({ color, pale }));
+// Just under the admin screen's 60s limit, so staff see the server's own timeout message.
+const UPSTREAM_TIMEOUT_MS = 55_000;
 
 function pickPalette(id) {
   let hash = 0;
@@ -87,8 +89,12 @@ export async function POST(request) {
         ...(IMAGE_POC_BYPASS_SECRET ? { "x-vercel-protection-bypass": IMAGE_POC_BYPASS_SECRET } : {}),
       },
       body: upstreamForm,
+      signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
     });
   } catch (cause) {
+    if (cause?.name === "TimeoutError") {
+      return Response.json({ error: "upstream_timeout", detail: "画像の生成に時間がかかりすぎました。もう一度試してください。", retryable: true }, { status: 504 });
+    }
     return Response.json({ error: "upstream_unreachable", detail: String(cause), retryable: true }, { status: 502 });
   }
 
