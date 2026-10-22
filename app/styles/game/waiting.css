@@ -13,7 +13,8 @@
 .waiting-lanes { height: 62vh; min-height: 470px; padding: .35vh 3.1vw 1.2vh; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1.15vw; position: relative; z-index: 2; }
 .waiting-card { min-width: 0; min-height: 470px; padding: .8rem; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; overflow: hidden; position: relative; background: var(--paper); border: 4px solid var(--ink); border-radius: 22px 15px 27px 18px; box-shadow: 8px 9px 0 var(--lane); transform: rotate(-.55deg); }
 .waiting-card:nth-child(even) { transform: rotate(.55deg); }
-.waiting-card::after { content: ""; position: absolute; z-index: 0; width: 96%; height: 46%; right: -20%; top: 17%; border-radius: 50%; background: color-mix(in srgb, var(--lane) 20%, white); transform: rotate(-7deg); }
+.waiting-card::after { content: ""; position: absolute; z-index: 0; inset: 13% 11% 33%; border-radius: 22px 15px 26px 18px; background: color-mix(in srgb, var(--lane) 20%, white); transform: rotate(-4deg); }
+.waiting-card:nth-child(even)::after { transform: rotate(4deg); }
 .waiting-card-header { min-height: 2rem; display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 3; }
 .waiting-card-header > span { padding: .34rem .62rem; background: var(--lane); border: 2px solid var(--ink); border-radius: 999px; font-size: clamp(.55rem, .65vw, .78rem); font-weight: 1000; letter-spacing: .1em; }
 .waiting-card-header b { padding: .28rem .55rem; color: white; background: var(--ink); border-radius: 999px; font-size: .58rem; letter-spacing: .1em; }
