@@ -99,3 +99,25 @@ test("game connections identify their role and forward permanent failure notices
   socket.emit("message", { data: JSON.stringify({ type: "results-failed", raceId: "late" }) });
   assert.deepEqual(failed, ["failed-race"]);
 });
+
+test("viewer channels never publish state or input, and receive control and replay frames only while open", () => {
+  const controls = [], races = [];
+  const channel = createRaceSessionChannel(() => {}, { role: "viewer", onControl: (v) => controls.push(v), onRace: (v) => races.push(v) });
+  const socket = FakeWebSocket.instances.at(-1);
+  socket.readyState = FakeWebSocket.OPEN;
+  const sent = [];
+  socket.send = (raw) => sent.push(raw);
+  channel.publish({ sequence: 99 });
+  channel.sendInput({ buttons: 255 });
+  socket.emit("open");
+  assert.deepEqual(sent, []);
+  socket.emit("message", { data: JSON.stringify({ type: "control", canControl: false }) });
+  for (const type of ["race", "race-input"]) socket.emit("message", { data: JSON.stringify({ type, raceId: "current" }) });
+  assert.deepEqual(controls, [false]);
+  assert.equal(races.length, 2);
+  channel.close();
+  socket.emit("message", { data: JSON.stringify({ type: "control", canControl: true }) });
+  socket.emit("message", { data: JSON.stringify({ type: "race-input" }) });
+  assert.deepEqual(controls, [false]);
+  assert.equal(races.length, 2);
+});

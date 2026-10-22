@@ -22,10 +22,8 @@ test("server-renders the public game screen", async () => {
   const html = await response.text();
   assert.match(html, /アニマルダッシュ！/);
   assert.match(html, /アニマル/);
-  assert.match(html, /ANIMAL PARADE/);
-  assert.match(html, /DEMO RACE/);
-  assert.match(html, /TODAY(?:&#x27;|')S RANKING/);
-  assert.match(html, /\/characters\/momo\/runner\.png/);
+  assert.match(html, /現在のゲームに接続しています/);
+  assert.doesNotMatch(html, /ANIMAL PARADE|DEMO RACE/);
   assert.doesNotMatch(html, /codex-preview|react-loading-skeleton/i);
 });
 
