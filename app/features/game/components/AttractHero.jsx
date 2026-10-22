@@ -1,7 +1,7 @@
 import { SectionKicker } from "../../../components/ui/atoms/SectionKicker.jsx";
 import { CharacterAvatar } from "../../../components/ui/molecules/CharacterAvatar.jsx";
 
-const HERO_CHARACTERS = ["momo", "koro", "dorami", "azuki"];
+const HERO_CHARACTERS = ["momo", "kon", "dorami", "azuki"];
 
 export function AttractHero() {
   return (

@@ -2,7 +2,7 @@
 
 import { SectionKicker } from "../../../components/ui/atoms/SectionKicker.jsx";
 import { CharacterAvatar } from "../../../components/ui/molecules/CharacterAvatar.jsx";
-import { formatRankingDate, formatTime } from "../../../domain/rankings.js";
+import { formatRankingDate, formatTime, rankRevealDelay } from "../../../domain/rankings.js";
 import { RankingStatus } from "../../rankings/RankingStatus.jsx";
 import { useDailyRankings } from "../../rankings/useDailyRankings.js";
 
@@ -19,7 +19,7 @@ export function AttractRankingView({ board }) {
       <div className="attract-ranking-list">
         <RankingStatus status={board.status} empty={board.rankings.length === 0} onRetry={board.retry} />
         {board.status === "ready" && board.rankings.map((item, index) => (
-          <article className={`attract-rank-row rank-${item.rank}`} style={{ "--rank-delay": `${index * 120}ms` }} key={item.characterId}>
+          <article className={`attract-rank-row rank-${item.rank}`} style={{ "--rank-delay": `${rankRevealDelay(index, board.rankings.length, item.rank)}ms` }} key={item.characterId}>
             <strong>{item.rank}</strong>
             <CharacterAvatar character={item.character} compact />
             <div><b>{item.displayName}</b><small>{item.character.preset ? `${item.character.preset} TYPE` : "BEST RECORD"}</small></div>

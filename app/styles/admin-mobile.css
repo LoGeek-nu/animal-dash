@@ -15,7 +15,6 @@
 .mobile-stats-dialog h3 { text-align: center; margin: .75rem 0 .3rem; font-size: 1.3rem; }
 .mobile-stats-dialog p { text-align: center; color: var(--ink-soft); font-size: .8rem; }
 .mobile-stats-dialog .mobile-stats { margin: 1.4rem 0; }
-.mobile-stats-dialog .secondary-button, .mobile-operations-dialog .secondary-button { width: 100%; min-height: 44px; font-size: .85rem; }
 .mobile-stats > div { display: grid; grid-template-columns: 5rem 1fr 3.3rem; align-items: center; gap: .5rem; margin: .5rem 0; font-size: .8rem; }
 .mobile-stats meter { width: 100%; height: 12px; border: 0; background: #dbe4e9; border-radius: 99px; appearance: none; }
 .mobile-stats meter::-webkit-meter-bar { background: #dbe4e9; border: 0; border-radius: 99px; }
@@ -36,6 +35,14 @@
 .admin-shell > .admin-controlbar .admin-actions { flex-wrap: wrap; justify-content: flex-end; }
 @media (min-width: 901px) and (max-width: 1050px) {
   .admin-shell > .admin-workspace { grid-template-columns: minmax(0, .92fr) minmax(0, 1.08fr); }
+  /* Too narrow for the drag hint beside the character name. */
+  .library-character > i { display: none; }
+}
+/* Too narrow for the title and search on one row. */
+@media (min-width: 901px) and (max-width: 1200px) {
+  .character-library .panel-heading { flex-wrap: wrap; row-gap: .5rem; padding-bottom: .65rem; }
+  .character-library .panel-heading-actions { flex: 1 0 100%; }
+  .character-library .panel-heading-actions .search-box { flex: 1 1 auto; }
 }
 @media (max-width: 900px) {
   .admin-shell { min-height: 100dvh; }
@@ -43,7 +50,7 @@
   .admin-header { height: 60px; padding: 0 14px; gap: .5rem; }
   .admin-brand { flex-wrap: wrap; column-gap: .4rem; row-gap: 0; }
   .admin-brand strong { font-size: 1.05rem; }
-  .admin-brand span { font-size: .42rem; }
+  .admin-brand span { font-size: .58rem; }
   .admin-header nav { flex-shrink: 0; }
   .admin-header nav > a, .admin-header .admin-logout { display: none; }
   .admin-header .connection-badge { padding: .4rem .6rem; min-height: 30px; font-size: .52rem; }
@@ -74,8 +81,8 @@
   .mobile-lane-copy > strong { display: block; font-size: .8rem; overflow-wrap: anywhere; }
   .mobile-lane-copy > strong b { font-size: .5rem; padding: .15rem .25rem; border-radius: 5px; background: var(--ink); color: white; }
   .mobile-lane-copy > small { display: block; line-height: 1.25; font-size: .58rem; color: var(--ink-soft); }
-  .mobile-lane-copy .mobile-stats { width: min(125px, 100%); margin-top: 4px; }
-  .mobile-stats.is-compact > div { grid-template-columns: 1.6rem 1fr; font-size: .5rem; line-height: 1; gap: 4px; margin: 2px 0; }
+  .mobile-lane-copy .mobile-stats { width: min(140px, 100%); margin-top: 4px; }
+  .mobile-stats.is-compact > div { grid-template-columns: 2.4rem 1fr; font-size: .5rem; line-height: 1; gap: 4px; margin: 2px 0; }
   .mobile-stats.is-compact meter { height: 6px; }
   .mobile-remove { flex: 0 0 44px; height: 44px; border: 1px solid #cad5dc; border-radius: 8px; background: white; font-size: 1.1rem; }
   .mobile-empty-mark { width: 50px; flex: 0 0 50px; text-align: center; color: #98a8b2; font-size: 1.8rem; }

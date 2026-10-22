@@ -3,9 +3,9 @@ import { getCharacter } from "../../../domain/characters.js";
 export function StatBars({ id, small = false }) {
   const character = getCharacter(id);
   const stats = [
-    ["SPD", character.stats.speed],
-    ["ACC", character.stats.acceleration],
-    ["STM", character.stats.stamina],
+    ["スピード", character.stats.speed],
+    ["かそく", character.stats.acceleration],
+    ["スタミナ", character.stats.stamina],
   ];
 
   return (

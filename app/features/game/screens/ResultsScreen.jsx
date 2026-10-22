@@ -19,7 +19,7 @@ export function ResultsScreen({ raceId, results, resultsEndsAt }) {
       <GameHeader phase="RESULTS" />
       <section className="results-heading">
         <div><SectionKicker>RACE COMPLETE</SectionKicker><h1>ゴール！<span>おつかれさま！</span></h1></div>
-        <div className="reset-clock"><span>NEXT RACE</span><strong>00:{String(left).padStart(2, "0")}</strong></div>
+        <div className="reset-clock"><span>NEXT RACE</span><strong>{String(Math.floor(left / 60)).padStart(2, "0")}:{String(left % 60).padStart(2, "0")}</strong></div>
       </section>
       <ResultsBoard raceId={raceId} results={results} />
       <footer className="results-footer"><div><strong>また遊んでね！</strong><span>作品展示もぜひ見ていってください</span></div><p>SAKURABITO CREATIVE CIRCLE <i>→</i></p></footer>
