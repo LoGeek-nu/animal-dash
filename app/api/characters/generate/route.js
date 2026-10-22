@@ -24,7 +24,8 @@ function toRaceCharacter(status, stats) {
     name: status.title,
     ...pickPalette(id),
     preset: characterType(stats),
-    caption: `${status.animal_type}・${status.personality}`,
+    // image-poc writes a catchphrase like the built-ins'; older output only has the animal and personality.
+    caption: typeof status.catchphrase === "string" && status.catchphrase.trim() ? status.catchphrase.trim() : `${status.animal_type}・${status.personality}`,
     stats,
     generated: true,
   };

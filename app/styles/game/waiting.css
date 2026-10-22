@@ -23,6 +23,7 @@
 .waiting-card-copy { min-width: 0; position: relative; z-index: 2; }
 .waiting-card-copy > span { color: color-mix(in srgb, var(--lane) 70%, var(--ink)); font-size: clamp(.56rem, .65vw, .74rem); font-weight: 1000; letter-spacing: .13em; }
 .waiting-card-copy h2 { margin: .06rem 0 0; overflow: hidden; font-size: clamp(1.1rem, 1.55vw, 1.9rem); line-height: 1; font-weight: 1000; text-overflow: ellipsis; white-space: nowrap; }
+.waiting-card-copy p { margin: .35rem 0 0; overflow: hidden; color: var(--ink-soft); font-size: clamp(.62rem, .78vw, .9rem); font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
 .waiting-card-meta .stat-bars { padding-top: .45rem; border-top: 2px dashed color-mix(in srgb, var(--lane) 32%, #c7d3d9); }
 .waiting-card-meta .stat-row { grid-template-columns: 3rem 1fr; gap: .42rem; }
 .waiting-card-meta .stat-row span { font-size: .57rem; }
