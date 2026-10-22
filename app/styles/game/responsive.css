@@ -24,6 +24,8 @@
   .attract-ranking-scene > header p, .attract-ranking-scene > header > span { display: none; }
   .game-header { height: 78px; padding: 1rem; }
   .phase-chip { display: none; }
+  .game-header-status { max-width: 50%; gap: .3rem; }
+  .game-header-status .connection-badge, .game-control-badge { min-height: 1.7rem; padding: .3rem .55rem; font-size: .55rem; }
   .waiting-title-row { padding: 1rem; }
   .waiting-title-row h1 { font-size: 2.6rem; }
   .entry-counter { min-width: 105px; }
