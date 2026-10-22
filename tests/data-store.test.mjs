@@ -6,7 +6,7 @@ import { Miniflare, convertV4MiniflareOptions } from "miniflare";
 import { characters, retiredCharacterIds } from "../app/domain/characters.js";
 import { createInitialSession } from "../app/domain/race-session.js";
 import { characterImageKey, saveGeneratedCharacter } from "../app/api/characters/character-store.js";
-import { getDailyRankings, getStoredCharacter, importCharacterPage, rankingDay, saveCharacter, saveRace } from "../worker/data-store.js";
+import { getDailyRankings, getStoredCharacter, importCharacterPage, listStoredCharacters, rankingDay, resolveCharacter, saveCharacter, saveRace } from "../worker/data-store.js";
 import { charactersResponse, importCharactersResponse, rankingsResponse } from "../worker/data-api.js";
 import { raceRecordFromSession, validRaceRecord } from "../worker/race-record.js";
 import { staffCookie } from "../worker/auth.js";
@@ -14,7 +14,7 @@ import { staffCookie } from "../worker/auth.js";
 // Actual workerd D1/R2 bindings, isolated from the app's local and remote data.
 async function fixture(t, runtimeRoom = false) {
   const modulePaths = ["tests/fixtures/race-worker.mjs", "worker/race-session-room.js", "worker/data-store.js", "worker/race-record.js",
-    "app/api/characters/character-store.js", "app/domain/characters.js", "app/domain/generated-characters.js",
+    "app/api/characters/character-store.js", "app/domain/characters.js", "app/domain/generated-characters.js", "app/domain/generated-stats.js",
     "app/features/race-session/race-session-validator.js", "app/domain/race-session.js", "app/domain/race-results.js",
     "app/features/race-session/constants.js", "worker/race-authority.js", "app/domain/course.js",
     "app/features/game/race/race-runtime.js", "app/features/game/race/race-engine.js", "app/features/game/race/race-ranking.js",
@@ -236,4 +236,18 @@ test("after migrations, the built-in rows carry the same stats the race uses", a
     assert.deepEqual({ speed: row.speed, acceleration: row.acceleration, stamina: row.stamina }, character.stats, character.id);
     assert.deepEqual(JSON.parse(row.data_json).stats, character.stats, character.id);
   }
+});
+
+test("generated characters saved before the total of 40 are read back fitted, with the type recomputed", async (t) => {
+  const { db, bucket } = await fixture(t);
+  // Shape of a character made with the old prompt (total 30), as found in local data.
+  const old = { id: "gen-old-scale", name: "もふもふのりすさん", generated: true, preset: "ダッシュ", caption: "リス・おだやか", color: "#ff6b8a", pale: "#ffe1e8", stats: { speed: 10, acceleration: 12, stamina: 8 } };
+  await saveCharacter(db, old, characterImageKey(old.id));
+  for (const read of [await getStoredCharacter(db, old.id), (await listStoredCharacters(db)).find((c) => c.id === old.id), await resolveCharacter(db, bucket, old.id)]) {
+    assert.equal(read.stats.speed + read.stats.acceleration + read.stats.stamina, 40);
+    assert.ok(read.stats.acceleration > read.stats.speed && read.stats.speed > read.stats.stamina);
+    assert.equal(read.preset, "ダッシュ");
+  }
+  // Built-ins are left exactly as defined.
+  assert.deepEqual((await listStoredCharacters(db)).find((c) => c.id === "momo").stats, characters[0].stats);
 });
