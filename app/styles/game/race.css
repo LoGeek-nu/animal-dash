@@ -97,7 +97,7 @@
 .race-footer-left { display: flex; align-items: center; }
 .race-footer-keys { display: flex; align-items: center; gap: .9rem; margin-left: 1.4rem; }
 .race-footer-key-hint { display: inline-flex; align-items: center; gap: .35rem; }
-.race-control-button { display: inline-block; width: 1.8rem; height: 1.2rem; border: 2px solid var(--ink); border-radius: 999px; box-shadow: 0 3px 0 var(--ink); box-sizing: border-box; }
+.race-control-button { display: inline-block; width: 1.5rem; height: 1.5rem; flex-shrink: 0; border: 2px solid var(--ink); border-radius: 50%; box-shadow: 0 3px 0 var(--ink); box-sizing: border-box; }
 .race-control-button.is-jump { background: var(--red); }
 .race-control-button.is-dash { background: var(--blue); }
 
