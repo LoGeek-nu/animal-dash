@@ -10,7 +10,7 @@ import {
   getVisibleCourseObstacles,
 } from "../app/domain/course.js";
 import { ATTRACT_SCENES, TUTORIAL_STEP_DURATION, tutorialSteps } from "../app/domain/attract.js";
-import { characters, getCharacter, isKnownCharacterId } from "../app/domain/characters.js";
+import { characters, getCharacter, isKnownCharacterId, retiredCharacterIds } from "../app/domain/characters.js";
 import { addGeneratedCharacter, getGeneratedCharacters, refreshGeneratedCharacters } from "../app/domain/generated-characters.js";
 import { createInitialSession } from "../app/domain/race-session.js";
 import { raceSessionActions } from "../app/features/race-session/race-session-actions.js";
@@ -78,14 +78,19 @@ test("the attract loop is nine seconds faster and tutorial steps fit the demo sc
   assert.deepEqual(tutorialSteps.map(({ id }) => id), ["jump", "boost", "goal"]);
 });
 
-test("all ten runners have a generated full-body asset", () => {
-  assert.equal(characters.length, 10);
+test("all eight runners have a full-body asset and the removed two are gone", async () => {
+  assert.equal(characters.length, 8);
   for (const character of characters) {
     assert.match(`/characters/${character.id}/runner.png`, /^\/characters\/[a-z]+\/runner\.png$/);
+    await readFile(new URL(`../public/characters/${character.id}/runner.png`, import.meta.url));
+  }
+  for (const id of retiredCharacterIds) {
+    assert.equal(isKnownCharacterId(id), false);
+    await assert.rejects(readFile(new URL(`../public/characters/${id}/runner.png`, import.meta.url)));
   }
 });
 
-test("generated characters are resolved alongside the static ten without mutating them", () => {
+test("generated characters are resolved alongside the static eight without mutating them", () => {
   assert.equal(isKnownCharacterId("gen-test-unknown"), false);
   assert.equal(getCharacter("gen-test-unknown").id, characters[0].id);
 
@@ -94,7 +99,7 @@ test("generated characters are resolved alongside the static ten without mutatin
 
   assert.equal(isKnownCharacterId("gen-test-unknown"), true);
   assert.deepEqual(getCharacter("gen-test-unknown"), generated);
-  assert.equal(characters.length, 10);
+  assert.equal(characters.length, 8);
 });
 
 test("waiting cards use the new copy without plus or avatar dot decorations", async () => {
@@ -131,11 +136,12 @@ test("admin drag collision only accepts pointer hits inside lanes", async () => 
 test("session transitions are isolated in the reducer", () => {
   const initial = { ...createInitialSession(), phase: "WAITING", lanes: [null, null, null, null] };
   const assigned = raceSessionReducer(initial, raceSessionActions.assignCharacter(2, "momo"), 1_000);
-  assert.deepEqual(assigned.lanes[2], { characterId: "momo", isBot: false });
+  // Built-in characters always run as BOT, even when staff pick them by hand.
+  assert.deepEqual(assigned.lanes[2], { characterId: "momo", isBot: true });
 
   const moved = raceSessionReducer(assigned, raceSessionActions.assignCharacter(0, "momo"), 1_100);
   assert.equal(moved.lanes[2], null);
-  assert.deepEqual(moved.lanes[0], { characterId: "momo", isBot: false });
+  assert.deepEqual(moved.lanes[0], { characterId: "momo", isBot: true });
 
   const countdown = raceSessionReducer(moved, raceSessionActions.startCountdown(), 2_000);
   assert.equal(countdown.phase, "COUNTDOWN");
@@ -201,6 +207,7 @@ test("race engine calculates jump, boost, collision, and rankings without React"
   const preGoalRunner = {
     ...createRuntimeRunner(),
     progress: 99.8,
+    velocity: 9,
     y: 120,
     vy: 200,
     boosting: true,
@@ -270,7 +277,7 @@ test("race engine calculates jump, boost, collision, and rankings without React"
     { ...createRuntimeRunner(), progress: 100.0, finishedAt: 11_000 },
     { ...createRuntimeRunner(), progress: 85.0, finishedAt: null },
   ];
-  const threeLanes = [{ characterId: "momo", isBot: false }, { characterId: "toramaru", isBot: true }, { characterId: "keroppin", isBot: false }];
+  const threeLanes = [{ characterId: "momo", isBot: false }, { characterId: "toramaru", isBot: true }, { characterId: "penta", isBot: true }];
   assert.deepEqual(calculateLiveRanks(rankedRunners, threeLanes), { 0: 2, 1: 1, 2: 3 });
 });
 

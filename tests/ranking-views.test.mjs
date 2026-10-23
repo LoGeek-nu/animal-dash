@@ -50,3 +50,14 @@ test("loading, pending, empty and failed boards show state messages without disp
     }
   }
 });
+
+test("attract ranking reveals 10th place first and lands TOP 3 last, ending on 1st", async (t) => {
+  const { AttractRankingView } = await loadRankingViews(t);
+  const rows = Array.from({ length: 10 }, (_, index) => entry(`gen-${index + 1}`, `キャラ${index + 1}`, index + 1, 30000 + index));
+  const html = renderToStaticMarkup(createElement(AttractRankingView, { board: board("ready", rows) }));
+  const delays = [...html.matchAll(/--rank-delay:(\d+)ms/g)].map((match) => Number(match[1]));
+  assert.equal(delays.length, 10);
+  for (let index = 1; index < delays.length; index += 1) assert.ok(delays[index - 1] > delays[index], `rank ${index} should appear after rank ${index + 1}`);
+  assert.equal(delays[9], 0);
+  assert.ok(delays[2] - delays[3] > delays[3] - delays[4], "TOP 3 waits an extra beat");
+});

@@ -1,4 +1,5 @@
-import { characters } from "../app/domain/characters.js";
+import { characters, characterType } from "../app/domain/characters.js";
+import { readGeneratedStats } from "../app/domain/generated-stats.js";
 import { characterImageUrl, characterImageKey } from "../app/api/characters/character-store.js";
 import { validRaceRecord } from "./race-record.js";
 
@@ -6,10 +7,18 @@ export class RaceStorageError extends Error {
   constructor(code, message) { super(message); this.code = code; this.permanent = true; }
 }
 
+// Generated characters saved before stats moved to a total of 40 are fitted when read, so they race on
+// even terms with the built-ins. The screen list and the room's replay both read through here.
+function onCurrentScale(character) {
+  if (!character.generated) return character;
+  const stats = readGeneratedStats(character.stats) ?? character.stats;
+  return { ...character, stats, preset: characterType(stats) };
+}
+
 function characterFromRow(row) {
   const character = JSON.parse(row.data_json);
-  return { ...character, name: row.name, stats: { speed: row.speed, acceleration: row.acceleration, stamina: row.stamina },
-    ...(row.image_key ? { imageUrl: characterImageUrl(row.id) } : {}) };
+  return onCurrentScale({ ...character, name: row.name, stats: { speed: row.speed, acceleration: row.acceleration, stamina: row.stamina },
+    ...(row.image_key ? { imageUrl: characterImageUrl(row.id) } : {}) });
 }
 
 function validCharacter(character) {
@@ -74,7 +83,7 @@ export async function resolveCharacter(db, bucket, id) {
   try { character = JSON.parse(object.customMetadata?.character ?? ""); }
   catch { throw new RaceStorageError("invalid_character", "Invalid character metadata"); }
   if (character.id !== id || !character.generated || !validCharacter(character)) throw new RaceStorageError("invalid_character", "Invalid character metadata");
-  return character;
+  return onCurrentScale(character);
 }
 
 export async function saveRace(db, bucket, race) {

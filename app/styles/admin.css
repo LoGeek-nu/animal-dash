@@ -45,7 +45,7 @@
 .library-character div > span { color: var(--char); font-size: .52rem; font-weight: 1000; }
 .library-character small { overflow: hidden; color: var(--ink-soft); font-size: .49rem; text-overflow: ellipsis; white-space: nowrap; }
 .library-character > i, .library-character > b { margin-left: auto; flex: 0 0 auto; }
-.library-character > i { width: 1.55rem; height: 1.55rem; display: grid; place-items: center; color: white; background: var(--char); border-radius: 50%; font-size: .7rem; font-style: normal; font-weight: 1000; }
+.library-character > i { min-width: 1.55rem; height: 1.55rem; padding: 0 .5rem; display: grid; place-items: center; color: white; background: var(--char); border-radius: 99px; font-size: .62rem; font-style: normal; font-weight: 1000; white-space: nowrap; }
 .library-character > b { padding: .22rem .35rem; color: #72838f; background: #dce3e7; border-radius: 99px; font-size: .48rem; }
 .admin-lanes { padding-top: .75rem; display: grid; gap: .5rem; }
 .admin-lane { height: 88px; min-width: 0; padding: .5rem .65rem .5rem 0; display: flex; align-items: center; gap: .6rem; background: #f6f8f9; border: 2px dashed #cbd6dc; border-radius: 10px; }
@@ -62,10 +62,8 @@
 .lane-character-copy > div strong { font-size: .78rem; }
 .lane-character-copy > div b { padding: .16rem .34rem; color: white; background: var(--ink); border-radius: 99px; font-size: .43rem; }
 .lane-character-copy > span { color: var(--ink-soft); font-size: .5rem; }
-.lane-character-copy .stat-bars { width: 150px; margin-top: .25rem; grid-template-columns: repeat(4, 1fr); }
-.lane-character-copy .stat-row { display: block; }
-.lane-character-copy .stat-row span { display: none; }
-.lane-character-copy .stat-row > i { display: block; }
+.lane-character-copy > .stat-bars { display: grid; width: min(180px, 100%); margin-top: .15rem; gap: .1rem; }
+.lane-character-copy .stat-row span { line-height: 1.15; }
 .empty-lane-mark { width: 55px; color: #a2b1ba; font-size: 2.2rem; font-weight: 1000; text-align: center; }
 .empty-lane-copy { display: grid; gap: .12rem; }
 .empty-lane-copy strong { font-size: .7rem; }
@@ -108,9 +106,18 @@
 .generate-dialog-preview { width: 100%; max-height: 260px; margin-bottom: 1rem; object-fit: contain; border: 2px solid #dbe4e9; border-radius: 12px; }
 .generate-dialog-spinner { width: 2.4rem; height: 2.4rem; margin: 0 auto .9rem; border: 4px solid #dbe4e9; border-top-color: var(--char, #ff6b8a); border-radius: 50%; animation: dialogSpin .8s linear infinite; }
 .generate-dialog-error { color: #d23b4e; }
+.generate-dialog-result .character-avatar { width: 150px; height: 150px; margin: 0 auto; }
+.generate-dialog-result h3 { margin: .6rem 0 .25rem; font-size: 1.2rem; }
+.generate-dialog-result p { margin-bottom: .8rem; }
+.generate-dialog-result .mobile-stats { margin: .4rem 0 1rem; text-align: left; }
 
-.panel-heading-actions { display: flex; align-items: center; gap: .5rem; }
-.capture-button { white-space: nowrap; }
+.panel-heading-actions { min-width: 0; display: flex; align-items: center; justify-content: flex-end; gap: .5rem; }
+.panel-heading-actions .search-box { width: auto; min-width: 0; flex: 0 1 230px; }
+/* The main way to add a racer, so it reads as a primary action next to the search field. */
+.panel-heading-actions .capture-button { min-height: 42px; padding: .6rem 1rem; display: inline-flex; align-items: center; gap: .45rem; white-space: nowrap; color: white; background: var(--blue); border: 2px solid var(--ink); border-radius: 10px; box-shadow: 0 3px 0 var(--ink); font-size: .72rem; transition: transform .12s ease, box-shadow .12s ease; }
+.panel-heading-actions .capture-button:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 0 var(--ink); }
+.panel-heading-actions .capture-button:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 var(--ink); }
+.panel-heading-actions .capture-button:disabled { color: #98a8b2; background: #e1e7ea; border-color: #c7d3da; box-shadow: none; }
 .connection-badge.is-pending span { background: #f2b630; box-shadow: 0 0 0 3px #fcefc8; }
 .connection-badge.is-offline span { background: var(--red); box-shadow: 0 0 0 3px #fbd9dd; animation: none; }
 .admin-header .connection-badge.is-offline { color: white; background: var(--red); }

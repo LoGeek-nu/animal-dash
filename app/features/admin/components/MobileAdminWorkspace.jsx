@@ -4,19 +4,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "../../../components/ui/atoms/Button.jsx";
 import { CharacterAvatar } from "../../../components/ui/molecules/CharacterAvatar.jsx";
 import { SearchField } from "../../../components/ui/molecules/SearchField.jsx";
+import { StatMeters } from "../../../components/ui/molecules/StatMeters.jsx";
 import { getCharacter, laneColors } from "../../../domain/characters.js";
 import { PHASE_LABELS } from "../../../domain/race-session.js";
 import { logout } from "../../auth/useStaffAuth.js";
 import { createLongPressGesture } from "../model/long-press.js";
 import { AdminModal } from "./AdminModal.jsx";
-
-function MobileStats({ character, compact = false }) {
-  const stats = compact ? [["SPD", character.stats.speed], ["STM", character.stats.stamina]]
-    : [["スピード", character.stats.speed], ["加速", character.stats.acceleration], ["スタミナ", character.stats.stamina]];
-  return <div className={`mobile-stats ${compact ? "is-compact" : ""}`}>{stats.map(([label, value]) => (
-    <div key={label}><span>{label}</span><meter min="0" max="10" value={value} aria-label={label}>{value} / 10</meter>{!compact && <strong>{value} / 10</strong>}</div>
-  ))}</div>;
-}
 
 function CharacterCard({ character, selected, used, assigning, mutable, onSelect, onInfo }) {
   const inspect = useCallback(() => onInfo(character.id), [character.id, onInfo]);
@@ -92,7 +85,7 @@ export function MobileAdminWorkspace({ session, selection, actions, canLogout, o
           const character = lane ? getCharacter(lane.characterId) : null;
           return <div key={index} className={`mobile-lane ${lane ? "has-racer" : ""}`} style={{ "--lane": laneColors[index] }}>
             <div className="mobile-lane-number"><small>LANE</small><strong>0{index + 1}</strong></div>
-            {character ? <><CharacterAvatar id={character.id} compact /><div className="mobile-lane-copy"><strong>{character.name} {lane.isBot && <b>BOT</b>}</strong><small>{character.preset}タイプ</small><MobileStats character={character} compact /></div><button type="button" className="mobile-remove" disabled={!mutable} aria-label={`レーン${index + 1}から解除`} onClick={() => actions.removeCharacter(index)}>×</button></>
+            {character ? <><CharacterAvatar id={character.id} compact /><div className="mobile-lane-copy"><strong>{character.name} {lane.isBot && <b>BOT</b>}</strong><small>{character.preset}タイプ</small><StatMeters character={character} compact /></div><button type="button" className="mobile-remove" disabled={!mutable} aria-label={`レーン${index + 1}から解除`} onClick={() => actions.removeCharacter(index)}>×</button></>
               : <><span className="mobile-empty-mark" aria-hidden="true">?</span><strong className="mobile-empty-copy">空きレーン</strong><Button variant="ghost" disabled={!mutable} onClick={() => chooseLane(index)} aria-label={`レーン${index + 1}のキャラクターを選ぶ`}>＋ 選ぶ</Button></>}
           </div>;
         })}</div>
@@ -109,7 +102,7 @@ export function MobileAdminWorkspace({ session, selection, actions, canLogout, o
       </section>
       <div className="mobile-action-dock mobile-character-dock"><div><Button variant="primary" disabled={!canAssign} onClick={assign}>{!assigning && <svg className="mobile-set-lock" aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><rect x="5" y="10" width="14" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3" /><path d="M12 14v3" /></svg>}{assigning ? `レーン${targetLane + 1}にセット` : "レーンにセット"}</Button>{assigning && <Button variant="secondary" disabled={!selectedId} onClick={() => selection.setSelectedId(null)}>選択解除</Button>}</div>{!assigning && <small>参加枠の「選ぶ」から開くとセットできます</small>}{assigning && session.lanes[targetLane] && <small role="status">このレーンは他の操作で埋まりました。参加枠から選び直してください。</small>}</div>
     </>}
-    {info && <AdminModal title="ステータス詳細" onClose={() => setInfoId(null)} className="mobile-stats-dialog"><CharacterAvatar id={info.id} /><h3>{info.name}</h3><p>{info.preset}タイプ</p><p>{info.caption}</p><MobileStats character={info} /><Button variant="secondary" onClick={() => setInfoId(null)}>閉じる</Button></AdminModal>}
+    {info && <AdminModal title="ステータス詳細" onClose={() => setInfoId(null)} className="mobile-stats-dialog"><CharacterAvatar id={info.id} /><h3>{info.name}</h3><p>{info.preset}タイプ</p><p>{info.caption}</p><StatMeters character={info} /></AdminModal>}
     {operationsOpen && <AdminModal title="その他の操作" onClose={() => setOperationsOpen(false)} className="mobile-operations-dialog">
       <span className={`mobile-phase status-${session.phase.toLowerCase()}`}>{PHASE_LABELS[session.phase]}</span><p>レース全体の操作はここから行います</p>
       <div className="mobile-operation-buttons">
@@ -120,7 +113,7 @@ export function MobileAdminWorkspace({ session, selection, actions, canLogout, o
         <Button variant="ghost" className="mobile-reset" onClick={() => requestConfirmation(onRequestReset)}>リセット <small>確認画面へ進みます</small></Button>
       </div>
       <div className="mobile-operation-links"><a href="/game" target="_blank" rel="noreferrer">ゲーム画面を開く ↗</a>{canLogout && <button type="button" onClick={() => logout("/admin")}>ログアウト</button>}</div>
-      <p className="mobile-operation-note">操作は他のスタッフの画面にも反映されます</p><Button variant="secondary" onClick={() => setOperationsOpen(false)}>閉じる</Button>
+      <p className="mobile-operation-note">操作は他のスタッフの画面にも反映されます</p>
     </AdminModal>}
   </div>;
 }

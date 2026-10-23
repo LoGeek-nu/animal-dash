@@ -13,7 +13,7 @@ export function AdminHeader({ ready, syncStatus, canLogout = false }) {
   const badge = syncBadge(ready, syncStatus);
   return (
     <header className="admin-header">
-      <div className="admin-brand"><strong>ANIMAL DASH!</strong><span>STAFF CONTROL</span></div>
+      <div className="admin-brand"><strong>アニマルダッシュ！</strong><span>STAFF CONTROL</span></div>
       <nav><a href="/game" target="_blank">ゲーム画面を開く <i>↗</i></a><ConnectionBadge label={badge.label} tone={badge.tone} />{canLogout && <button type="button" className="admin-logout" onClick={() => logout("/admin")}>ログアウト</button>}</nav>
     </header>
   );

@@ -4,10 +4,10 @@ import { useEffect } from "react";
 import { getRaceId } from "../../domain/race-session.js";
 import { raceSessionActions } from "./race-session-actions.js";
 
-export function usePhaseTimers(session, dispatch) {
+export function usePhaseTimers(session, dispatch, enabled = true) {
   const raceId = getRaceId(session);
   useEffect(() => {
-    if (session.phase !== "COUNTDOWN" || !session.countdownEndsAt) return undefined;
+    if (!enabled || session.phase !== "COUNTDOWN" || !session.countdownEndsAt) return undefined;
     const wait = Math.max(0, session.countdownEndsAt - Date.now());
     let retry;
     const timer = window.setTimeout(() => {
@@ -18,12 +18,12 @@ export function usePhaseTimers(session, dispatch) {
       retry = window.setInterval(start, 250);
     }, wait);
     return () => { window.clearTimeout(timer); window.clearInterval(retry); };
-  }, [dispatch, session.countdownEndsAt, session.phase, session.raceId]);
+  }, [enabled, dispatch, session.countdownEndsAt, session.phase, session.raceId]);
 
   useEffect(() => {
-    if (session.phase !== "RESULTS" || !session.resultsEndsAt) return undefined;
+    if (!enabled || session.phase !== "RESULTS" || !session.resultsEndsAt) return undefined;
     const wait = Math.max(0, session.resultsEndsAt - Date.now());
     const timer = window.setTimeout(() => dispatch(raceSessionActions.resetSession(raceId)), wait);
     return () => window.clearTimeout(timer);
-  }, [dispatch, session.phase, session.resultsEndsAt, raceId]);
+  }, [enabled, dispatch, session.phase, session.resultsEndsAt, raceId]);
 }

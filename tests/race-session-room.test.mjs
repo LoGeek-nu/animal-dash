@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { createInitialSession } from "../app/domain/race-session.js";
 import { RaceSessionRoom } from "../worker/race-session-room.js";
+import { MAX_RACE_INPUTS } from "../app/features/game/race/constants.js";
+import { receiveRaceUpdate } from "../app/features/game/race/spectator-race.js";
 
 globalThis.WebSocketRequestResponsePair ??= class {};
 const socket = (role, id = role) => ({ readyState: 1, sent: [], deserializeAttachment: () => ({ role, id }), close() { this.readyState = 3; }, send(raw) { this.sent.push(JSON.parse(raw)); } });
@@ -141,4 +143,90 @@ test("a saved race conflict is quarantined permanently rather than retried", asy
   assert.equal(f.data.get("failed:conflict").code, "result_conflict");
   assert.equal(f.data.has("result:conflict"), false);
   assert.equal(f.data.has("alarm"), false);
+});
+
+test("a stored session holding removed characters frees those lanes instead of stranding clients", async () => {
+  const f = fixture();
+  const stored = { ...createInitialSession(), phase: "WAITING", lanes: [{ characterId: "keroppin", isBot: true }, { characterId: "momo", isBot: true }, { characterId: "koro", isBot: true }, null] };
+  f.data.set("session", stored);
+  const session = await f.room.session();
+  assert.deepEqual(session.lanes, [null, { characterId: "momo", isBot: true }, null, null]);
+  assert.equal(session.sequence, stored.sequence + 1);
+  assert.deepEqual(f.data.get("session"), session);
+  assert.equal(await f.room.session(), f.data.get("session"));
+});
+
+test("spectators cannot change any phase, input, ownership or final result", async (t) => {
+  t.mock.method(console, "error", () => {});
+  const f = fixture();
+  const viewer = socket("viewer", "spectator");
+  f.ctx.getWebSockets = () => [f.admin, f.game, f.observer, viewer];
+  const unchanged = async (payload) => {
+    const before = JSON.stringify([...f.data]);
+    await f.room.webSocketMessage(viewer, JSON.stringify(payload));
+    assert.equal(JSON.stringify([...f.data]), before);
+    assert.equal(viewer.sent.at(-2).error, "read_only");
+  };
+  for (const phase of ["WAITING", "COUNTDOWN", "RACING", "RESULTS", "ATTRACT"]) {
+    await unchanged({ type: "session", session: { ...f.data.get("session"), phase, sequence: 2, resultsForced: true } });
+  }
+  await f.start();
+  const current = f.data.get("session");
+  await unchanged({ type: "input", raceId: current.raceId, buttons: 255, role: "game" });
+  await f.room.webSocketClose(viewer, 1000, "spectator left");
+  assert.equal(f.data.get("activeRace").reporterId, "game");
+  f.setNow(current.raceStartedAt + 20_000);
+  await f.send(f.game, { phase: "RESULTS" });
+  await unchanged({ type: "session", session: { ...f.data.get("session"), sequence: f.data.get("session").sequence + 1, results: [] } });
+});
+
+test("accepted input is broadcast with server time, and reconnect snapshots include its history", async () => {
+  const f = fixture(); await f.start();
+  const race = f.data.get("activeRace");
+  f.setNow(race.startedAt + 500);
+  await f.room.webSocketMessage(f.game, JSON.stringify({ type: "input", raceId: race.raceId, buttons: 17, at: -999 }));
+  for (const ws of [f.admin, f.game, f.observer]) {
+    assert.deepEqual(ws.sent.at(-1), { type: "race-input", raceId: race.raceId, input: { at: 500, buttons: 17 }, serverNow: race.startedAt + 500 });
+  }
+  const viewer = socket("viewer");
+  f.data.set("gameOwner", "game");
+  f.room.sendRace(viewer, race);
+  assert.deepEqual(viewer.sent.at(-1).race.inputs, [{ at: 500, buttons: 17 }]);
+  assert.deepEqual(viewer.sent.at(-1).race.characters, race.characters);
+  await f.room.webSocketClose(f.game, 1000, "owner left");
+  assert.equal(f.data.get("activeRace").inputs.at(-1).buttons, 0);
+  assert.equal(f.observer.sent.at(-1).canControl, true);
+});
+
+test("a full input history still fits the release on reporter disconnect, so spectators can join", async () => {
+  const f = fixture(); await f.start();
+  const race = f.data.get("activeRace");
+  race.inputs = Array.from({ length: MAX_RACE_INPUTS - 2 }, (_, i) => ({ at: i, buttons: i % 2 ? 0 : 16 }));
+  f.setNow(race.startedAt + 30_000);
+  const input = (buttons) => f.room.webSocketMessage(f.game, JSON.stringify({ type: "input", raceId: race.raceId, buttons }));
+  await input(1);
+  await input(16);
+  assert.equal(f.data.get("activeRace").inputs.length, MAX_RACE_INPUTS - 1);
+  await f.room.webSocketClose(f.game, 1000, "owner left");
+  await f.room.webSocketClose(f.observer, 1000, "next owner left");
+  const stored = f.data.get("activeRace");
+  assert.equal(stored.inputs.length, MAX_RACE_INPUTS);
+  assert.equal(stored.inputs.at(-1).buttons, 0);
+  const viewer = socket("viewer");
+  f.room.sendRace(viewer, stored);
+  assert.ok(receiveRaceUpdate(null, viewer.sent.at(-1), 0));
+});
+
+test("a new connection gets its own control state without messaging every other socket", async () => {
+  const f = fixture();
+  const before = [f.admin, f.game, f.observer].map((ws) => ws.sent.length);
+  const viewer = { ...socket("viewer", "late"), serializeAttachment() {} };
+  f.ctx.acceptWebSocket = () => {};
+  const { WebSocketPair } = globalThis;
+  globalThis.WebSocketPair = class { constructor() { return [{}, viewer]; } };
+  // Node's Response refuses status 101; the room has already sent its frames by then.
+  try { await f.room.fetch(new Request("https://room/?role=viewer", { headers: { Upgrade: "websocket" } })); } catch { /* 101 */ }
+  finally { globalThis.WebSocketPair = WebSocketPair; }
+  assert.deepEqual([f.admin, f.game, f.observer].map((ws) => ws.sent.length), before);
+  assert.deepEqual(viewer.sent.find((m) => m.type === "control"), { type: "control", canControl: false });
 });

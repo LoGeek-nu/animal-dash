@@ -19,7 +19,7 @@ export function WaitingCharacterCard({ lane, index }) {
       <div className="waiting-card-header"><span>LANE {index + 1}</span>{lane.isBot && <b>BOT</b>}</div>
       <div className="waiting-card-art"><CharacterAvatar id={lane.characterId} /></div>
       <div className="waiting-card-meta">
-        <div className="waiting-card-copy"><span>{character.preset.toUpperCase()}</span><h2>{character.name}</h2></div>
+        <div className="waiting-card-copy"><span>{character.preset.toUpperCase()}</span><h2>{character.name}</h2>{character.caption && <p>{character.caption}</p>}</div>
         <StatBars id={lane.characterId} small />
       </div>
     </article>

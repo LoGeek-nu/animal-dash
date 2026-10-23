@@ -20,12 +20,10 @@ test("server-renders the public game screen", async () => {
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
   const html = await response.text();
-  assert.match(html, /ANIMAL DASH!/);
+  assert.match(html, /アニマルダッシュ！/);
   assert.match(html, /アニマル/);
-  assert.match(html, /ANIMAL PARADE/);
-  assert.match(html, /DEMO RACE/);
-  assert.match(html, /TODAY(?:&#x27;|')S RANKING/);
-  assert.match(html, /\/characters\/momo\/runner\.png/);
+  assert.match(html, /現在のゲームに接続しています/);
+  assert.doesNotMatch(html, /ANIMAL PARADE|DEMO RACE/);
   assert.doesNotMatch(html, /codex-preview|react-loading-skeleton/i);
 });
 
@@ -50,9 +48,9 @@ test("health endpoint reports the mock ready", async () => {
   assert.equal((await response.json()).status, "ok");
 });
 
-test("the sync endpoint refuses unauthenticated and cross-site handshakes", async () => {
+test("the sync endpoint protects writing roles and rejects cross-site handshakes", async () => {
   const worker = await loadWorker("sync");
-  const sync = (headers) => worker.fetch(new Request("https://animaldash.logeek.tech/api/sync", { headers }), env, ctx);
+  const sync = (headers) => worker.fetch(new Request("https://animaldash.logeek.tech/api/sync?role=game", { headers }), env, ctx);
 
   assert.equal((await sync({ Upgrade: "websocket" })).status, 401);
   assert.equal((await sync({ Upgrade: "websocket", Origin: "https://evil.example" })).status, 403);
