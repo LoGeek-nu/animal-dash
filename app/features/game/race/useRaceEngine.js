@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { courseObstacles } from "../../../domain/course.js";
-import { getRaceInput } from "./race-input.js";
 import { PAINT_INTERVAL } from "./constants.js";
 import { createRuntimeRunner, toRenderableRunner } from "./race-engine.js";
 import { calculateLiveRanks } from "./race-ranking.js";
@@ -66,10 +64,7 @@ export function useRaceEngine({ raceId, lanes, raceStartedAt, onFinished, onInpu
       if (!runtime.completed && (buttons !== lastButtons || now - lastInputAt >= 250)) { onInput?.({ raceId, buttons }); lastButtons = buttons; lastInputAt = now; }
       advanceRaceRuntime(runtime, {
         now, epochNow: runtime.raceStartedAt + runtime.elapsedAtOrigin + Math.max(now - runtime.origin, Date.now() - runtime.wallOrigin), onJumpInput: consumeJump,
-        readInput: (laneIndex, runner, lane, simulationNow) => {
-          return getRaceInput({ lane, laneIndex, runner, now: simulationNow, obstacles: courseObstacles,
-            manualInput: readInput(laneIndex, gamepads[laneIndex]) });
-        },
+        readInput: (laneIndex) => readInput(laneIndex, gamepads[laneIndex]),
       });
 
       if (runtime.completed || now - lastPaint > PAINT_INTERVAL) {

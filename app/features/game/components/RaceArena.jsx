@@ -30,7 +30,7 @@ export function RaceArena({ raceId, lanes, raceStartedAt, onFinished, onInput, c
               <span className="race-control-button is-jump" aria-hidden="true" />
             </span>
             <span className="race-footer-key-hint">
-              <span>ダッシュ</span>
+              <span>ブースト</span>
               <span className="race-control-button is-dash" aria-hidden="true" />
             </span>
           </div>

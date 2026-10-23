@@ -9,9 +9,6 @@ import { createRuntimeRunner, stepRaceRunner } from "../app/features/game/race/r
 import { advanceRaceRuntime, createRaceRuntime, takeRaceCompletion } from "../app/features/game/race/race-runtime.js";
 import { raceRecordFromSession } from "../worker/race-record.js";
 import { characters } from "../app/domain/characters.js";
-import { getBotInput } from "../app/features/game/race/bot-controller.js";
-import { courseObstacles } from "../app/domain/course.js";
-import { getRaceInput } from "../app/features/game/race/race-input.js";
 import { calculateLiveRanks } from "../app/features/game/race/race-ranking.js";
 import { replayRace } from "../worker/race-authority.js";
 
@@ -31,8 +28,7 @@ test("keyboard/gamepad input on BOT lanes cannot change displayed goals or ranks
     for (let frame = 1; frame <= fps * 59 && !run.completed; frame++) {
       const now = frame * 1000 / fps;
       advanceRaceRuntime(run, { now, epochNow: startedAt + now,
-        readInput: (laneIndex, runner, lane, simulationNow) => getRaceInput({ lane, laneIndex, runner,
-          now: simulationNow, obstacles: courseObstacles, manualInput: { jump: true, boost: true } }) });
+        readInput: () => ({ jump: true, boost: true }) });
     }
     assert.deepEqual(run.completed.results, canonical.results, `${fps} FPS`);
     const liveRanks = calculateLiveRanks(run.runners, botLanes);
@@ -50,8 +46,7 @@ test("player jump input still reaches the runner", () => {
   const run = createRaceRuntime({ raceId: "player-jump", raceStartedAt: startedAt, lanes: [lane], now: 0, epochNow: startedAt });
   let consumed = 0;
   advanceRaceRuntime(run, { now: 10, epochNow: startedAt + 10, obstacles: [],
-    readInput: (laneIndex, runner, raceLane, now) => getRaceInput({ lane: raceLane, laneIndex, runner, now,
-      obstacles: [], manualInput: { jump: true, boost: false } }),
+    readInput: () => ({ jump: true, boost: false }),
     onJumpInput: () => { consumed++; } });
   assert.ok(run.runners[0].y > 0);
   assert.equal(consumed, 1);
@@ -64,8 +59,7 @@ test("player lanes still use manual boost while BOT lanes ignore it", () => {
     for (let frame = 1; frame <= 60 * 59 && !run.completed; frame++) {
       const now = frame * 1000 / 60;
       advanceRaceRuntime(run, { now, epochNow: startedAt + now,
-        readInput: (laneIndex, runner) => getRaceInput({ lane, laneIndex, runner, now, obstacles: courseObstacles,
-          manualInput: { jump: false, boost } }) });
+        readInput: () => ({ jump: false, boost }) });
     }
     return run.completed.results[0].finishMs;
   };
@@ -78,9 +72,7 @@ test("120/60/20/10/1 FPS produce the same goals and BOT controls on the actual c
     const run = createRaceRuntime({ raceId: `fps-${fps}`, raceStartedAt: startedAt, lanes, now: 0, epochNow: startedAt });
     for (let frame = 1; frame <= fps * 59 && !run.completed; frame++) {
       const now = frame * 1000 / fps;
-      advanceRaceRuntime(run, { now, epochNow: startedAt + Math.round(now),
-        readInput: (laneIndex, runner, lane, simulationNow) => lane.isBot
-          ? getBotInput({ laneIndex, runner, now: simulationNow, obstacles: courseObstacles }) : { jump: false, boost: false } });
+      advanceRaceRuntime(run, { now, epochNow: startedAt + Math.round(now) });
     }
     assert.ok(run.completed);
     return run.completed.results;

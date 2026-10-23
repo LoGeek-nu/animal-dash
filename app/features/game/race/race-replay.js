@@ -1,6 +1,4 @@
-import { courseObstacles } from "../../../domain/course.js";
 import { createRaceRuntime, advanceRaceRuntime, SIMULATION_STEP_MS } from "./race-runtime.js";
-import { getRaceInput } from "./race-input.js";
 
 // Both the authoritative result and spectators replay server-timestamped inputs.
 export function createRaceReplay(race) {
@@ -20,9 +18,7 @@ export function advanceRaceReplay(replay, elapsed) {
       replay.buttons = next;
     }
     advanceRaceRuntime(runtime, { now: time, epochNow: runtime.raceStartedAt + time,
-      readInput: (index, runner, lane, simulationNow) => getRaceInput({ lane, laneIndex: index, runner,
-        now: simulationNow, obstacles: courseObstacles,
-        manualInput: { jump: Boolean(replay.jumps & (1 << index)), boost: Boolean(replay.buttons & (1 << (index + 4))) } }),
+      readInput: (index) => ({ jump: Boolean(replay.jumps & (1 << index)), boost: Boolean(replay.buttons & (1 << (index + 4))) }),
       onJumpInput: (index) => { replay.jumps &= ~(1 << index); } });
   }
   return runtime;

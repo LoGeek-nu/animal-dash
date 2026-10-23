@@ -1,5 +1,6 @@
 import { getCharacter } from "../../../domain/characters.js";
 import { courseObstacles } from "../../../domain/course.js";
+import { getBotInput } from "./bot-controller.js";
 import { RACE_TIMEOUT } from "./constants.js";
 import { createRuntimeRunner, stepRaceRunner } from "./race-engine.js";
 import { buildFinalResults } from "./race-ranking.js";
@@ -31,6 +32,8 @@ function completeRace(runtime) {
 }
 
 // The hook owns scheduling and browser input. This owns one race's timing and finalization.
+// readInput is asked only for player lanes. BOTs are driven here, so the screen and the server replay
+// cannot diverge by feeding keyboard/gamepad input into a BOT.
 export function advanceRaceRuntime(runtime, { now, epochNow, readInput = () => ({ jump: false, boost: false }), onJumpInput = () => {}, obstacles = courseObstacles }) {
   if (runtime.completed) return;
   const elapsed = runtime.elapsedAtOrigin + now - runtime.origin;
@@ -53,11 +56,13 @@ export function advanceRaceRuntime(runtime, { now, epochNow, readInput = () => (
     runtime.runners = runtime.runners.map((runner, index) => {
     const lane = runtime.lanes[index];
     if (!lane || (runner.finishedAt !== null && runner.y === 0)) return runner;
-    const input = runner.finishedAt !== null ? { jump: false, boost: false } : readInput(index, runner, lane, simulationNow);
+    const input = runner.finishedAt !== null ? { jump: false, boost: false }
+      : lane.isBot ? getBotInput({ laneIndex: index, runner, now: simulationNow, obstacles })
+        : readInput(index, runner, lane, simulationNow);
     const stepped = stepRaceRunner({ runner, character: runtime.characters[index], input, obstacles,
       now: simulationNow, dt: SIMULATION_STEP_MS / 1000, elapsed: simulationNow });
     // A press is read once: one taken mid-air is dropped rather than replayed on landing.
-    if (input.jump) onJumpInput(index);
+    if (input.jump && !lane.isBot) onJumpInput(index);
     return stepped.runner;
     });
     if (runtime.runners.every((runner, index) => !runtime.lanes[index] || runner.finishedAt !== null)) {
