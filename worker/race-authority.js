@@ -1,6 +1,4 @@
-import { courseObstacles } from "../app/domain/course.js";
 import { createRaceRuntime, advanceRaceRuntime, SIMULATION_STEP_MS } from "../app/features/game/race/race-runtime.js";
-import { getBotInput } from "../app/features/game/race/bot-controller.js";
 
 // The room records when inputs arrive. A client cannot backdate inputs or supply
 // a goal time. Replaying the same fixed-step engine yields the canonical result.
@@ -19,9 +17,7 @@ export function replayRace(race, now) {
       buttons = next;
     }
     advanceRaceRuntime(runtime, { now: time, epochNow: race.startedAt + time,
-      readInput: (index, runner, lane, simulationNow) => lane.isBot
-        ? getBotInput({ laneIndex: index, runner, now: simulationNow, obstacles: courseObstacles })
-        : { jump: Boolean(jumps & (1 << index)), boost: Boolean(buttons & (1 << (index + 4))) },
+      readInput: (index) => ({ jump: Boolean(jumps & (1 << index)), boost: Boolean(buttons & (1 << (index + 4))) }),
       onJumpInput: (index) => { jumps &= ~(1 << index); } });
   }
   return runtime.completed;
