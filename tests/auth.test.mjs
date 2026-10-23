@@ -10,7 +10,7 @@ import {
   STAFF_COOKIE,
   staffCookie,
 } from "../worker/auth.js";
-import { loginPath, logout, safeNextPath } from "../app/features/auth/useStaffAuth.js";
+import { authRetryDelay, fetchStaffAuth, loginPath, logout, safeNextPath } from "../app/features/auth/useStaffAuth.js";
 
 const env = { STAFF_PASSCODE: "kuma-dash-2026" };
 const request = (headers = {}, url = "https://animaldash.logeek.tech/api/sync") => new Request(url, { headers });
@@ -94,4 +94,32 @@ test("login attempts are counted per IP, and unlimited where the limiter binding
   assert.equal(await loginAttemptAllowed(from("203.0.113.7"), { AUTH_LIMITER: limiter }), false);
   assert.deepEqual(keys, ["203.0.113.7", "203.0.113.7"]);
   assert.equal(await loginAttemptAllowed(from("203.0.113.7"), {}), true);
+});
+
+test("public sync accepts only viewer upgrades; writing roles require the staff cookie", async () => {
+  const { syncResponse } = await import("../worker/sync-access.js");
+  const forwarded = [];
+  const bindings = { ...env, RACE_SESSION: { getByName: () => ({ fetch: async (request) => {
+    forwarded.push(new URL(request.url).searchParams.get("role"));
+    return new Response("upgraded");
+  } }) } };
+  const sync = (role, headers = {}) => syncResponse(new Request(`https://game.test/api/sync${role ? `?role=${role}` : ""}`,
+    { headers: { Upgrade: "websocket", ...headers } }), bindings);
+  for (const role of ["", "viewer"]) assert.equal((await sync(role)).status, 200);
+  for (const role of ["admin", "game"]) assert.equal((await sync(role)).status, 401);
+  assert.equal((await sync("game", { Cookie: `${STAFF_COOKIE}=forged` })).status, 401);
+  const cookie = cookieValue(await staffCookie(request(), env));
+  for (const role of ["admin", "game"]) assert.equal((await sync(role, { Cookie: cookie })).status, 200);
+  assert.equal((await sync("viewer", { Origin: "https://evil.test" })).status, 403);
+  assert.equal((await sync("owner")).status, 400);
+  assert.deepEqual(forwarded, ["viewer", "viewer", "admin", "game"]);
+});
+
+test("a failed auth check is reported as unknown rather than signed out, and is retried with backoff", async () => {
+  const reply = (status, body = {}) => async () => new Response(JSON.stringify(body), { status });
+  assert.deepEqual(await fetchStaffAuth(reply(200, { authenticated: true, loginRequired: true })), { authenticated: true, loginRequired: true });
+  assert.deepEqual(await fetchStaffAuth(reply(200, { authenticated: false, loginRequired: false })), { authenticated: false, loginRequired: false });
+  await assert.rejects(fetchStaffAuth(reply(503)));
+  await assert.rejects(fetchStaffAuth(async () => { throw new TypeError("Failed to fetch"); }));
+  assert.deepEqual([0, 1, 2, 3, 4, 50].map(authRetryDelay), [1000, 2000, 5000, 10_000, 10_000, 10_000]);
 });

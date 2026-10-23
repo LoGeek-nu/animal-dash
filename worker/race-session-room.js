@@ -4,6 +4,7 @@ import { characters, retiredCharacterIds } from "../app/domain/characters.js";
 import { createInitialSession, createRaceId } from "../app/domain/race-session.js";
 import { validSession } from "../app/features/race-session/race-session-validator.js";
 import { COUNTDOWN_DURATION, RESULTS_DURATION } from "../app/features/race-session/constants.js";
+import { MAX_RACE_INPUTS } from "../app/features/game/race/constants.js";
 import { resolveCharacter, saveRace } from "./data-store.js";
 import { raceRecordFromSession } from "./race-record.js";
 import { replayRace } from "./race-authority.js";
@@ -70,8 +71,28 @@ export class RaceSessionRoom {
         await this.ctx.storage.put("activeRace", race);
       }
       server.send(JSON.stringify({ type: "session", session: current }));
+      // A new socket can only take ownership from nobody, so no other socket's control changes here.
+      await this.sendControl([server]);
+      this.sendRace(server, race);
     });
     return new Response(null, { status: 101, webSocket: client });
+  }
+
+  async sendControl(sockets = this.ctx.getWebSockets()) {
+    const owner = this.reporter(await this.ctx.storage.get("gameOwner"));
+    for (const socket of sockets) {
+      const actor = socket.deserializeAttachment();
+      try { socket.send(JSON.stringify({ type: "control", canControl: actor?.role === "game" && socket === owner })); } catch { /* closing */ }
+    }
+  }
+  sendRace(socket, race) {
+    if (!race) return;
+    const { raceId, startedAt, lanes, characters, inputs } = race;
+    socket.send(JSON.stringify({ type: "race", race: { raceId, startedAt, lanes, characters, inputs, serverNow: this.now() } }));
+  }
+  broadcastRace(race) {
+    if (!race) return;
+    for (const socket of this.ctx.getWebSockets()) { try { this.sendRace(socket, race); } catch { /* closing */ } }
   }
 
   gameSocket() { return this.ctx.getWebSockets().find((ws) => ws.readyState === 1 && ws.deserializeAttachment()?.role === "game"); }
@@ -102,6 +123,7 @@ export class RaceSessionRoom {
     try { message = JSON.parse(raw); } catch { return; }
     const actor = socket.deserializeAttachment() ?? {};
     const current = await this.session();
+    if (actor.role === "viewer") return this.reject(socket, "read_only", current);
     if (message.type === "input") {
       const race = await this.ctx.storage.get("activeRace");
       if (actor.role !== "game" || !race || actor.id !== race.reporterId || message.raceId !== race.raceId
@@ -109,10 +131,12 @@ export class RaceSessionRoom {
         || !Number.isInteger(message.buttons) || message.buttons < 0 || message.buttons > 255) return;
       const at = Math.min(60_000, this.now() - race.startedAt);
       const last = race.inputs.at(-1);
-      if (race.inputs.length >= 2048 || (last && at === last.at && message.buttons === last.buttons)) return;
-      if (last && message.buttons === last.buttons) return;
-      race.inputs.push({ at, buttons: message.buttons });
+      // One slot stays free for the release added when the reporter disconnects (webSocketClose).
+      if (race.inputs.length >= MAX_RACE_INPUTS - 1 || (last && message.buttons === last.buttons)) return;
+      const input = { at, buttons: message.buttons };
+      race.inputs.push(input);
       await this.ctx.storage.put("activeRace", race);
+      this.broadcast({ type: "race-input", raceId: race.raceId, input, serverNow: this.now() });
       return;
     }
     if (message.type !== "session" || !await acceptableSession(message.session, this.env.CHARACTERS)) return;
@@ -149,11 +173,11 @@ export class RaceSessionRoom {
       }
     } else if (candidate.phase === "RACING") {
       if (current.phase !== "COUNTDOWN" || !race || candidate.raceId !== race.raceId || now < race.startedAt
-        || !["admin", "game"].includes(actor.role)) return this.reject(socket, "invalid_transition", current);
+        || !(actor.role === "admin" || actor.role === "game" && actor.id === race.reporterId)) return this.reject(socket, "invalid_transition", current);
       next = { ...current, sequence: candidate.sequence, lastSync: now, phase: "RACING", countdownEndsAt: null, raceStartedAt: race.startedAt };
     } else {
       // Game displays can finish their result timer, but cannot register or abort races.
-      const autoReset = actor.role === "game" && current.phase === "RESULTS" && now >= current.resultsEndsAt && candidate.phase === "ATTRACT";
+      const autoReset = actor.role === "game" && actor.id === await this.ctx.storage.get("gameOwner") && current.phase === "RESULTS" && now >= current.resultsEndsAt && candidate.phase === "ATTRACT";
       if (actor.role !== "admin" && !autoReset) return this.reject(socket, "admin_required", current);
       if (!["WAITING", "ATTRACT", "COUNTDOWN"].includes(candidate.phase)) return this.reject(socket, "invalid_transition", current);
       if (candidate.phase === "COUNTDOWN") {
@@ -184,6 +208,7 @@ export class RaceSessionRoom {
     });
     // All screens, including the sender, adopt the server's canonical result.
     this.broadcast({ type: "session", session: next });
+    if (next.phase === "COUNTDOWN" || next.phase === "RACING") this.broadcastRace(race);
     if (newResult) await this.flushResults();
   }
 
@@ -222,9 +247,14 @@ export class RaceSessionRoom {
       const race = await this.ctx.storage.get("activeRace");
       if (race?.reporterId === id) {
         race.reporterId = replacement?.deserializeAttachment().id ?? null;
-        race.inputs.push({ at: Math.min(60_000, Math.max(0, this.now() - race.startedAt)), buttons: 0 });
+        // Release held buttons only when something is held, so repeated disconnects cannot pass MAX_RACE_INPUTS.
+        if (race.inputs.at(-1)?.buttons) {
+          race.inputs.push({ at: Math.min(60_000, Math.max(0, this.now() - race.startedAt)), buttons: 0 });
+          this.broadcast({ type: "race-input", raceId: race.raceId, input: race.inputs.at(-1), serverNow: this.now() });
+        }
         await this.ctx.storage.put("activeRace", race);
       }
+      await this.sendControl();
     });
   }
   broadcast(message) {

@@ -73,6 +73,7 @@ npm test
 | `tests/race-timing.test.mjs` | レースID、クリアタイムの固定、DNF、連続レースと古い通知・タイマーの拒否を検証します。 |
 | `tests/ranking-client.test.mjs` | 保存待ち・更新・失敗・再試行、日付変更、古い通信の拒否を検証します。 |
 | `tests/ranking-views.test.mjs` | APIデータを使う両画面の順位・名前・画像・タイム・ラベル・DNF・取得状態を描画して検証します。 |
+| `tests/spectator-race.test.mjs` | 途中参加・再接続での走行再生、位置・ジャンプ・スタミナ・結果の一致を検証します。 |
 | `tests/race-session-room.test.mjs` | 同期の採用順序と、D1障害・再起動・画面リセット後も結果outboxが残ることを検証します。 |
 
 ## Issue / Pull Request テンプレート

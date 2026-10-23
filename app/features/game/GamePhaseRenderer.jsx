@@ -5,7 +5,7 @@ import { RacingScreen } from "./screens/RacingScreen.jsx";
 import { ResultsScreen } from "./screens/ResultsScreen.jsx";
 import { WaitingScreen } from "./screens/WaitingScreen.jsx";
 
-export function GamePhaseRenderer({ session, onFinished, onInput }) {
+export function GamePhaseRenderer({ session, onFinished, onInput, canControl, raceFeed, connected }) {
   switch (session.phase) {
     case "ATTRACT":
       return <AttractScreen key={session.sequence} revision={session.sequence} attractIndex={session.attractIndex ?? 0} />;
@@ -13,7 +13,7 @@ export function GamePhaseRenderer({ session, onFinished, onInput }) {
       return <CountdownScreen lanes={session.lanes} countdownEndsAt={session.countdownEndsAt} />;
     case "RACING":
       return <RacingScreen key={getRaceId(session)} raceId={getRaceId(session)} lanes={session.lanes}
-        raceStartedAt={session.raceStartedAt} onFinished={onFinished} onInput={onInput} />;
+        raceStartedAt={session.raceStartedAt} onFinished={onFinished} onInput={onInput} canControl={canControl} raceFeed={raceFeed} connected={connected} />;
     case "RESULTS":
       return <ResultsScreen raceId={session.raceStartedAt ? getRaceId(session) : null}
         results={session.results} resultsEndsAt={session.resultsEndsAt} />;

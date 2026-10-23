@@ -10,7 +10,7 @@ const RECONNECT_MAX_DELAY = 10_000;
 // Keeps one WebSocket to the sync room open, reconnecting with backoff and
 // detecting silently dropped connections (common on phones) with ping/pong.
 // onStatus receives "connecting" | "open" | "offline", so screens can show whether they really sync.
-function createSyncSocket({ role, onSession, onCharactersChanged, onResultsSaved, onResultsFailed, onStatus }) {
+function createSyncSocket({ role, onSession, onCharactersChanged, onResultsSaved, onResultsFailed, onControl, onRace, onStatus }) {
   if (typeof WebSocket === "undefined" || typeof location === "undefined") {
     return { send() {}, sendInput() {}, close() {} };
   }
@@ -65,6 +65,8 @@ function createSyncSocket({ role, onSession, onCharactersChanged, onResultsSaved
       try {
         const message = JSON.parse(event.data);
         if (message.type === "session") onSession(message.session);
+        if (message.type === "control") onControl(message.canControl === true);
+        if (message.type === "race" || message.type === "race-input") onRace(message);
         if (message.type === "characters-changed") onCharactersChanged();
         if (message.type === "results-saved" && typeof message.raceId === "string") onResultsSaved(message.raceId);
         if (message.type === "results-failed" && typeof message.raceId === "string") onResultsFailed(message.raceId);
@@ -83,10 +85,12 @@ function createSyncSocket({ role, onSession, onCharactersChanged, onResultsSaved
 
   return {
     send(session) {
+      if (role === "viewer") return;
       pending = JSON.stringify({ type: "session", session });
       if (socket?.readyState === WebSocket.OPEN) socket.send(pending);
     },
     sendInput(input) {
+      if (role !== "game") return;
       if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: "input", ...input }));
     },
     close() {
@@ -98,13 +102,15 @@ function createSyncSocket({ role, onSession, onCharactersChanged, onResultsSaved
   };
 }
 
-export function createRaceSessionChannel(onSession, { onSyncStatus = () => {}, onResultsSaved = () => {}, onResultsFailed = () => {}, role = "viewer" } = {}) {
+export function createRaceSessionChannel(onSession, { onSyncStatus = () => {}, onResultsSaved = () => {}, onResultsFailed = () => {}, onControl = () => {}, onRace = () => {}, role = "viewer" } = {}) {
   let closed = false;
   const accept = async (candidate) => {
     if (!validSession(candidate)) await refreshGeneratedCharacters();
     if (!closed && validSession(candidate)) onSession(candidate);
   };
   const sync = createSyncSocket({ role, onSession: accept, onCharactersChanged: refreshGeneratedCharacters, onStatus: onSyncStatus,
+    onControl: (value) => { if (!closed) onControl(value); },
+    onRace: (message) => { if (!closed) onRace(message); },
     onResultsSaved: (id) => { if (!closed) onResultsSaved(id); }, onResultsFailed: (id) => { if (!closed) onResultsFailed(id); } });
   // Local storage/BroadcastChannel must never bypass the room's validation.
   return {
