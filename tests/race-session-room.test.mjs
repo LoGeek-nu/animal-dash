@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { createInitialSession } from "../app/domain/race-session.js";
 import { RaceSessionRoom } from "../worker/race-session-room.js";
+import { MAX_RACE_INPUTS } from "../app/features/game/race/constants.js";
+import { receiveRaceUpdate } from "../app/features/game/race/spectator-race.js";
 
 globalThis.WebSocketRequestResponsePair ??= class {};
 const socket = (role, id = role) => ({ readyState: 1, sent: [], deserializeAttachment: () => ({ role, id }), close() { this.readyState = 3; }, send(raw) { this.sent.push(JSON.parse(raw)); } });
@@ -195,3 +197,23 @@ test("accepted input is broadcast with server time, and reconnect snapshots incl
   assert.equal(f.data.get("activeRace").inputs.at(-1).buttons, 0);
   assert.equal(f.observer.sent.at(-1).canControl, true);
 });
+
+test("a full input history still fits the release on reporter disconnect, so spectators can join", async () => {
+  const f = fixture(); await f.start();
+  const race = f.data.get("activeRace");
+  race.inputs = Array.from({ length: MAX_RACE_INPUTS - 2 }, (_, i) => ({ at: i, buttons: i % 2 ? 0 : 16 }));
+  f.setNow(race.startedAt + 30_000);
+  const input = (buttons) => f.room.webSocketMessage(f.game, JSON.stringify({ type: "input", raceId: race.raceId, buttons }));
+  await input(1);
+  await input(16);
+  assert.equal(f.data.get("activeRace").inputs.length, MAX_RACE_INPUTS - 1);
+  await f.room.webSocketClose(f.game, 1000, "owner left");
+  await f.room.webSocketClose(f.observer, 1000, "next owner left");
+  const stored = f.data.get("activeRace");
+  assert.equal(stored.inputs.length, MAX_RACE_INPUTS);
+  assert.equal(stored.inputs.at(-1).buttons, 0);
+  const viewer = socket("viewer");
+  f.room.sendRace(viewer, stored);
+  assert.ok(receiveRaceUpdate(null, viewer.sent.at(-1), 0));
+});
+

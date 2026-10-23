@@ -1,3 +1,5 @@
+import { MAX_RACE_INPUTS } from "./constants.js";
+
 function validInput(input) {
   return input && Number.isFinite(input.at) && input.at >= 0 && input.at <= 60_000
     && Number.isInteger(input.buttons) && input.buttons >= 0 && input.buttons <= 255;
@@ -11,7 +13,7 @@ export function receiveRaceUpdate(current, message, receivedAt) {
     if (!race || typeof race.raceId !== "string" || !Number.isSafeInteger(race.startedAt) || race.startedAt <= 0
       || !Number.isFinite(race.serverNow) || !Array.isArray(race.lanes) || race.lanes.length !== 4
       || !Array.isArray(race.characters) || race.characters.length !== 4
-      || !Array.isArray(race.inputs) || race.inputs.length > 2048
+      || !Array.isArray(race.inputs) || race.inputs.length > MAX_RACE_INPUTS
       || !race.inputs.every((input, i) => validInput(input) && (!i || input.at >= race.inputs[i - 1].at))) return current;
     if (current && (race.startedAt < current.startedAt || race.serverNow < current.serverNow)) return current;
     return { ...race, receivedAt };

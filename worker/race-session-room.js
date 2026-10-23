@@ -4,6 +4,7 @@ import { characters, retiredCharacterIds } from "../app/domain/characters.js";
 import { createInitialSession, createRaceId } from "../app/domain/race-session.js";
 import { validSession } from "../app/features/race-session/race-session-validator.js";
 import { COUNTDOWN_DURATION, RESULTS_DURATION } from "../app/features/race-session/constants.js";
+import { MAX_RACE_INPUTS } from "../app/features/game/race/constants.js";
 import { resolveCharacter, saveRace } from "./data-store.js";
 import { raceRecordFromSession } from "./race-record.js";
 import { replayRace } from "./race-authority.js";
@@ -129,7 +130,8 @@ export class RaceSessionRoom {
         || !Number.isInteger(message.buttons) || message.buttons < 0 || message.buttons > 255) return;
       const at = Math.min(60_000, this.now() - race.startedAt);
       const last = race.inputs.at(-1);
-      if (race.inputs.length >= 2048 || (last && message.buttons === last.buttons)) return;
+      // One slot stays free for the release added when the reporter disconnects (webSocketClose).
+      if (race.inputs.length >= MAX_RACE_INPUTS - 1 || (last && message.buttons === last.buttons)) return;
       const input = { at, buttons: message.buttons };
       race.inputs.push(input);
       await this.ctx.storage.put("activeRace", race);
@@ -244,9 +246,12 @@ export class RaceSessionRoom {
       const race = await this.ctx.storage.get("activeRace");
       if (race?.reporterId === id) {
         race.reporterId = replacement?.deserializeAttachment().id ?? null;
-        race.inputs.push({ at: Math.min(60_000, Math.max(0, this.now() - race.startedAt)), buttons: 0 });
+        // Release held buttons only when something is held, so repeated disconnects cannot pass MAX_RACE_INPUTS.
+        if (race.inputs.at(-1)?.buttons) {
+          race.inputs.push({ at: Math.min(60_000, Math.max(0, this.now() - race.startedAt)), buttons: 0 });
+          this.broadcast({ type: "race-input", raceId: race.raceId, input: race.inputs.at(-1), serverNow: this.now() });
+        }
         await this.ctx.storage.put("activeRace", race);
-        this.broadcast({ type: "race-input", raceId: race.raceId, input: race.inputs.at(-1), serverNow: this.now() });
       }
       await this.sendControl();
     });
