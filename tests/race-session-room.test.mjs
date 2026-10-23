@@ -217,3 +217,16 @@ test("a full input history still fits the release on reporter disconnect, so spe
   assert.ok(receiveRaceUpdate(null, viewer.sent.at(-1), 0));
 });
 
+test("a new connection gets its own control state without messaging every other socket", async () => {
+  const f = fixture();
+  const before = [f.admin, f.game, f.observer].map((ws) => ws.sent.length);
+  const viewer = { ...socket("viewer", "late"), serializeAttachment() {} };
+  f.ctx.acceptWebSocket = () => {};
+  const { WebSocketPair } = globalThis;
+  globalThis.WebSocketPair = class { constructor() { return [{}, viewer]; } };
+  // Node's Response refuses status 101; the room has already sent its frames by then.
+  try { await f.room.fetch(new Request("https://room/?role=viewer", { headers: { Upgrade: "websocket" } })); } catch { /* 101 */ }
+  finally { globalThis.WebSocketPair = WebSocketPair; }
+  assert.deepEqual([f.admin, f.game, f.observer].map((ws) => ws.sent.length), before);
+  assert.deepEqual(viewer.sent.find((m) => m.type === "control"), { type: "control", canControl: false });
+});

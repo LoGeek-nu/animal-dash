@@ -71,15 +71,16 @@ export class RaceSessionRoom {
         await this.ctx.storage.put("activeRace", race);
       }
       server.send(JSON.stringify({ type: "session", session: current }));
-      await this.sendControl();
+      // A new socket can only take ownership from nobody, so no other socket's control changes here.
+      await this.sendControl([server]);
       this.sendRace(server, race);
     });
     return new Response(null, { status: 101, webSocket: client });
   }
 
-  async sendControl() {
+  async sendControl(sockets = this.ctx.getWebSockets()) {
     const owner = this.reporter(await this.ctx.storage.get("gameOwner"));
-    for (const socket of this.ctx.getWebSockets()) {
+    for (const socket of sockets) {
       const actor = socket.deserializeAttachment();
       try { socket.send(JSON.stringify({ type: "control", canControl: actor?.role === "game" && socket === owner })); } catch { /* closing */ }
     }
