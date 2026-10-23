@@ -10,7 +10,7 @@ import {
   STAFF_COOKIE,
   staffCookie,
 } from "../worker/auth.js";
-import { loginPath, logout, safeNextPath } from "../app/features/auth/useStaffAuth.js";
+import { authRetryDelay, fetchStaffAuth, loginPath, logout, safeNextPath } from "../app/features/auth/useStaffAuth.js";
 
 const env = { STAFF_PASSCODE: "kuma-dash-2026" };
 const request = (headers = {}, url = "https://animaldash.logeek.tech/api/sync") => new Request(url, { headers });
@@ -113,4 +113,13 @@ test("public sync accepts only viewer upgrades; writing roles require the staff 
   assert.equal((await sync("viewer", { Origin: "https://evil.test" })).status, 403);
   assert.equal((await sync("owner")).status, 400);
   assert.deepEqual(forwarded, ["viewer", "viewer", "admin", "game"]);
+});
+
+test("a failed auth check is reported as unknown rather than signed out, and is retried with backoff", async () => {
+  const reply = (status, body = {}) => async () => new Response(JSON.stringify(body), { status });
+  assert.deepEqual(await fetchStaffAuth(reply(200, { authenticated: true, loginRequired: true })), { authenticated: true, loginRequired: true });
+  assert.deepEqual(await fetchStaffAuth(reply(200, { authenticated: false, loginRequired: false })), { authenticated: false, loginRequired: false });
+  await assert.rejects(fetchStaffAuth(reply(503)));
+  await assert.rejects(fetchStaffAuth(async () => { throw new TypeError("Failed to fetch"); }));
+  assert.deepEqual([0, 1, 2, 3, 4, 50].map(authRetryDelay), [1000, 2000, 5000, 10_000, 10_000, 10_000]);
 });

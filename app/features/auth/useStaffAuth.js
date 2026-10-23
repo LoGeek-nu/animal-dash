@@ -2,22 +2,42 @@
 
 import { useEffect, useState } from "react";
 
-const SIGNED_OUT = { authenticated: false, loginRequired: true };
+const CHECK_FAILED = Object.freeze({ authenticated: false, loginRequired: true, checkFailed: true });
+const RETRY_DELAYS_MS = [1000, 2000, 5000, 10_000];
 
-// null while checking, then { authenticated, loginRequired }. A failed check counts as signed out.
+// Throws when the answer is unknown (network error or a non-2xx reply), so callers can tell it from signed out.
+export async function fetchStaffAuth(fetchImpl = fetch) {
+  const response = await fetchImpl("/api/auth", { cache: "no-store" });
+  if (!response.ok) throw new Error(`auth check failed: ${response.status}`);
+  const body = await response.json();
+  return { authenticated: body.authenticated === true, loginRequired: body.loginRequired !== false };
+}
+
+export function authRetryDelay(attempt) {
+  return RETRY_DELAYS_MS[Math.min(attempt, RETRY_DELAYS_MS.length - 1)];
+}
+
+// null while checking, then { authenticated, loginRequired }. A failed check acts signed out
+// (checkFailed: true) but keeps retrying, so one network blip cannot leave the staff game display a viewer.
 export function useStaffAuth() {
   const [auth, setAuth] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/auth", { cache: "no-store" })
-      .then((response) => response.ok ? response.json() : SIGNED_OUT)
-      .then((body) => {
-        if (!cancelled) setAuth({ authenticated: body.authenticated === true, loginRequired: body.loginRequired !== false });
-      })
-      .catch(() => { if (!cancelled) setAuth(SIGNED_OUT); });
+    let timer;
+    let attempt = 0;
+    const check = () => fetchStaffAuth().then(
+      (result) => { if (!cancelled) setAuth(result); },
+      () => {
+        if (cancelled) return;
+        setAuth(CHECK_FAILED);
+        timer = setTimeout(check, authRetryDelay(attempt++));
+      },
+    );
+    check();
     return () => {
       cancelled = true;
+      clearTimeout(timer);
     };
   }, []);
 
@@ -30,7 +50,7 @@ export function useRequireStaff(returnTo) {
   const auth = useStaffAuth();
 
   useEffect(() => {
-    if (auth?.authenticated === false) window.location.replace(loginPath(returnTo));
+    if (auth?.authenticated === false && !auth.checkFailed) window.location.replace(loginPath(returnTo));
   }, [auth, returnTo]);
 
   return auth;
