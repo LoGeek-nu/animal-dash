@@ -1,4 +1,5 @@
 import { SectionKicker } from "../../../components/ui/atoms/SectionKicker.jsx";
+import { TitleLogo } from "../../../components/ui/atoms/TitleLogo.jsx";
 import { CharacterAvatar } from "../../../components/ui/molecules/CharacterAvatar.jsx";
 
 const HERO_CHARACTERS = ["momo", "kon", "dorami", "azuki"];
@@ -7,7 +8,7 @@ export function AttractHero() {
   return (
     <section className="attract-hero">
       <SectionKicker>OUREISAI 2026 · PLAYABLE EXHIBITION</SectionKicker>
-      <h1><span>アニマル</span><strong>ダッシュ！</strong></h1>
+      <h1><TitleLogo /></h1>
       <p>かわいい動物たちと、いっしょに走ろう！</p>
       <div className="attract-runners" aria-label="登場キャラクター">
         {HERO_CHARACTERS.map((id, index) => (

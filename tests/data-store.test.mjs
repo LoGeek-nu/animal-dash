@@ -196,7 +196,7 @@ test("workerd validates race registration, ownership, canonical times, immutabil
   await clock(current.countdownEndsAt);
   await send(game, { phase: "RACING" });
   const start = current.raceStartedAt;
-  await clock(start + 20000);
+  await clock(start + 59_000);
   await send(other, { phase: "RESULTS", results: [result("momo", 1, 1)] }, false);
   await send(game, { phase: "RESULTS", results: [result("momo", 1, 1)], raceCompletedAt: start + 1 });
   const canonical = current;

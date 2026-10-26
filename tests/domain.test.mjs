@@ -2,12 +2,16 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import {
+  COURSE_LENGTH,
+  RUNNER_HIT_RANGE,
+  courseGates,
   courseLeft,
-  courseObstacles,
   courseSegments,
+  createCourseObstacles,
   getCourseSegment,
   getNearestUpcomingObstacle,
   getVisibleCourseObstacles,
+  obstacleTypes,
 } from "../app/domain/course.js";
 import { ATTRACT_SCENES, TUTORIAL_STEP_DURATION, tutorialSteps } from "../app/domain/attract.js";
 import { characters, getCharacter, isKnownCharacterId, retiredCharacterIds } from "../app/domain/characters.js";
@@ -46,29 +50,60 @@ test("invalid phases, lanes, and characters are rejected", () => {
 test("course sections cover the complete race without gaps", () => {
   assert.deepEqual(
     courseSegments.map(({ start, end }) => [start, end]),
-    [[0, 18], [18, 40], [40, 62], [62, 82], [82, 101]],
+    [[0, 30], [30, 85], [85, 140], [140, 200], [200, COURSE_LENGTH + 1]],
   );
-  for (let progress = 0; progress <= 100; progress += 1) {
+  for (let progress = 0; progress <= COURSE_LENGTH; progress += 1) {
     assert.ok(getCourseSegment(progress));
   }
 });
 
-test("course hazards are unique, ordered, and visible ahead of a racer", () => {
-  assert.equal(new Set(courseObstacles.map(({ id }) => id)).size, courseObstacles.length);
-  assert.deepEqual(
-    courseObstacles.map(({ position }) => position),
-    [...courseObstacles].map(({ position }) => position).sort((a, b) => a - b),
-  );
-  assert.ok(courseObstacles.every(({ position, warningDistance }) => position > warningDistance));
+test("each lane meets the same hazards at the same spots, in its own order", () => {
+  assert.deepEqual(createCourseObstacles("race-a", 4), createCourseObstacles("race-a", 4));
+  assert.notDeepEqual(createCourseObstacles("race-a", 4)[0], createCourseObstacles("race-b", 4)[0]);
+  let shuffled = 0;
+  for (let i = 0; i < 50; i++) {
+    const lanes = createCourseObstacles(`race-${i}`, 4);
+    const [first] = lanes;
+    assert.ok(first.length >= 10);
+    first.slice(1).forEach((obstacle, index) => assert.ok(obstacle.position - first[index].position >= 10));
+    assert.ok(first.every(({ position }) => position >= 30 && position < COURSE_LENGTH));
+    for (const lane of lanes) {
+      assert.equal(new Set(lane.map(({ id }) => id)).size, lane.length);
+      assert.deepEqual(lane.map(({ position }) => position), first.map(({ position }) => position));
+      assert.deepEqual(lane.map(({ type }) => type).sort(), first.map(({ type }) => type).sort());
+    }
+    // Types are dealt from a bag, so no type goes missing in a race.
+    for (const type of Object.keys(obstacleTypes)) assert.ok(first.some((obstacle) => obstacle.type === type), type);
+    if (lanes.some((lane) => lane.map(({ type }) => type).join() !== first.map(({ type }) => type).join())) shuffled++;
+  }
+  assert.ok(shuffled >= 45);
   assert.ok(courseLeft(20, 10) > courseLeft(10, 10));
 });
 
+test("each obstacle catches runners over a range that follows its drawn width and the runner's body", () => {
+  const specs = Object.values(obstacleTypes);
+  for (const wider of specs) for (const narrower of specs) if (wider.width > narrower.width) assert.ok(wider.hitRange > narrower.hitRange);
+  const mud = { id: "mud-0", type: "mud", position: 50, ...obstacleTypes.mud };
+  const standAt = (progress) => stepRaceRunner({ runner: { ...createRuntimeRunner(), progress }, character: characters[0],
+    input: { jump: false, boost: false }, obstacles: [mud], now: 0, dt: .001, elapsed: 0 }).runner;
+  // The runner's own body counts too: its front edge touching the mud's core is already a hit.
+  const reach = mud.hitRange + RUNNER_HIT_RANGE;
+  assert.ok(RUNNER_HIT_RANGE > 0);
+  assert.ok(standAt(50 - reach + .1).hit.has("mud-0"));
+  assert.equal(standAt(50 - reach - .3).hit.size, 0);
+});
+
 test("only nearby obstacles are rendered and the nearest hazard is selected", () => {
-  const visible = getVisibleCourseObstacles(35);
-  assert.ok(visible.length <= 3);
-  assert.ok(visible.every(({ position }) => position >= 32.5 && position <= 70));
-  assert.equal(getNearestUpcomingObstacle(35, visible)?.id, "garden-hay");
-  assert.equal(getNearestUpcomingObstacle(95), null);
+  const obstacles = [0, 40, 60, 90].map((position, index) => ({ id: `rock-${index}`, type: "rock", position, ...obstacleTypes.rock }));
+  const visible = getVisibleCourseObstacles(obstacles, 35);
+  assert.deepEqual(visible.map(({ id }) => id), ["rock-1", "rock-2"]);
+  assert.equal(getNearestUpcomingObstacle(visible, 45)?.id, "rock-2");
+  assert.equal(getNearestUpcomingObstacle(obstacles, 95), null);
+});
+
+test("every obstacle, landmark and gate has artwork", async () => {
+  const names = [...Object.keys(obstacleTypes), ...courseSegments.map(({ id }) => id), ...courseGates.map(({ id }) => id)];
+  for (const name of new Set(names)) await readFile(new URL(`../public/course/${name}.png`, import.meta.url));
 });
 
 test("the attract loop is nine seconds faster and tutorial steps fit the demo scene", () => {
@@ -191,13 +226,13 @@ test("race engine calculates jump, boost, collision, and rankings without React"
     runner: collisionRunner,
     character,
     input: { jump: false, boost: false },
-    obstacles: [courseObstacles[0]],
+    obstacles: [{ id: "rock-0", type: "rock", position: 27, ...obstacleTypes.rock }],
     now: 2_000,
     dt: .01,
     elapsed: 200,
   }).runner;
   assert.ok(collided.collisionUntil > 2_000);
-  assert.ok(collided.hit.has("garden-rock"));
+  assert.ok(collided.hit.has("rock-0"));
 
   const lanes = [{ characterId: "momo", isBot: false }, { characterId: "toramaru", isBot: true }];
   const runners = [{ ...createRuntimeRunner(), progress: 30, finishedAt: 30_000 }, { ...createRuntimeRunner(), progress: 40, finishedAt: 29_000 }];
@@ -206,7 +241,7 @@ test("race engine calculates jump, boost, collision, and rankings without React"
 
   const preGoalRunner = {
     ...createRuntimeRunner(),
-    progress: 99.8,
+    progress: COURSE_LENGTH - .2,
     velocity: 9,
     y: 120,
     vy: 200,
@@ -223,7 +258,7 @@ test("race engine calculates jump, boost, collision, and rankings without React"
     dt: 0.1,
     elapsed: 15_000,
   });
-  assert.ok(goalResult.runner.progress >= 100);
+  assert.ok(goalResult.runner.progress >= COURSE_LENGTH);
   assert.equal(goalResult.runner.finishedAt, 15_000);
   assert.ok(goalResult.runner.y > 0);
   assert.equal(goalResult.runner.boosting, false);

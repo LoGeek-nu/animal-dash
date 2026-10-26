@@ -1,11 +1,15 @@
 "use client";
 
+import { useMemo } from "react";
+import { createCourseObstacles } from "../../../domain/course.js";
 import { useRaceEngine } from "../race/useRaceEngine.js";
 import { GameHeader } from "./GameHeader.jsx";
 import { RaceLane } from "./RaceLane.jsx";
 
 export function RaceArena({ raceId, lanes, raceStartedAt, onFinished, onInput, canControl, raceFeed, connected }) {
   const { runners, ranks } = useRaceEngine({ raceId, lanes, raceStartedAt, onFinished, onInput, canControl, raceFeed, connected });
+  // The same race ID gives the same course the runtime simulates.
+  const obstacles = useMemo(() => createCourseObstacles(raceId, lanes.length), [raceId, lanes.length]);
 
   return (
     <main className="game-stage racing-stage">
@@ -17,6 +21,7 @@ export function RaceArena({ raceId, lanes, raceStartedAt, onFinished, onInput, c
             laneIndex={index}
             runner={runners[index]}
             rank={ranks[index]}
+            obstacles={obstacles[index]}
             key={lane.characterId}
           />
         ))}

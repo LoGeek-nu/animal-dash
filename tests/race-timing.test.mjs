@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createInitialSession, getRaceId } from "../app/domain/race-session.js";
+import { COURSE_LENGTH } from "../app/domain/course.js";
 import { RACE_TIMEOUT } from "../app/domain/race-results.js";
 import { raceSessionActions } from "../app/features/race-session/race-session-actions.js";
 import { raceSessionReducer } from "../app/features/race-session/race-session-reducer.js";
@@ -69,7 +70,7 @@ test("player lanes still use manual boost while BOT lanes ignore it", () => {
 
 test("120/60/20/10/1 FPS produce the same goals and BOT controls on the actual course", () => {
   const measured = [120, 60, 20, 10, 1].map((fps) => {
-    const run = createRaceRuntime({ raceId: `fps-${fps}`, raceStartedAt: startedAt, lanes, now: 0, epochNow: startedAt });
+    const run = createRaceRuntime({ raceId: "fps", raceStartedAt: startedAt, lanes, now: 0, epochNow: startedAt });
     for (let frame = 1; frame <= fps * 59 && !run.completed; frame++) {
       const now = frame * 1000 / fps;
       advanceRaceRuntime(run, { now, epochNow: startedAt + Math.round(now) });
@@ -97,7 +98,7 @@ test("each countdown identifies one race and delayed devices share its start wit
   assert.equal(late.raceStartedAt, onTime.raceStartedAt);
   assert.equal(late.raceStartedAt, countdown.countdownEndsAt);
   const run = createRaceRuntime({ raceId: late.raceId, raceStartedAt: late.raceStartedAt, lanes, now: 1000, epochNow: late.raceStartedAt + 250 });
-  run.runners[0].progress = 99.99;
+  run.runners[0].progress = COURSE_LENGTH - .01;
   advanceRaceRuntime(run, { now: 1016, epochNow: late.raceStartedAt + 266, obstacles: [] });
   assert.ok(run.runners[0].finishedAt > 0 && run.runners[0].finishedAt <= 266);
   assert.notEqual(raceSessionReducer(waiting(), raceSessionActions.startCountdown(), startedAt).raceId, countdown.raceId);
@@ -110,14 +111,14 @@ test("each countdown identifies one race and delayed devices share its start wit
 test("different goals are fixed in integer milliseconds even while a finisher is still landing", () => {
   const run = runtime();
   // Runners near the goal are already up to speed; a standing start would take a while to cross.
-  run.runners[0] = { ...run.runners[0], progress: 99.99, velocity: 9, y: 80, vy: 100 };
+  run.runners[0] = { ...run.runners[0], progress: COURSE_LENGTH - .01, velocity: 9, y: 80, vy: 100 };
   step(run, 16.4);
   assert.equal(run.runners[0].finishedAt, 8);
   assert.equal(takeRaceCompletion(run), null);
   step(run, 26.4);
   assert.equal(run.runners[0].finishedAt, 8);
-  assert.ok(run.runners[0].progress > 100);
-  run.runners[1] = { ...run.runners[1], progress: 99.99, velocity: 9 };
+  assert.ok(run.runners[0].progress > COURSE_LENGTH);
+  run.runners[1] = { ...run.runners[1], progress: COURSE_LENGTH - .01, velocity: 9 };
   step(run, 36.4);
   const completed = takeRaceCompletion(run);
   assert.deepEqual(completed.results, [
@@ -134,12 +135,12 @@ test("different goals are fixed in integer milliseconds even while a finisher is
 
 test("a delayed deadline frame leaves unfinished runners DNF instead of moving them across the goal", () => {
   const run = runtime();
-  run.runners[0] = { ...run.runners[0], progress: 100, finishedAt: 30000 };
-  run.runners[1].progress = 99.99;
+  run.runners[0] = { ...run.runners[0], progress: COURSE_LENGTH, finishedAt: 30000 };
+  run.runners[1].progress = COURSE_LENGTH - .01;
   step(run, RACE_TIMEOUT);
   const completed = takeRaceCompletion(run);
   assert.deepEqual(completed.results.map((result) => result.finishMs), [30000, null]);
-  assert.equal(run.runners[1].progress, 99.99);
+  assert.equal(run.runners[1].progress, COURSE_LENGTH - .01);
   assert.equal(completed.completedAt, startedAt + RACE_TIMEOUT);
   step(run, RACE_TIMEOUT + 10000);
   assert.equal(run.runners[1].finishedAt, null);
@@ -148,12 +149,12 @@ test("a delayed deadline frame leaves unfinished runners DNF instead of moving t
 
 test("a sleeping monotonic clock cannot extend the deadline, and wall clock changes cannot rewrite goal times", () => {
   const asleep = runtime();
-  asleep.runners[0] = { ...asleep.runners[0], progress: 99.99, velocity: 9 };
+  asleep.runners[0] = { ...asleep.runners[0], progress: COURSE_LENGTH - .01, velocity: 9 };
   advanceRaceRuntime(asleep, { now: 1016, epochNow: startedAt + RACE_TIMEOUT, obstacles: [] });
   assert.ok(asleep.completed.results.every((result) => result.finishMs === null));
   assert.equal(asleep.completed.completedAt, startedAt + RACE_TIMEOUT);
   const run = runtime();
-  run.runners[0] = { ...run.runners[0], progress: 99.99, velocity: 9 };
+  run.runners[0] = { ...run.runners[0], progress: COURSE_LENGTH - .01, velocity: 9 };
   advanceRaceRuntime(run, { now: 1016, epochNow: startedAt - 5000, obstacles: [] });
   assert.equal(run.runners[0].finishedAt, 8);
 });
@@ -222,7 +223,7 @@ test("storage uses the explicit race ID and frozen completion time, with compati
 
 test("the runner captures a goal time once and never rewrites it after landing", () => {
   const args = { character: characters[0], input: { jump: false, boost: false }, obstacles: [], now: 1000, dt: 0.04 };
-  const finished = stepRaceRunner({ ...args, runner: { ...createRuntimeRunner(), progress: 99.99, velocity: 9, y: 50, vy: 100 }, elapsed: 1234.6 }).runner;
+  const finished = stepRaceRunner({ ...args, runner: { ...createRuntimeRunner(), progress: COURSE_LENGTH - .01, velocity: 9, y: 50, vy: 100 }, elapsed: 1234.6 }).runner;
   assert.equal(finished.finishedAt, 1235);
   const landed = stepRaceRunner({ ...args, runner: finished, elapsed: 9999, dt: 1 }).runner;
   assert.equal(landed.finishedAt, 1235);
