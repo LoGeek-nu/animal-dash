@@ -21,7 +21,7 @@ export function RaceLane({ lane, laneIndex, runner, rank, obstacles }) {
       className={`race-lane segment-${segment.id} ${runner.collision ? "is-hit" : ""} ${runner.finishedAt ? "is-finished" : ""} ${runner.finishedAt && runner.y === 0 ? "is-landed" : ""}`}
       style={{ "--lane": laneColors[laneIndex], "--scroll": `${-runner.progress * UNIT_PERCENT}cqw`, "--course-progress": runner.progress, "--segment-accent": segment.accent }}
     >
-      <CourseScenery progress={runner.progress} laneIndex={laneIndex} />
+      <CourseScenery progress={runner.progress} />
       <div className="race-lane-info"><span>LANE {laneIndex + 1}</span><strong>{character.name}</strong><small>{lane.isBot ? "BOT" : KEY_HELP[laneIndex]}</small></div>
       <div className="rank-bubble"><strong>{rank}</strong><span>位</span></div>
       <div className="track-meter"><i style={{ width: `${Math.min(100, runner.progress / COURSE_LENGTH * 100)}%` }} /></div>

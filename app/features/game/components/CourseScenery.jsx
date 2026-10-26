@@ -4,7 +4,7 @@ import { UNIT_PERCENT, courseGates, courseLeft, courseSegments, getCourseSegment
 
 const landmarks = courseSegments.filter((segment) => !courseGates.some((gate) => gate.id === segment.id));
 
-export function CourseScenery({ progress, laneIndex }) {
+export function CourseScenery({ progress }) {
   const current = getCourseSegment(progress);
   return (
     <div className="course-scenery" aria-hidden="true" style={{ "--far-scroll": `${-progress * UNIT_PERCENT * .085}cqw`, "--mid-scroll": `${-progress * UNIT_PERCENT * .21}cqw`, "--segment-accent": current.accent }}>
@@ -17,7 +17,6 @@ export function CourseScenery({ progress, laneIndex }) {
         })}
       </div>
       <div className="course-layer course-foreground"><i className="grass-tuft grass-one" /><i className="grass-tuft grass-two" /><i className="course-flower flower-one" /><i className="course-flower flower-two" /></div>
-      {laneIndex === 0 && <div className="course-zone-tag" key={current.id}><span>{current.label}</span><b>{current.caption}</b></div>}
     </div>
   );
 }
