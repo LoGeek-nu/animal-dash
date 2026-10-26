@@ -5,10 +5,9 @@
 .attract-hero { height: 66vh; min-height: 500px; padding: 1vh 7vw 0; display: grid; align-content: start; justify-items: center; position: relative; z-index: 2; text-align: center; animation: sceneReveal .65s both; }
 .attract-hero .section-kicker { padding: .45rem .8rem; color: white; background: #183447; border-radius: 99px; }
 .attract-hero h1 { margin: .25rem 0 0; line-height: .8; transform: rotate(-2deg); }
-.attract-hero h1 span, .attract-hero h1 strong { display: block; color: #ff443d; font-size: clamp(3.8rem, 7.4vw, 8.8rem); font-weight: 1000; letter-spacing: -.08em; -webkit-text-stroke: 12px white; paint-order: stroke fill; text-shadow: 8px 9px 0 #183447; }
-.attract-hero h1 strong { color: #ffd02e; font-size: clamp(4rem, 8vw, 9.5rem); }
+.attract-hero .title-logo { width: min(56vw, 940px); height: auto; display: block; filter: drop-shadow(8px 9px 0 #183447); }
 .attract-hero > p:not(.section-kicker) { margin: 1rem 0 0; padding: .55rem 1.1rem; color: white; background: #ef4e85; border: 3px solid white; border-radius: 99px; box-shadow: 3px 4px 0 #183447; font-weight: 1000; }
-.attract-runners { width: min(960px, 82vw); height: 25vh; min-height: 180px; margin-top: -.2rem; display: flex; justify-content: center; align-items: end; }
+.attract-runners { width: min(960px, 82vw); height: 25vh; min-height: 180px; margin-top: 4vh; display: flex; justify-content: center; align-items: end; }
 .attract-runners > div { width: 23%; height: 100%; animation: attractBounce 1.25s ease-in-out infinite; animation-delay: var(--runner-delay); }
 .attract-runners > div:nth-child(2), .attract-runners > div:nth-child(3) { width: 27%; height: 115%; }
 .attract-runners .character-avatar { width: 100%; height: 100%; }

@@ -12,7 +12,7 @@
 
 @media (max-width: 700px) {
   .attract-hero, .attract-demo-scene, .attract-ranking-scene { height: 610px; padding-left: 1rem; padding-right: 1rem; }
-  .attract-hero h1 span, .attract-hero h1 strong { -webkit-text-stroke-width: 7px; text-shadow: 4px 5px 0 #183447; }
+  .attract-hero .title-logo { width: 92vw; filter: drop-shadow(4px 5px 0 #183447); }
   .attract-runners { width: 100%; }
   .attract-program { height: auto; margin: .5rem 1rem; grid-template-columns: 1fr; }
   .attract-program > div:not(.is-active) { display: none; }

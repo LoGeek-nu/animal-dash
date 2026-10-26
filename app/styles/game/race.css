@@ -1,7 +1,7 @@
 /* Race */
 .racing-stage { height: 100vh; background: #dbf1ff; }
 .racing-stage .game-header { height: 9vh; min-height: 66px; padding-top: 1.4vh; background: var(--paper); border-bottom: 3px solid var(--ink); }
-.racing-stage .game-logo strong { font-size: clamp(1.75rem, 2.45vw, 3rem); }
+.racing-stage .game-logo .title-logo { height: clamp(34px, 4.6vh, 52px); }
 .race-lanes { height: 84vh; display: grid; grid-template-rows: repeat(4, 1fr); }
 .race-lane { min-height: 0; overflow: hidden; position: relative; isolation: isolate; border-bottom: 3px solid var(--ink); background: linear-gradient(180deg, color-mix(in srgb, var(--segment-accent) 7%, #d9f2ff) 0 66%, #a9dd78 66% 100%); transition: filter .12s, background .5s ease; }
 .race-lane::before { content: ""; position: absolute; z-index: 0; inset: 0 0 34%; opacity: .34; background: linear-gradient(112deg, transparent 0 31%, rgba(255,255,255,.85) 32% 33%, transparent 34% 67%, rgba(255,255,255,.6) 68% 69%, transparent 70%); background-size: 420px 100%; transform: translateX(var(--far-scroll)); }
