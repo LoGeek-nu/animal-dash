@@ -1,6 +1,8 @@
 export { RACE_TIMEOUT } from "../../../domain/race-results.js";
 export const MAX_FRAME_DELTA = .04;
 export const PAINT_INTERVAL = 32;
+// Let everyone see the finish before the screen moves on to the results.
+export const RESULTS_HOLD_MS = 3_000;
 // Inputs one race may record. The room enforces it and spectators reject longer histories.
 export const MAX_RACE_INPUTS = 2048;
 

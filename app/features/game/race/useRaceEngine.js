@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { PAINT_INTERVAL } from "./constants.js";
+import { PAINT_INTERVAL, RESULTS_HOLD_MS } from "./constants.js";
 import { createRuntimeRunner, toRenderableRunner } from "./race-engine.js";
 import { calculateLiveRanks } from "./race-ranking.js";
 import { advanceRaceRuntime, createRaceRuntime } from "./race-runtime.js";
@@ -74,7 +74,9 @@ export function useRaceEngine({ raceId, lanes, raceStartedAt, onFinished, onInpu
 
       // Keep reporting until the room replies with its canonical RESULTS. A
       // slightly earlier local goal must not strand a race waiting for its owner.
-      if (runtime.completed && now - lastReport >= 250) { onFinished?.(runtime.completed); lastReport = now; }
+      // Kept on the runtime: sync re-runs this effect, and a local would restart the hold every time.
+      if (runtime.completed) runtime.completedSeenAt ??= now;
+      if (runtime.completed && now - runtime.completedSeenAt >= RESULTS_HOLD_MS && now - lastReport >= 250) { onFinished?.(runtime.completed); lastReport = now; }
       frame = requestAnimationFrame(tick);
     };
 
