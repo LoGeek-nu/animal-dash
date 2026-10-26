@@ -72,7 +72,6 @@
 ├── eslint.config.mjs                 # ESLint設定
 ├── next.config.js                    # Next.js互換レイヤーの設定
 ├── package.json                      # 依存パッケージとnpmコマンド
-├── postcss.config.mjs                # Tailwind CSSのPostCSS設定
 ├── vite.config.js                    # Vinext、Vite、Cloudflare開発設定
 └── wrangler.jsonc                    # Cloudflare Workersの公開設定
 ```

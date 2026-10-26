@@ -72,7 +72,6 @@ STAFF_PASSCODE=<任意の合言葉>
 VSCodeを使う場合、次の拡張機能を入れておくとコーディング規約に沿った開発がしやすくなります。
 
 - [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint) — `eslint.config.mjs`のReact / React Hooks / jsx-a11y / Next.jsルールを保存時に確認できます。
-- [Tailwind CSS IntelliSense](https://marketplace.visualstudio.com/items?itemName=bradlc.vscode-tailwindcss) — Tailwind CSSのクラス名補完を有効にします。
 - [Git Graph](https://marketplace.visualstudio.com/items?itemName=mhutchie.git-graph) — ブランチやコミット履歴をグラフで確認できます。[開発フロー](./development-flow.md)の`issue/<番号>-<作業内容>`ブランチと`develop`/`main`の関係を視覚的に把握するのに役立ちます。
 
 ## トラブルシュート

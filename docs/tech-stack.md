@@ -10,7 +10,8 @@
 - [Wrangler](https://developers.cloudflare.com/workers/wrangler/) — Cloudflare Workersのローカル起動、ビルド結果の確認、デプロイに使用するCLIです。
 - [Cloudflare D1](https://developers.cloudflare.com/d1/) — キャラクター、レース、出走結果を保存し、クリアタイムランキングを集計します（DB名`animaldash-races`、binding名`DB`）。画像はR2に残します。処理は`worker/data-store.js`、スキーマは`migrations/`です。
 - [dnd kit](https://dndkit.com/) — 管理画面でキャラクターをレーンへ割り当てるドラッグ＆ドロップ操作に使用しています。
-- [Tailwind CSS 4](https://tailwindcss.com/) / CSS — Tailwind CSSをCSS処理の基盤として読み込み、画面固有の見た目は主に`app/styles/`以下の通常のCSSで管理しています。
+- CSS — 見た目はすべて`app/styles/`以下の通常のCSSで管理しています。CSSフレームワークは使っていません。ブラウザ差をならすリセットは`app/styles/preflight.css`（Tailwind CSSのpreflightを移したもの）です。
+- [M PLUS Rounded 1c](https://fonts.google.com/specimen/M+PLUS+Rounded+1c) — 画面全体の文字に使っています。`@fontsource/m-plus-rounded-1c`のフォントファイルを一緒に配信するため、会場のネットワークがインターネットにつながらなくても表示できます。
 - React Reducer — レースセッションの状態遷移を一か所にまとめるために使用しています。処理は`app/features/race-session/`以下にあります。
 - [`localStorage`](https://developer.mozilla.org/ja/docs/Web/API/Window/localStorage) — レーン割り当てやゲームフェーズなど、セッションをブラウザ内にも保存し、リロード時に復元します。
 - WebSocket — 同じブラウザ内も別端末も、Durable Objectが確定した状態を採用します。localStorageやBroadcastChannelを操作してサーバーの検証を迂回することはできません。

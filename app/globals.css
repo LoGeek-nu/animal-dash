@@ -1,4 +1,7 @@
-@import "tailwindcss";
+@import "@fontsource/m-plus-rounded-1c/500.css";
+@import "@fontsource/m-plus-rounded-1c/700.css";
+@import "@fontsource/m-plus-rounded-1c/900.css";
+@import "./styles/preflight.css";
 @import "./styles/tokens.css";
 @import "./styles/reset.css";
 @import "./styles/game/base.css";
