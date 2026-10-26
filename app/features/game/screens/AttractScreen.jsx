@@ -28,7 +28,7 @@ export function AttractScreen({ revision, attractIndex = 0 }) {
       <GameHeader phase="ATTRACT" />
       <div className="attract-confetti" aria-hidden="true" />
       {scene === 0 && <AttractHero />}
-      {scene === 1 && <section className="attract-demo-scene"><header><span>GAME DEMO</span><strong>遊び方をおぼえよう！</strong></header><AttractTutorial /></section>}
+      {scene === 1 && <section className="attract-demo-scene"><header><strong>遊び方をおぼえよう！</strong></header><AttractTutorial /></section>}
       {scene === 2 && <AttractRanking />}
       <AttractProgram scene={scene} revision={revision} />
       <footer className="attract-footer"><strong>次のレースはまもなく！</strong><span>参加したい人はスタッフに声をかけてね</span></footer>

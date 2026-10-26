@@ -1,7 +1,7 @@
 export const ATTRACT_SCENES = [
-  { id: "hero", label: "ANIMAL PARADE", caption: "動物たちが大集合！", duration: 9_000 },
-  { id: "demo", label: "DEMO RACE", caption: "ゲームの遊びかた", duration: 21_000 },
-  { id: "ranking", label: "TODAY'S RANKING", caption: "今日のトップレーサー", duration: 11_000 },
+  { id: "hero", label: "アニマルダッシュ！", caption: "動物たちが大集合！", duration: 9_000 },
+  { id: "demo", label: "遊び方をおぼえよう！", caption: "使うボタンは2つだけ", duration: 21_000 },
+  { id: "ranking", label: "今日のランキング", caption: "今日のトップ10", duration: 11_000 },
 ];
 
 export const TUTORIAL_STEP_DURATION = 7_000;

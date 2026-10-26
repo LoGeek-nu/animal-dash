@@ -11,13 +11,13 @@ const board = (status = "ready", rows = rankings) => ({ status, date: "2026-10-1
 const results = [{ characterId: "momo", lane: 1, rank: 1, finishMs: 32345, isBot: false },
   { characterId: "toramaru", lane: 2, rank: 2, finishMs: null, isBot: true }];
 
-test("both boards render API ranks, snapshot character images, date and exact seconds", async (t) => {
+test("both boards render API ranks, snapshot character images and exact seconds; the results board also shows date and metric", async (t) => {
   const { ResultsBoardView, AttractRankingView } = await loadRankingViews(t);
-  for (const html of [renderToStaticMarkup(createElement(ResultsBoardView, { results, board: board() })),
-    renderToStaticMarkup(createElement(AttractRankingView, { board: board() }))]) {
-    assert.match(html, /2026\.10\.10/);
-    assert.match(html, /日本時間/);
-    assert.match(html, /クリアタイム（秒）/);
+  const resultsHtml = renderToStaticMarkup(createElement(ResultsBoardView, { results, board: board() }));
+  assert.match(resultsHtml, /2026\.10\.10/);
+  assert.match(resultsHtml, /日本時間/);
+  assert.match(resultsHtml, /クリアタイム（秒）/);
+  for (const html of [resultsHtml, renderToStaticMarkup(createElement(AttractRankingView, { board: board() }))]) {
     assert.match(html, /30\.123秒/);
     assert.match(html, /生成キャラクターA/);
     assert.match(html, /\/api\/characters\/gen-first\/image/);
