@@ -46,8 +46,15 @@
 .racing-character .character-avatar { width: 164px; height: 118px; }
 .racing-character .character-avatar > img { animation: raceBob .23s infinite alternate; }
 .racing-character > b { position: absolute; left: 50%; top: -1.4rem; transform: translateX(-50%); padding: .3rem .55rem; color: white; background: #fb5e7d; border: 2px solid var(--ink); border-radius: 99px; font-size: .7rem; }
-.speed-streak { position: absolute; left: -2.8rem; top: 42%; color: var(--lane); font-size: 3.3rem; font-weight: 1000; opacity: .18; transform: scaleX(.7); transition: opacity .15s, transform .15s; }
-.racing-character.is-boosting .speed-streak { opacity: 1; transform: scaleX(1.25); animation: speedFlicker .2s steps(2) infinite; }
+/* Speed lines: three streaks in the lane colour that stream back from the runner while boosting. */
+.speed-streak { width: 5.4rem; height: 2.8rem; position: absolute; z-index: -1; left: -3.4rem; top: 46%; opacity: 0; pointer-events: none; transition: opacity .12s; }
+.speed-streak i { height: 8px; position: absolute; right: 0; background: linear-gradient(90deg, transparent, var(--lane) 70%); border-radius: 99px; box-shadow: 0 0 0 2px rgba(255,255,255,.8); transform-origin: right; animation: streakFlow .34s linear infinite; }
+.speed-streak i:nth-child(1) { top: 8%; width: 70%; }
+.speed-streak i:nth-child(2) { top: 44%; width: 100%; animation-delay: -.12s; }
+.speed-streak i:nth-child(3) { top: 80%; width: 55%; animation-delay: -.23s; }
+.racing-character.is-boosting .speed-streak { opacity: 1; }
+/* A pulsing red rim around the sprite's white outline marks a boosting runner at a glance. */
+.racing-character.is-boosting .character-avatar, .tutorial-boost .tutorial-runner .character-avatar, .tutorial-goal .tutorial-runner .character-avatar { animation: boostGlow .36s ease-in-out infinite alternate; }
 .runner-dust { width: 2.4rem; height: 1.1rem; position: absolute; z-index: -1; left: -.8rem; bottom: .4rem; opacity: 0; background: radial-gradient(circle at 20% 65%,#fff7dc 0 7px,transparent 8px),radial-gradient(circle at 52% 35%,#fff7dc 0 9px,transparent 10px),radial-gradient(circle at 82% 62%,#fff7dc 0 6px,transparent 7px); }
 .racing-character.is-boosting .runner-dust { opacity: .9; animation: dustPuff .45s linear infinite; }
 .impact-stars { display: none; position: absolute; z-index: 5; right: 5%; top: 3%; color: #ffe052; font-size: 1.6rem; -webkit-text-stroke: 2px var(--ink); paint-order: stroke fill; }
