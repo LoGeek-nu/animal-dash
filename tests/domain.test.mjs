@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 import {
   COURSE_LENGTH,
+  RUNNER_HIT_RANGE,
   courseGates,
   courseLeft,
   courseSegments,
@@ -77,6 +78,19 @@ test("each lane meets the same hazards at the same spots, in its own order", () 
   }
   assert.ok(shuffled >= 45);
   assert.ok(courseLeft(20, 10) > courseLeft(10, 10));
+});
+
+test("each obstacle catches runners over a range that follows its drawn width and the runner's body", () => {
+  const specs = Object.values(obstacleTypes);
+  for (const wider of specs) for (const narrower of specs) if (wider.width > narrower.width) assert.ok(wider.hitRange > narrower.hitRange);
+  const mud = { id: "mud-0", type: "mud", position: 50, ...obstacleTypes.mud };
+  const standAt = (progress) => stepRaceRunner({ runner: { ...createRuntimeRunner(), progress }, character: characters[0],
+    input: { jump: false, boost: false }, obstacles: [mud], now: 0, dt: .001, elapsed: 0 }).runner;
+  // The runner's own body counts too: its front edge touching the mud's core is already a hit.
+  const reach = mud.hitRange + RUNNER_HIT_RANGE;
+  assert.ok(RUNNER_HIT_RANGE > 0);
+  assert.ok(standAt(50 - reach + .1).hit.has("mud-0"));
+  assert.equal(standAt(50 - reach - .3).hit.size, 0);
 });
 
 test("only nearby obstacles are rendered and the nearest hazard is selected", () => {

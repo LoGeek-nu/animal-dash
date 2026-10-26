@@ -1,4 +1,4 @@
-import { COURSE_LENGTH } from "../../../domain/course.js";
+import { COURSE_LENGTH, RUNNER_HIT_RANGE } from "../../../domain/course.js";
 
 const JUMP_POWER = 7;
 const SPEED_MULTIPLIER = 3;
@@ -87,7 +87,7 @@ export function stepRaceRunner({ runner, character, input, obstacles, now, dt, e
   next.progress += next.velocity * dt;
 
   for (const obstacle of obstacles) {
-    if (!next.hit.has(obstacle.id) && Math.abs(next.progress - obstacle.position) < .42 && next.y < obstacle.hitHeight) {
+    if (!next.hit.has(obstacle.id) && Math.abs(next.progress - obstacle.position) < obstacle.hitRange + RUNNER_HIT_RANGE && next.y < obstacle.hitHeight) {
       next.hit.add(obstacle.id);
       next.collisionUntil = now + obstacle.penaltyMs;
       next.progress = Math.max(0, next.progress - obstacle.penaltyDistance);

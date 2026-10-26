@@ -13,16 +13,30 @@ export const courseSegments = [
 export const courseGates = [{ id: "start", position: 0 }, { id: "final", position: COURSE_LENGTH }];
 
 // One unit of progress spans this share of the lane: it sets how fast the course scrolls on screen.
-export const UNIT_PERCENT = 1.62;
+export const UNIT_PERCENT = 2.84;
+// Sprites are drawn at fixed pixel sizes for a 1600px lane.
+const PX_PER_UNIT = 1600 * UNIT_PERCENT / 100;
+// Only the solid middle of each drawing counts, leaving out white rims, grass tufts, ears and tails.
+const OBSTACLE_CORE = .4;
+const RUNNER_CORE = .3;
+const RUNNER_ART_PX = 164;
 
-export const obstacleTypes = {
+const toUnits = (px) => Math.round(px / PX_PER_UNIT * 100) / 100;
+// Half the runner's body: added to an obstacle's range so the body, not just its centre, has to clear it.
+export const RUNNER_HIT_RANGE = toUnits(RUNNER_ART_PX * RUNNER_CORE / 2);
+
+const withHitRange = (types) => Object.fromEntries(Object.entries(types).map(([type, spec]) =>
+  [type, { ...spec, hitRange: toUnits(spec.width * OBSTACLE_CORE / 2) }]));
+
+// hitRange: how far from its centre, in units of progress, the obstacle catches a runner below hitHeight.
+export const obstacleTypes = withHitRange({
   rock: { hitHeight: 34, width: 108, penaltyMs: 680, penaltyDistance: 1.1, warningDistance: 7 },
   hay: { hitHeight: 40, width: 112, penaltyMs: 720, penaltyDistance: 1.2, warningDistance: 7 },
   log: { hitHeight: 50, width: 148, penaltyMs: 760, penaltyDistance: 1.35, warningDistance: 8 },
   mud: { hitHeight: 18, width: 162, penaltyMs: 860, penaltyDistance: .9, warningDistance: 6 },
   puddle: { hitHeight: 22, width: 140, penaltyMs: 820, penaltyDistance: 1, warningDistance: 6 },
   hurdle: { hitHeight: 42, width: 130, penaltyMs: 650, penaltyDistance: 1.05, warningDistance: 8 },
-};
+});
 
 const FIRST_OBSTACLE = 32;
 const LAST_OBSTACLE = COURSE_LENGTH - 10;
