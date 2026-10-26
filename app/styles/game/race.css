@@ -16,7 +16,7 @@
 .race-lane-info { width: 12.8vw; min-width: 145px; height: 100%; padding: .75rem 1rem; display: grid; align-content: center; position: absolute; z-index: 12; left: 0; top: 0; color: white; background: var(--ink); clip-path: polygon(0 0, 88% 0, 100% 50%, 88% 100%, 0 100%); }
 .race-lane-info span, .race-lane-info small { font-size: .55rem; font-weight: 1000; letter-spacing: .12em; opacity: .75; }
 .race-lane-info strong { font-size: clamp(.85rem, 1.2vw, 1.45rem); }
-.rank-bubble { width: 4.5rem; height: 4.5rem; display: flex; align-items: baseline; justify-content: center; position: absolute; z-index: 13; left: 13.5vw; top: 50%; transform: translateY(-50%) rotate(-4deg); background: var(--lane); border: 3px solid var(--ink); border-radius: 50% 44% 53% 46%; box-shadow: 3px 4px 0 white; }
+.rank-bubble { width: 4.5rem; height: 4.5rem; display: flex; align-items: baseline; justify-content: center; position: absolute; z-index: 13; left: 13.5vw; top: 50%; transform: translateY(-50%); background: var(--lane); border: 3px solid var(--ink); border-radius: 50% 44% 53% 46%; box-shadow: 3px 4px 0 white; }
 .rank-bubble strong { font-size: 2.6rem; line-height: 1.65; }
 .rank-bubble span { font-size: .65rem; font-weight: 1000; }
 .track-meter { height: .35rem; position: absolute; z-index: 14; top: .4rem; left: 19vw; right: 2vw; overflow: hidden; background: rgba(255,255,255,.75); border: 1px solid var(--ink); border-radius: 99px; }
@@ -45,7 +45,7 @@
 .racing-character { width: 164px; height: 118px; position: absolute; z-index: 9; left: 23%; bottom: 5.5%; transition: none; }
 .racing-character .character-avatar { width: 164px; height: 118px; }
 .racing-character .character-avatar > img { animation: raceBob .23s infinite alternate; }
-.racing-character > b { position: absolute; left: 50%; top: -1.4rem; transform: translateX(-50%) rotate(-4deg); padding: .3rem .55rem; color: white; background: #fb5e7d; border: 2px solid var(--ink); border-radius: 99px; font-size: .7rem; }
+.racing-character > b { position: absolute; left: 50%; top: -1.4rem; transform: translateX(-50%); padding: .3rem .55rem; color: white; background: #fb5e7d; border: 2px solid var(--ink); border-radius: 99px; font-size: .7rem; }
 .speed-streak { position: absolute; left: -2.8rem; top: 42%; color: var(--lane); font-size: 3.3rem; font-weight: 1000; opacity: .18; transform: scaleX(.7); transition: opacity .15s, transform .15s; }
 .racing-character.is-boosting .speed-streak { opacity: 1; transform: scaleX(1.25); animation: speedFlicker .2s steps(2) infinite; }
 .runner-dust { width: 2.4rem; height: 1.1rem; position: absolute; z-index: -1; left: -.8rem; bottom: .4rem; opacity: 0; background: radial-gradient(circle at 20% 65%,#fff7dc 0 7px,transparent 8px),radial-gradient(circle at 52% 35%,#fff7dc 0 9px,transparent 10px),radial-gradient(circle at 82% 62%,#fff7dc 0 6px,transparent 7px); }
@@ -55,7 +55,7 @@
 .course-obstacle { width: var(--obstacle-width); position: absolute; z-index: 8; bottom: 6%; transform: translateX(-50%); filter: drop-shadow(4px 5px 0 rgba(23,48,71,.2)); }
 .obstacle-hitbox { position: absolute; inset: 0; opacity: 0; }
 .obstacle-artwork { width: 100%; height: auto; display: block; position: relative; pointer-events: none; }
-.hazard-warning { width: 1.8rem; height: 1.8rem; display: grid; place-items: center; position: absolute; left: 50%; top: -2.2rem; transform: translateX(-50%) rotate(-4deg); color: var(--ink); background: #ffe05a; border: 3px solid var(--ink); border-radius: 50% 44% 48% 45%; font-size: 1rem; font-weight: 1000; animation: hazardBounce .55s ease-in-out infinite alternate; }
+.hazard-warning { width: 1.8rem; height: 1.8rem; display: grid; place-items: center; position: absolute; left: 50%; top: -2.2rem; transform: translateX(-50%); color: var(--ink); background: #ffe05a; border: 3px solid var(--ink); border-radius: 50% 44% 48% 45%; font-size: 1rem; font-weight: 1000; animation: hazardBounce .55s ease-in-out infinite alternate; }
 .course-gate { height: 92%; width: auto; position: absolute; z-index: 6; bottom: 2%; transform: translateX(-50%); pointer-events: none; filter: drop-shadow(4px 5px 0 rgba(23,48,71,.2)); }
 .race-footer { height: 7vh; min-height: 52px; padding: 0 2.5vw; display: flex; align-items: center; justify-content: space-between; background: var(--paper); position: relative; }
 .race-footer span, .race-footer strong { font-size: .65rem; }
