@@ -7,7 +7,7 @@ export const ATTRACT_SCENES = [
 export const TUTORIAL_STEP_DURATION = 7_000;
 
 export const tutorialSteps = [
-  { id: "jump", number: "01", label: "JUMP", title: "障害物の手前でジャンプ！", copy: "少し手前で押すのがコツ", button: "JUMP", characterId: "momo", obstacleId: "garden-rock" },
-  { id: "boost", number: "02", label: "BOOST", title: "長押しでスピードアップ！", copy: "ゲージが空になる前に休もう", button: "BOOST", characterId: "toramaru", obstacleId: "garden-hay" },
-  { id: "goal", number: "03", label: "GOAL", title: "使い分けて1位をめざそう！", copy: "最後のハードルを越えてゴール", button: "JUMP + BOOST", characterId: "penta", obstacleId: "final-hurdle" },
+  { id: "jump", number: "01", label: "JUMP", title: "障害物の手前でジャンプ！", copy: "少し手前で押すのがコツ", button: "JUMP", characterId: "momo", obstacleType: "rock" },
+  { id: "boost", number: "02", label: "BOOST", title: "長押しでスピードアップ！", copy: "ゲージが空になる前に休もう", button: "BOOST", characterId: "toramaru", obstacleType: "hay" },
+  { id: "goal", number: "03", label: "GOAL", title: "使い分けて1位をめざそう！", copy: "最後のハードルを越えてゴール", button: "JUMP + BOOST", characterId: "penta", obstacleType: "hurdle" },
 ];

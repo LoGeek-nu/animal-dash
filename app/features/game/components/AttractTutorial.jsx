@@ -3,13 +3,13 @@
 import { useEffect, useState } from "react";
 import { CharacterAvatar } from "../../../components/ui/molecules/CharacterAvatar.jsx";
 import { TUTORIAL_STEP_DURATION, tutorialSteps } from "../../../domain/attract.js";
-import { courseObstacles } from "../../../domain/course.js";
+import { obstacleTypes } from "../../../domain/course.js";
 import { CourseObstacle } from "./CourseObstacle.jsx";
 
 export function AttractTutorial() {
   const [stepIndex, setStepIndex] = useState(0);
   const step = tutorialSteps[stepIndex];
-  const obstacle = courseObstacles.find(({ id }) => id === step.obstacleId);
+  const obstacle = step.obstacleType && { id: step.obstacleType, type: step.obstacleType, ...obstacleTypes[step.obstacleType] };
 
   useEffect(() => {
     const timer = window.setTimeout(

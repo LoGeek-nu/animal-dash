@@ -1,3 +1,5 @@
+import { COURSE_LENGTH } from "../../../domain/course.js";
+
 const JUMP_POWER = 7;
 const SPEED_MULTIPLIER = 3;
 
@@ -94,7 +96,7 @@ export function stepRaceRunner({ runner, character, input, obstacles, now, dt, e
   }
 
   next.collision = next.collisionUntil > now;
-  if (next.progress >= 100) {
+  if (next.progress >= COURSE_LENGTH) {
     if (next.finishedAt === null) next.finishedAt = Math.max(0, Math.round(elapsed));
     next.boosting = false;
     next.collision = false;
