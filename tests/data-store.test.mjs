@@ -7,14 +7,15 @@ import { characters, retiredCharacterIds } from "../app/domain/characters.js";
 import { createInitialSession } from "../app/domain/race-session.js";
 import { characterImageKey, saveGeneratedCharacter } from "../app/api/characters/character-store.js";
 import { getDailyRankings, getStoredCharacter, importCharacterPage, listStoredCharacters, rankingDay, resolveCharacter, saveCharacter, saveRace } from "../worker/data-store.js";
-import { charactersResponse, importCharactersResponse, rankingsResponse } from "../worker/data-api.js";
+import { charactersResponse, importCharactersResponse, rankingsResponse, updateCharacterResponse } from "../worker/data-api.js";
+import { normalizeCharacterText } from "../app/domain/character-text.js";
 import { raceRecordFromSession, validRaceRecord } from "../worker/race-record.js";
 import { staffCookie } from "../worker/auth.js";
 
 // Actual workerd D1/R2 bindings, isolated from the app's local and remote data.
 async function fixture(t, runtimeRoom = false) {
   const modulePaths = ["tests/fixtures/race-worker.mjs", "app/api/characters/generate/route.js", "app/api/characters/import/route.js", "worker/generation-quota.js", "worker/data-api.js", "worker/sync-access.js", "worker/auth.js", "worker/sync.js", "worker/race-session-room.js", "worker/data-store.js", "worker/race-record.js",
-    "app/api/characters/character-store.js", "app/domain/characters.js", "app/domain/generated-characters.js", "app/domain/generated-stats.js",
+    "app/api/characters/character-store.js", "app/domain/characters.js", "app/domain/generated-characters.js", "app/domain/generated-stats.js", "app/domain/character-text.js",
     "app/features/race-session/race-session-validator.js", "app/domain/race-session.js", "app/domain/race-results.js",
     "app/features/race-session/constants.js", "worker/race-authority.js", "app/domain/course.js",
     "app/features/game/race/race-replay.js", "app/features/game/race/race-runtime.js", "app/features/game/race/race-engine.js", "app/features/game/race/race-ranking.js",
@@ -329,4 +330,75 @@ test("public spectators join mid-race, reconnect and watch canonical results wit
   assert.deepEqual(reconnected.frames.filter((m) => m.session?.phase === "RESULTS").at(-1).session.results, expected);
   const rows = (await db.prepare("SELECT finish_ms FROM race_results WHERE race_id=? ORDER BY lane").bind(raceId).all()).results;
   assert.deepEqual(rows.map((row) => row.finish_ms), [...expected].sort((a, b) => a.lane - b.lane).map((r) => r.finishMs));
+});
+
+test("character names and catchphrases are trimmed and cleaned of invisible characters, with no length limit", () => {
+  assert.equal(normalizeCharacterText("  ふわ\u200Bふわ　 うさぎ\n"), "ふわふわ うさぎ");
+  assert.equal(normalizeCharacterText("あいうえおかきくけこさしすせそ"), "あいうえおかきくけこさしすせそ");
+  for (const text of ["", " \t", "\u200B", null, 12]) assert.equal(normalizeCharacterText(text), null);
+});
+
+test("staff edit generated characters' names and catchphrases through the room, which refuses ones set in a lane", { timeout: 15000 }, async (t) => {
+  const { db, bucket, mf } = await fixture(t, true);
+  await saveCharacter(db, await saveGeneratedCharacter(bucket, { ...gen("gen-edit"), caption: "もとの一言" }, btoa("png")), characterImageKey("gen-edit"));
+  const env = { DB: db, CHARACTERS: bucket, STAFF_PASSCODE: "test-passcode",
+    RACE_SESSION: { getByName: () => ({ fetch: (url, init) => mf.dispatchFetch(url, init) }) } };
+  const cookie = (await staffCookie(new Request("https://example.test/api/auth"), env)).split(";")[0];
+  const update = async (id, changes, headers = { Cookie: cookie }) => {
+    const response = await updateCharacterResponse(new Request(`https://example.test/api/characters/${id}`,
+      { method: "PATCH", headers, body: JSON.stringify(changes) }), env, id);
+    return { status: response.status, body: await response.json().catch(() => null) };
+  };
+  const stored = async () => {
+    const row = await db.prepare("SELECT name, data_json FROM characters WHERE id = ?").bind("gen-edit").first();
+    const metadata = JSON.parse((await bucket.get(characterImageKey("gen-edit"))).customMetadata.character);
+    return { name: row.name, data: JSON.parse(row.data_json), metadata };
+  };
+  const response = await mf.dispatchFetch("https://example.test/sync?role=admin", { headers: { Upgrade: "websocket" } });
+  const admin = response.webSocket;
+  const frames = [];
+  admin.addEventListener("message", (event) => frames.push(JSON.parse(event.data)));
+  admin.accept(); t.after(() => admin.close());
+  const wait = async (predicate) => {
+    const deadline = Date.now() + 5000;
+    while (!predicate()) { if (Date.now() > deadline) throw new Error("Missing worker message"); await new Promise((resolve) => setTimeout(resolve, 10)); }
+  };
+  await wait(() => frames.some((m) => m.type === "session"));
+
+  assert.equal((await update("gen-edit", { name: "なまえ" }, {})).status, 401);
+  assert.equal((await update("gen-edit", { name: "なまえ" }, { Cookie: cookie, Origin: "https://evil.test" })).status, 403);
+  for (const changes of [{ name: " \u200B " }, { caption: "" }, { name: "なまえ", caption: " " }, {}, { color: "#000" }]) {
+    assert.equal((await update("gen-edit", changes)).status, 400, JSON.stringify(changes));
+  }
+  assert.equal((await update("momo", { name: "なまえ" })).status, 404);
+  assert.equal((await update("gen-missing", { name: "なまえ" })).status, 404);
+  assert.equal((await stored()).name, "生成うさぎ");
+
+  const renamed = await update("gen-edit", { name: "  ぴょん\u200Bきち " });
+  assert.equal(renamed.status, 200);
+  assert.deepEqual([renamed.body.name, renamed.body.caption], ["ぴょんきち", "もとの一言"]);
+  await wait(() => frames.some((m) => m.type === "characters-changed"));
+  let saved = await stored();
+  assert.deepEqual([saved.name, saved.data.name, saved.metadata.name, saved.data.caption, saved.metadata.caption],
+    ["ぴょんきち", "ぴょんきち", "ぴょんきち", "もとの一言", "もとの一言"]);
+
+  const recaptioned = await update("gen-edit", { caption: "はしるのだいすき" });
+  assert.deepEqual([recaptioned.body.name, recaptioned.body.caption], ["ぴょんきち", "はしるのだいすき"]);
+  await update("gen-edit", { name: "ぴょんた", caption: "ぴょんと跳ねる" });
+  saved = await stored();
+  assert.deepEqual([saved.name, saved.data.caption, saved.metadata.name, saved.metadata.caption], ["ぴょんた", "ぴょんと跳ねる", "ぴょんた", "ぴょんと跳ねる"]);
+  const object = await bucket.get(characterImageKey("gen-edit"));
+  assert.equal(object.httpMetadata.contentType, "image/png");
+  assert.equal(await object.text(), "png");
+  const listed = (await charactersResponse({ DB: db }).then((r) => r.json())).characters.find((c) => c.id === "gen-edit");
+  assert.deepEqual([listed.name, listed.caption], ["ぴょんた", "ぴょんと跳ねる"]);
+
+  const current = frames.findLast((m) => m.type === "session").session;
+  admin.send(JSON.stringify({ type: "session", session: { ...current, sequence: current.sequence + 1,
+    lanes: [{ characterId: "gen-edit", isBot: false }, null, null, null] } }));
+  await wait(() => frames.some((m) => m.session?.sequence === current.sequence + 1));
+  const refused = await update("gen-edit", { caption: "べつの一言" });
+  assert.equal(refused.status, 409);
+  assert.equal(refused.body.error, "character_in_use");
+  assert.equal((await getStoredCharacter(db, "gen-edit")).caption, "ぴょんと跳ねる");
 });

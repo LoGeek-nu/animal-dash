@@ -9,7 +9,7 @@ export async function GET(_request, { params }) {
   return new Response(object.body, {
     headers: {
       "Content-Type": object.httpMetadata?.contentType ?? "image/png",
-      // Character ids are random UUIDs and images are never overwritten.
+      // Character ids are random UUIDs and the pixels never change (an edit rewrites only the metadata).
       "Cache-Control": "public, max-age=31536000, immutable",
       ETag: object.httpEtag,
     },
