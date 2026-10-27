@@ -10,6 +10,7 @@ import { PHASE_LABELS } from "../../../domain/race-session.js";
 import { logout } from "../../auth/useStaffAuth.js";
 import { createLongPressGesture } from "../model/long-press.js";
 import { AdminModal } from "./AdminModal.jsx";
+import { CharacterDetailDialog } from "./CharacterDetailDialog.jsx";
 
 function CharacterCard({ character, selected, used, assigning, mutable, onSelect, onInfo }) {
   const inspect = useCallback(() => onInfo(character.id), [character.id, onInfo]);
@@ -70,7 +71,6 @@ export function MobileAdminWorkspace({ session, selection, actions, canLogout, o
     changeTab("lanes");
   };
   const requestConfirmation = (callback) => { setOperationsOpen(false); callback(); };
-  const info = infoId ? getCharacter(infoId) : null;
 
   return <div ref={workspaceRef} className={`mobile-admin-workspace ${tab === "characters" ? "is-character-view" : ""}`}>
     <nav className="mobile-admin-tabs" aria-label="管理画面の表示">
@@ -102,7 +102,7 @@ export function MobileAdminWorkspace({ session, selection, actions, canLogout, o
       </section>
       <div className="mobile-action-dock mobile-character-dock"><div><Button variant="primary" disabled={!canAssign} onClick={assign}>{!assigning && <svg className="mobile-set-lock" aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><rect x="5" y="10" width="14" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3" /><path d="M12 14v3" /></svg>}{assigning ? `レーン${targetLane + 1}にセット` : "レーンにセット"}</Button>{assigning && <Button variant="secondary" disabled={!selectedId} onClick={() => selection.setSelectedId(null)}>選択解除</Button>}</div>{!assigning && <small>参加枠の「選ぶ」から開くとセットできます</small>}{assigning && session.lanes[targetLane] && <small role="status">このレーンは他の操作で埋まりました。参加枠から選び直してください。</small>}</div>
     </>}
-    {info && <AdminModal title="ステータス詳細" onClose={() => setInfoId(null)} className="mobile-stats-dialog"><CharacterAvatar id={info.id} /><h3>{info.name}</h3><p>{info.preset}タイプ</p><p>{info.caption}</p><StatMeters character={info} /></AdminModal>}
+    {infoId && <CharacterDetailDialog id={infoId} used={selection.usedIds.has(infoId)} onClose={() => setInfoId(null)} />}
     {operationsOpen && <AdminModal title="その他の操作" onClose={() => setOperationsOpen(false)} className="mobile-operations-dialog">
       <span className={`mobile-phase status-${session.phase.toLowerCase()}`}>{PHASE_LABELS[session.phase]}</span><p>レース全体の操作はここから行います</p>
       <div className="mobile-operation-buttons">
