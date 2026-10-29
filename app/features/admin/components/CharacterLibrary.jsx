@@ -2,7 +2,7 @@ import { Button } from "../../../components/ui/atoms/Button.jsx";
 import { SearchField } from "../../../components/ui/molecules/SearchField.jsx";
 import { DraggableCharacter } from "./DraggableCharacter.jsx";
 
-export function CharacterLibrary({ query, onQueryChange, filteredCharacters, usedIds, mutable, selectedId, onSelect, totalCount, onRequestGenerate }) {
+export function CharacterLibrary({ query, onQueryChange, filteredCharacters, usedIds, mutable, selectedId, onSelect, onInfo, totalCount, onRequestGenerate }) {
   return (
     <div className="character-library panel-card">
       <div className="panel-heading">
@@ -16,14 +16,16 @@ export function CharacterLibrary({ query, onQueryChange, filteredCharacters, use
         {filteredCharacters.map((character) => {
           const isUsed = usedIds.has(character.id);
           return (
-            <DraggableCharacter
-              character={character}
-              key={character.id}
-              disabled={isUsed || !mutable}
-              isUsed={isUsed}
-              selected={selectedId === character.id}
-              onSelect={() => onSelect(character.id)}
-            />
+            <div className="library-character-item" key={character.id}>
+              <DraggableCharacter
+                character={character}
+                disabled={isUsed || !mutable}
+                isUsed={isUsed}
+                selected={selectedId === character.id}
+                onSelect={() => onSelect(character.id)}
+              />
+              <button type="button" className="library-character-info" aria-label={`${character.name}のステータス`} onClick={() => onInfo(character.id)}><span aria-hidden="true">ⓘ</span></button>
+            </div>
           );
         })}
       </div>

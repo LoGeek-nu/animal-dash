@@ -5,7 +5,7 @@ import { createInitialSession, createRaceId } from "../app/domain/race-session.j
 import { validSession } from "../app/features/race-session/race-session-validator.js";
 import { COUNTDOWN_DURATION, RESULTS_DURATION } from "../app/features/race-session/constants.js";
 import { MAX_RACE_INPUTS } from "../app/features/game/race/constants.js";
-import { resolveCharacter, saveRace } from "./data-store.js";
+import { resolveCharacter, saveRace, updateGeneratedCharacter } from "./data-store.js";
 import { raceRecordFromSession } from "./race-record.js";
 import { replayRace } from "./race-authority.js";
 
@@ -50,6 +50,10 @@ export class RaceSessionRoom {
     if (url.pathname === "/characters-changed") {
       this.broadcast({ type: "characters-changed" });
       return new Response(null, { status: 204 });
+    }
+    if (url.pathname === "/update-character" && request.method === "POST") {
+      const { id, changes } = await request.json();
+      return this.runExclusive(() => this.updateCharacter(id, changes));
     }
     if (url.pathname === "/race-save-status") {
       return Response.json({ failed: Boolean(await this.ctx.storage.get(`failed:${url.searchParams.get("raceId")}`)) });
@@ -210,6 +214,27 @@ export class RaceSessionRoom {
     this.broadcast({ type: "session", session: next });
     if (next.phase === "COUNTDOWN" || next.phase === "RACING") this.broadcastRace(race);
     if (newResult) await this.flushResults();
+  }
+
+  // Runs in the same queue as session messages, so a character cannot be set in a lane mid-edit.
+  async updateCharacter(id, changes) {
+    const notFound = () => Response.json({ error: "not_found", detail: "変更できるキャラクターが見つかりません。" }, { status: 404 });
+    if (BUILT_IN_IDS.has(id) || RETIRED_IDS.has(id)) return notFound();
+    const current = await this.session();
+    if (current.lanes.some((lane) => lane?.characterId === id)) {
+      return Response.json({ error: "character_in_use", detail: "レーンにセットされているキャラクターは名前や一言を変えられません。レーンから外してから変えてください。" }, { status: 409 });
+    }
+    if (!this.env.DB || !this.env.CHARACTERS) return Response.json({ error: "storage_unavailable", retryable: true }, { status: 503 });
+    let character;
+    try {
+      character = await updateGeneratedCharacter(this.env.DB, this.env.CHARACTERS, id, changes);
+    } catch (error) {
+      console.error("character_update_failed", { id, message: error.message });
+      return Response.json({ error: "storage_failed", detail: "保存できませんでした。もう一度試してください。", retryable: true }, { status: 500 });
+    }
+    if (!character) return notFound();
+    this.broadcast({ type: "characters-changed" });
+    return Response.json(character);
   }
 
   alarm() { return this.runExclusive(() => this.flushResults()); }

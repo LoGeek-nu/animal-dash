@@ -11,6 +11,7 @@ import { AdminControlBar } from "./components/AdminControlBar.jsx";
 import { AdminFooter } from "./components/AdminFooter.jsx";
 import { AdminHeader } from "./components/AdminHeader.jsx";
 import { AdminStatusBar } from "./components/AdminStatusBar.jsx";
+import { CharacterDetailDialog } from "./components/CharacterDetailDialog.jsx";
 import { CharacterDragOverlay } from "./components/CharacterDragOverlay.jsx";
 import { CharacterGenerateDialog } from "./components/CharacterGenerateDialog.jsx";
 import { CharacterLibrary } from "./components/CharacterLibrary.jsx";
@@ -25,6 +26,7 @@ export function AdminPage() {
   const { session, ready, syncStatus, actions } = useRaceSession("admin");
   const [confirm, setConfirm] = useState(null);
   const [generateOpen, setGenerateOpen] = useState(false);
+  const [infoId, setInfoId] = useState(null);
   const selection = useCharacterSelection({ lanes: session.lanes });
   const clearSelection = useCallback(() => selection.setSelectedId(null), [selection.setSelectedId]);
   const drag = useCharacterDragAndDrop({
@@ -75,6 +77,7 @@ export function AdminPage() {
             mutable={mutable}
             selectedId={selection.selectedId}
             onSelect={handleSelect}
+            onInfo={setInfoId}
             totalCount={selection.totalCount}
             onRequestGenerate={() => setGenerateOpen(true)}
           />
@@ -118,6 +121,7 @@ export function AdminPage() {
             onConfirm={confirmFinish}
           />
         )}
+        {infoId && <CharacterDetailDialog id={infoId} used={selection.usedIds.has(infoId)} onClose={() => setInfoId(null)} />}
         {generateOpen && <CharacterGenerateDialog session={session} ready={ready} syncStatus={syncStatus} onClose={() => setGenerateOpen(false)} />}
         <VisuallyHidden aria-live="polite">{drag.announcement}</VisuallyHidden>
       </main>
