@@ -1,11 +1,12 @@
 import { Badge } from "../../../components/ui/atoms/Badge.jsx";
+import { TitleLogo } from "../../../components/ui/atoms/TitleLogo.jsx";
 import { GameControlBadge } from "./GameControlBadge.jsx";
 import { PHASE_LABELS } from "../../../domain/race-session.js";
 
 export function GameHeader({ phase }) {
   return (
     <header className="game-header">
-      <div className="game-logo"><span>OUREISAI 2026</span><strong>アニマルダッシュ！</strong></div>
+      <div className="game-logo"><span>OUREISAI 2026</span><TitleLogo /></div>
       <div className="game-header-status">
         <Badge className={`phase-chip phase-${phase.toLowerCase()}`}>{PHASE_LABELS[phase]}</Badge>
         <GameControlBadge />

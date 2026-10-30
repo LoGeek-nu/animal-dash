@@ -7,6 +7,7 @@ import { StatMeters } from "../../../components/ui/molecules/StatMeters.jsx";
 import { addGeneratedCharacter } from "../../../domain/generated-characters.js";
 import { AdminModal } from "./AdminModal.jsx";
 import { AdminHeader } from "./AdminHeader.jsx";
+import { CharacterProfileEditor } from "./CharacterProfileEditor.jsx";
 import { AdminStatusBar } from "./AdminStatusBar.jsx";
 
 const MAX_DIMENSION = 1600;
@@ -165,7 +166,7 @@ export function CharacterGenerateDialog({ onClose, session, ready, syncStatus })
         {stage === "done" && created && (
           <div className="generate-dialog-result">
             <CharacterAvatar character={created} />
-            <h3>{created.name}</h3>
+            <CharacterProfileEditor character={created} onUpdated={setCreated} />
             <p>{created.preset}タイプ<br />{created.caption}</p>
             <StatMeters character={created} />
             <p>キャラクター一覧に追加しました。レーンにセットして遊べます。</p>

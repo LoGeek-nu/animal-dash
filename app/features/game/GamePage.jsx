@@ -1,5 +1,6 @@
 "use client";
 
+import { TitleLogo } from "../../components/ui/atoms/TitleLogo.jsx";
 import { useStaffAuth } from "../auth/useStaffAuth.js";
 import { StaffLoginNotice } from "../auth/StaffLoginNotice.jsx";
 import { useRaceSession } from "../race-session/useRaceSession.js";
@@ -14,7 +15,7 @@ export function GamePage() {
     <GameControlContext.Provider value={{ canControl, syncStatus }}>
       {ready ? <GamePhaseRenderer session={session} onFinished={actions.finishRace} onInput={actions.reportInput}
         canControl={canControl} raceFeed={raceFeed} connected={syncStatus === "open"} />
-        : <main className="game-stage"><div className="game-logo"><strong>アニマルダッシュ！</strong></div><p role="status">現在のゲームに接続しています…</p></main>}
+        : <main className="game-stage"><div className="game-logo"><TitleLogo /></div><p role="status">現在のゲームに接続しています…</p></main>}
       <StaffLoginNotice returnTo="/game" auth={auth} />
     </GameControlContext.Provider>
   );

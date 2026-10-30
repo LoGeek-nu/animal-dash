@@ -62,7 +62,7 @@ test("server generates race identity, fixes lanes and computes goal times from t
   const result = { phase: "RESULTS", results: [{ characterId: "momo", lane: 1, rank: 1, finishMs: 1, isBot: false }] };
   await f.send(f.game, result);
   assert.equal(f.data.get("session").phase, "RACING");
-  f.setNow(current.raceStartedAt + 20000);
+  f.setNow(current.raceStartedAt + 59_000);
   await f.send(f.observer, result);
   assert.equal(f.observer.sent.at(-2).error, "not_race_reporter");
   await f.send(f.game, { ...result, lanes: [current.lanes[1], current.lanes[0], null, null] });

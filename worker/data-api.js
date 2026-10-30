@@ -1,5 +1,6 @@
 import { isSameOrigin, isStaffRequest, unauthorizedResponse } from "./auth.js";
 import { getDailyRankings, importCharacterPage, listStoredCharacters, rankingDay } from "./data-store.js";
+import { normalizeCharacterText } from "../app/domain/character-text.js";
 import { getSyncRoom } from "./sync.js";
 
 const headers = { "Cache-Control": "no-store" };
@@ -57,6 +58,38 @@ export async function importCharactersResponse(request, env) {
     return Response.json(await importCharacterPage(env.DB, env.CHARACTERS, cursor), { headers });
   } catch (error) {
     console.error("character_import_failed", error);
+    return unavailable();
+  }
+}
+
+const EDITABLE_FIELDS = { name: "名前", caption: "一言" };
+
+// Takes the fields that were sent; each one sent must have text left after cleaning.
+function readCharacterChanges(body) {
+  const changes = {};
+  for (const [field, label] of Object.entries(EDITABLE_FIELDS)) {
+    if (body?.[field] === undefined) continue;
+    const text = normalizeCharacterText(body[field]);
+    if (!text) return { error: `${label}を入力してください。` };
+    changes[field] = text;
+  }
+  return Object.keys(changes).length ? { changes } : { error: "名前か一言を送ってください。" };
+}
+
+// The edit itself runs in the sync room, which owns the lanes, so it can refuse characters set in one.
+export async function updateCharacterResponse(request, env, id) {
+  if (!isSameOrigin(request)) return new Response("Forbidden", { status: 403 });
+  if (!(await isStaffRequest(request, env))) return unauthorizedResponse();
+  let body;
+  try { body = await request.json(); } catch { /* reported below */ }
+  const { changes, error } = readCharacterChanges(body);
+  if (error) return Response.json({ error: "invalid_character", detail: error }, { status: 400, headers });
+  if (!env.RACE_SESSION) return unavailable();
+  try {
+    const response = await getSyncRoom(env).fetch("https://sync/update-character", { method: "POST", body: JSON.stringify({ id, changes }) });
+    return new Response(response.body, { status: response.status, headers: { ...headers, "Content-Type": "application/json" } });
+  } catch (error) {
+    console.error("character_update_failed", error);
     return unavailable();
   }
 }

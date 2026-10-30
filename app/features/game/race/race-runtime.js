@@ -1,5 +1,5 @@
 import { getCharacter } from "../../../domain/characters.js";
-import { courseObstacles } from "../../../domain/course.js";
+import { createCourseObstacles } from "../../../domain/course.js";
 import { getBotInput } from "./bot-controller.js";
 import { RACE_TIMEOUT } from "./constants.js";
 import { createRuntimeRunner, stepRaceRunner } from "./race-engine.js";
@@ -17,6 +17,7 @@ export function createRaceRuntime({ raceId, raceStartedAt, lanes, now, epochNow,
       const character = raceCharacters?.[index] ?? getCharacter(lane.characterId);
       return { ...character, stats: { ...character.stats } };
     }),
+    obstacles: createCourseObstacles(raceId, lanes.length),
     runners: lanes.map(() => createRuntimeRunner()),
     origin: now, elapsedAtOrigin: epochNow - raceStartedAt, tick: 0, simulatedElapsed: 0, elapsed: 0,
     completed: null, reported: false,
@@ -34,7 +35,7 @@ function completeRace(runtime) {
 // The hook owns scheduling and browser input. This owns one race's timing and finalization.
 // readInput is asked only for player lanes. BOTs are driven here, so the screen and the server replay
 // cannot diverge by feeding keyboard/gamepad input into a BOT.
-export function advanceRaceRuntime(runtime, { now, epochNow, readInput = () => ({ jump: false, boost: false }), onJumpInput = () => {}, obstacles = courseObstacles }) {
+export function advanceRaceRuntime(runtime, { now, epochNow, readInput = () => ({ jump: false, boost: false }), onJumpInput = () => {}, obstacles }) {
   if (runtime.completed) return;
   const elapsed = runtime.elapsedAtOrigin + now - runtime.origin;
   runtime.elapsed = Math.max(runtime.elapsed, 0, Math.round(elapsed));
@@ -56,10 +57,11 @@ export function advanceRaceRuntime(runtime, { now, epochNow, readInput = () => (
     runtime.runners = runtime.runners.map((runner, index) => {
     const lane = runtime.lanes[index];
     if (!lane || (runner.finishedAt !== null && runner.y === 0)) return runner;
+    const laneObstacles = obstacles ?? runtime.obstacles[index];
     const input = runner.finishedAt !== null ? { jump: false, boost: false }
-      : lane.isBot ? getBotInput({ laneIndex: index, runner, now: simulationNow, obstacles })
+      : lane.isBot ? getBotInput({ laneIndex: index, runner, now: simulationNow, obstacles: laneObstacles })
         : readInput(index, runner, lane, simulationNow);
-    const stepped = stepRaceRunner({ runner, character: runtime.characters[index], input, obstacles,
+    const stepped = stepRaceRunner({ runner, character: runtime.characters[index], input, obstacles: laneObstacles,
       now: simulationNow, dt: SIMULATION_STEP_MS / 1000, elapsed: simulationNow });
     // A press is read once: one taken mid-air is dropped rather than replayed on landing.
     if (input.jump && !lane.isBot) onJumpInput(index);

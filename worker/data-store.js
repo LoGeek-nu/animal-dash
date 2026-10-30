@@ -1,6 +1,6 @@
 import { characters, characterType } from "../app/domain/characters.js";
 import { readGeneratedStats } from "../app/domain/generated-stats.js";
-import { characterImageUrl, characterImageKey } from "../app/api/characters/character-store.js";
+import { characterImageUrl, characterImageKey, updateGeneratedCharacterMetadata } from "../app/api/characters/character-store.js";
 import { validRaceRecord } from "./race-record.js";
 
 export class RaceStorageError extends Error {
@@ -52,6 +52,18 @@ export async function getStoredCharacter(db, id) {
 export async function listStoredCharacters(db) {
   const { results } = await db.prepare("SELECT * FROM characters ORDER BY generated, created_at, id").all();
   return results.map(characterFromRow);
+}
+
+// `changes` holds a new name, caption or both. R2 first, then D1: D1 is what screens read,
+// and a failed D1 write is fixed by retrying the edit.
+// Built-in characters live in code, so only generated ones are edited. Returns null when not found.
+export async function updateGeneratedCharacter(db, bucket, id, changes) {
+  const stored = await getStoredCharacter(db, id);
+  if (!stored?.generated) return null;
+  if (!await updateGeneratedCharacterMetadata(bucket, id, changes)) return null;
+  await db.prepare("UPDATE characters SET name = COALESCE(?, name), data_json = json_patch(data_json, ?) WHERE id = ? AND generated = 1")
+    .bind(changes.name ?? null, JSON.stringify(changes), id).run();
+  return { ...stored, ...changes };
 }
 
 // One R2 page per call; repeat with cursor until done. Safe to rerun after partial failure.

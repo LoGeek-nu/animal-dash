@@ -46,6 +46,24 @@ export async function listGeneratedCharacters(bucket) {
     });
 }
 
+// R2 cannot update metadata alone, so the same PNG is written back with the changed name or catchphrase.
+// Returns false when the object is missing or its metadata is unreadable.
+export async function updateGeneratedCharacterMetadata(bucket, id, changes) {
+  const object = await bucket.get(characterImageKey(id));
+  if (!object) return false;
+  let character;
+  try {
+    character = JSON.parse(object.customMetadata?.character ?? "");
+  } catch {
+    return false;
+  }
+  await bucket.put(characterImageKey(id), await object.arrayBuffer(), {
+    httpMetadata: object.httpMetadata,
+    customMetadata: { ...object.customMetadata, character: JSON.stringify({ ...character, ...changes }) },
+  });
+  return true;
+}
+
 export async function generatedCharacterExists(bucket, id) {
   return (await bucket.head(characterImageKey(id))) !== null;
 }

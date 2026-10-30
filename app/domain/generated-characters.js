@@ -53,3 +53,23 @@ export function refreshGeneratedCharacters() {
   });
   return queued;
 }
+
+// The server refuses characters set in a lane; its message is shown to staff as-is.
+// `changes` holds a new name, caption or both.
+export async function updateGeneratedCharacter(id, changes) {
+  let response;
+  try {
+    response = await fetch(`/api/characters/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(changes),
+    });
+  } catch {
+    throw new Error("通信に失敗しました。ネットワークを確認してください。");
+  }
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(body.detail ?? "変更できませんでした。");
+  pool = pool.map((character) => character.id === id ? { ...character, name: body.name, caption: body.caption } : character);
+  notify();
+  return body;
+}
