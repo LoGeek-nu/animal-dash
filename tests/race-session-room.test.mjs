@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { createInitialSession } from "../app/domain/race-session.js";
 import { RaceSessionRoom } from "../worker/race-session-room.js";
-import { MAX_RACE_INPUTS } from "../app/features/game/race/constants.js";
+import { MAX_INPUT_LAG_MS, MAX_RACE_INPUTS } from "../app/features/game/race/constants.js";
+import { getBotInput } from "../app/features/game/race/bot-controller.js";
+import { SIMULATION_STEP_MS, advanceRaceRuntime, createRaceRuntime } from "../app/features/game/race/race-runtime.js";
 import { receiveRaceUpdate } from "../app/features/game/race/spectator-race.js";
 
 globalThis.WebSocketRequestResponsePair ??= class {};
@@ -90,6 +92,53 @@ test("only the selected game socket can timestamp inputs, and reconnect transfer
   await f.room.webSocketClose(f.game, 1000, "test");
   assert.equal(f.data.get("activeRace").reporterId, "observer");
   assert.equal(f.room.gameSocket(), f.observer);
+});
+
+test("inputs keep the game screen's race time when they arrive late, within limits", async () => {
+  const f = fixture(); await f.start();
+  const race = f.data.get("activeRace");
+  const input = (buttons, at) => f.room.webSocketMessage(f.game, JSON.stringify({ type: "input", raceId: race.raceId, buttons, at }));
+  f.setNow(race.startedAt + 5000);
+  await input(1, 4880);
+  await input(0, 9000);
+  await input(16, 4000);
+  f.setNow(race.startedAt + 9000);
+  await input(17, 1000);
+  await input(1, 1.5);
+  assert.deepEqual(f.data.get("activeRace").inputs, [
+    { at: 4880, buttons: 1 }, // 120ms late: replayed when it was pressed
+    { at: 5000, buttons: 0 }, // ahead of server time
+    { at: 5000, buttons: 16 }, // before the previous input
+    { at: 9000 - MAX_INPUT_LAG_MS, buttons: 17 }, // too far back
+    { at: 9000, buttons: 1 }, // not an integer time: server time
+  ]);
+});
+
+test("the canonical result matches the game screen even when inputs arrive with uneven delay", async () => {
+  const f = fixture(); await f.start();
+  const race = f.data.get("activeRace");
+  const lanes = race.lanes.map((lane) => lane && { ...lane, isBot: false });
+  race.lanes = lanes;
+  f.data.set("session", { ...f.data.get("session"), lanes });
+  const local = createRaceRuntime({ raceId: race.raceId, raceStartedAt: race.startedAt, lanes, raceCharacters: race.characters, now: 0, epochNow: race.startedAt });
+  // Every lane jumps exactly in front of each obstacle, as a careful player would on screen.
+  const press = (index, runner, now) => getBotInput({ laneIndex: index, runner, now, obstacles: local.obstacles[index] });
+  let buttons = null;
+  for (let frame = 0, t = 0; !local.completed; frame += 1, t += 16) {
+    // Like useRaceEngine: buttons are read once per frame, sent, then the frame's steps run with them.
+    const inputs = local.runners.map((runner, index) => press(index, runner, local.simulatedElapsed));
+    const next = inputs.reduce((mask, input, index) => mask | (input.jump ? 1 << index : 0) | (input.boost ? 1 << (index + 4) : 0), 0);
+    const at = Math.floor((local.tick + 1) * SIMULATION_STEP_MS);
+    advanceRaceRuntime(local, { now: t, epochNow: race.startedAt + t, readInput: (index) => inputs[index] });
+    if (next === buttons) continue;
+    buttons = next;
+    f.setNow(race.startedAt + at + [40, 190, 80, 260, 120][frame % 5]);
+    await f.room.webSocketMessage(f.game, JSON.stringify({ type: "input", raceId: race.raceId, buttons, at }));
+  }
+  f.setNow(race.startedAt + local.elapsed + 3000);
+  await f.send(f.game, { phase: "RESULTS", results: local.completed.results });
+  assert.equal(f.data.get("session").phase, "RESULTS");
+  assert.deepEqual(f.data.get("session").results, local.completed.results);
 });
 
 test("force finish freezes DNF and durable outbox survives reset and room restart", async (t) => {

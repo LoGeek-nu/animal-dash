@@ -4,7 +4,7 @@ import { characters, retiredCharacterIds } from "../app/domain/characters.js";
 import { createInitialSession, createRaceId } from "../app/domain/race-session.js";
 import { validSession } from "../app/features/race-session/race-session-validator.js";
 import { COUNTDOWN_DURATION, RESULTS_DURATION } from "../app/features/race-session/constants.js";
-import { MAX_RACE_INPUTS } from "../app/features/game/race/constants.js";
+import { MAX_INPUT_LAG_MS, MAX_RACE_INPUTS } from "../app/features/game/race/constants.js";
 import { resolveCharacter, saveRace, updateGeneratedCharacter } from "./data-store.js";
 import { raceRecordFromSession } from "./race-record.js";
 import { replayRace } from "./race-authority.js";
@@ -133,8 +133,12 @@ export class RaceSessionRoom {
       if (actor.role !== "game" || !race || actor.id !== race.reporterId || message.raceId !== race.raceId
         || !["COUNTDOWN", "RACING"].includes(current.phase) || this.now() < race.startedAt
         || !Number.isInteger(message.buttons) || message.buttons < 0 || message.buttons > 255) return;
-      const at = Math.min(60_000, this.now() - race.startedAt);
+      const serverAt = Math.min(60_000, this.now() - race.startedAt);
       const last = race.inputs.at(-1);
+      // The game screen stamps a press with its own race time, so network jitter does not move a jump
+      // in the replay. The stamp may not run ahead of server time, behind the previous input, or too far back.
+      const at = Number.isSafeInteger(message.at) && message.at >= 0
+        ? Math.min(serverAt, Math.max(message.at, last?.at ?? 0, serverAt - MAX_INPUT_LAG_MS)) : serverAt;
       // One slot stays free for the release added when the reporter disconnects (webSocketClose).
       if (race.inputs.length >= MAX_RACE_INPUTS - 1 || (last && message.buttons === last.buttons)) return;
       const input = { at, buttons: message.buttons };
