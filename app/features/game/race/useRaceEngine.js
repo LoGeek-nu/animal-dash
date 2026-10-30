@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { PAINT_INTERVAL, RESULTS_HOLD_MS } from "./constants.js";
 import { createRuntimeRunner, toRenderableRunner } from "./race-engine.js";
 import { calculateLiveRanks } from "./race-ranking.js";
-import { advanceRaceRuntime, createRaceRuntime } from "./race-runtime.js";
+import { SIMULATION_STEP_MS, advanceRaceRuntime, createRaceRuntime } from "./race-runtime.js";
 import { createRaceReplay, advanceRaceReplay } from "./race-replay.js";
 import { spectatorElapsed } from "./spectator-race.js";
 import { useRaceControls } from "./useRaceControls.js";
@@ -61,7 +61,11 @@ export function useRaceEngine({ raceId, lanes, raceStartedAt, onFinished, onInpu
         const input = readInput(index, gamepads[index]);
         return mask | (input.jump ? 1 << index : 0) | (input.boost ? 1 << (index + 4) : 0);
       }, 0);
-      if (!runtime.completed && (buttons !== lastButtons || now - lastInputAt >= 250)) { onInput?.({ raceId, buttons }); lastButtons = buttons; lastInputAt = now; }
+      // These buttons first act on the next simulation step; the room replays them at that race time.
+      if (!runtime.completed && (buttons !== lastButtons || now - lastInputAt >= 250)) {
+        onInput?.({ raceId, buttons, at: Math.floor((runtime.tick + 1) * SIMULATION_STEP_MS) });
+        lastButtons = buttons; lastInputAt = now;
+      }
       advanceRaceRuntime(runtime, {
         now, epochNow: runtime.raceStartedAt + runtime.elapsedAtOrigin + Math.max(now - runtime.origin, Date.now() - runtime.wallOrigin), onJumpInput: consumeJump,
         readInput: (laneIndex) => readInput(laneIndex, gamepads[laneIndex]),
