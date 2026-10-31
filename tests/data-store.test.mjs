@@ -14,7 +14,7 @@ import { staffCookie } from "../worker/auth.js";
 
 // Actual workerd D1/R2 bindings, isolated from the app's local and remote data.
 async function fixture(t, runtimeRoom = false) {
-  const modulePaths = ["tests/fixtures/race-worker.mjs", "app/api/characters/generate/route.js", "app/api/characters/import/route.js", "worker/generation-quota.js", "worker/data-api.js", "worker/sync-access.js", "worker/auth.js", "worker/sync.js", "worker/race-session-room.js", "worker/data-store.js", "worker/race-record.js",
+  const modulePaths = ["tests/fixtures/race-worker.mjs", "worker/character-thumbnail.js", "app/domain/character-thumbnail.js", "app/api/characters/generate/route.js", "app/api/characters/import/route.js", "worker/generation-quota.js", "worker/data-api.js", "worker/sync-access.js", "worker/auth.js", "worker/sync.js", "worker/race-session-room.js", "worker/data-store.js", "worker/race-record.js",
     "app/api/characters/character-store.js", "app/domain/characters.js", "app/domain/generated-characters.js", "app/domain/generated-stats.js", "app/domain/character-text.js",
     "app/features/race-session/race-session-validator.js", "app/domain/race-session.js", "app/domain/race-results.js",
     "app/features/race-session/constants.js", "worker/race-authority.js", "app/domain/course.js",

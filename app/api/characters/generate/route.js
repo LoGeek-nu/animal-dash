@@ -1,3 +1,4 @@
+import { prepareGeneratedCharacterThumbnail } from "../../../../worker/character-thumbnail.js";
 import { env } from "cloudflare:workers";
 import { characters, characterType } from "../../../domain/characters.js";
 import { readGeneratedStats } from "../../../domain/generated-stats.js";
@@ -115,6 +116,8 @@ export async function POST(request) {
   } catch (cause) {
     return Response.json({ error: "storage_failed", detail: String(cause), retryable: true }, { status: 500 });
   }
+
+  await prepareGeneratedCharacterThumbnail(env, character.id);
 
   // Other screens can still pick the character up on their next reload, so a failed notice is not an error.
   await notifyCharactersChanged(env).catch(() => {});

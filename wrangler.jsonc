@@ -127,7 +127,13 @@
           "pattern": "animaldash-develop.logeek.tech",
           "custom_domain": true
         }
-      ]
+      ],
+      "images": {
+        "binding": "IMAGES"
+      }
     }
+  },
+  "images": {
+    "binding": "IMAGES"
   }
 }
