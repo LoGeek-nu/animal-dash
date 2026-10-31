@@ -170,7 +170,8 @@ test("workerd validates race registration, ownership, canonical times, immutabil
     ws.addEventListener("message", (event) => frames.push(JSON.parse(event.data)));
     ws.accept(); t.after(() => ws.close()); return ws;
   };
-  const admin = await connect("admin"); const game = await connect("game"); const other = await connect("game");
+  // The newest game screen takes control, so the reporter connects last.
+  const admin = await connect("admin"); const other = await connect("game"); const game = await connect("game");
   const received = messages.get(game);
   const wait = async (predicate) => {
     const deadline = Date.now() + 5000;
@@ -282,11 +283,12 @@ test("public spectators join mid-race, reconnect and watch canonical results wit
   const initial = admin.frames.find((m) => m.type === "session").session;
   admin.ws.send(JSON.stringify({ type: "session", session: { ...initial, phase: "COUNTDOWN", sequence: initial.sequence + 1 } }));
   await wait(() => admin.frames.some((m) => m.error === "game_not_connected"));
-  const game = await connect("game", true);
+  // The newest game screen takes control from the one opened before it.
+  const lastControl = (actor) => actor.frames.filter((m) => m.type === "control").at(-1)?.canControl;
   const otherGame = await connect("game", true);
-  await wait(() => game.frames.some((m) => m.canControl === true));
+  const game = await connect("game", true);
+  await wait(() => lastControl(game) === true && lastControl(otherGame) === false);
   assert.equal(viewer.frames.some((m) => m.canControl === true), false);
-  assert.equal(otherGame.frames.some((m) => m.canControl === true), false);
   const session = () => admin.frames.filter((m) => m.type === "session").at(-1).session;
   const send = async (actor, patch) => {
     const sequence = session().sequence + 1;
@@ -321,7 +323,7 @@ test("public spectators join mid-race, reconnect and watch canonical results wit
   assert.deepEqual(reconnected.frames.find((m) => m.type === "race").race.inputs, snapshot.inputs);
   assert.equal(reconnected.frames.some((m) => m.canControl === true), false);
   game.ws.close();
-  await wait(() => otherGame.frames.some((m) => m.canControl === true));
+  await wait(() => lastControl(otherGame) === true);
   assert.equal(viewer.frames.some((m) => m.canControl === true), false);
   await clock(start + 59_000);
   await send(otherGame, { phase: "RESULTS" });

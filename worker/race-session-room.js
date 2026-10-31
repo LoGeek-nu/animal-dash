@@ -66,17 +66,20 @@ export class RaceSessionRoom {
     this.ctx.acceptWebSocket(server);
     await this.runExclusive(async () => {
       const current = await this.session();
-      if (role === "game" && !this.reporter(await this.ctx.storage.get("gameOwner"))) {
-        await this.ctx.storage.put("gameOwner", server.deserializeAttachment().id);
-      }
       const race = await this.ctx.storage.get("activeRace");
-      if (race && !this.reporter(race.reporterId)) {
+      if (role === "game") {
+        // The newest game screen takes control, so staff can always reopen the screen they want to use,
+        // even when a forgotten tab elsewhere still holds a connection.
+        const id = server.deserializeAttachment().id;
+        await this.ctx.storage.put("gameOwner", id);
+        if (race) await this.handOverRace(race, id);
+      } else if (race && !this.reporter(race.reporterId)) {
         race.reporterId = this.reporter(await this.ctx.storage.get("gameOwner"))?.deserializeAttachment().id ?? this.gameSocket()?.deserializeAttachment().id ?? null;
         await this.ctx.storage.put("activeRace", race);
       }
       server.send(JSON.stringify({ type: "session", session: current }));
-      // A new socket can only take ownership from nobody, so no other socket's control changes here.
-      await this.sendControl([server]);
+      // Only a game screen moves control; other sockets keep theirs, so they need no message.
+      await this.sendControl(role === "game" ? undefined : [server]);
       this.sendRace(server, race);
       server.send(JSON.stringify({ type: "sound", muted: await this.ctx.storage.get("muted") === true }));
     });
@@ -279,20 +282,25 @@ export class RaceSessionRoom {
     try { socket.close(code, reason); } catch { /* already closed */ }
     return this.runExclusive(async () => {
       const id = socket.deserializeAttachment()?.id;
-      const replacement = this.ctx.getWebSockets().find((ws) => ws !== socket && ws.readyState === 1 && ws.deserializeAttachment()?.role === "game");
-      if (await this.ctx.storage.get("gameOwner") === id) await this.ctx.storage.put("gameOwner", replacement?.deserializeAttachment().id ?? null);
+      // The most recently opened game screen left takes over, matching how a new screen takes control.
+      const replacement = this.ctx.getWebSockets().findLast((ws) => ws !== socket && ws.readyState === 1 && ws.deserializeAttachment()?.role === "game");
+      const replacementId = replacement?.deserializeAttachment().id ?? null;
+      if (await this.ctx.storage.get("gameOwner") === id) await this.ctx.storage.put("gameOwner", replacementId);
       const race = await this.ctx.storage.get("activeRace");
-      if (race?.reporterId === id) {
-        race.reporterId = replacement?.deserializeAttachment().id ?? null;
-        // Release held buttons only when something is held, so repeated disconnects cannot pass MAX_RACE_INPUTS.
-        if (race.inputs.at(-1)?.buttons) {
-          race.inputs.push({ at: Math.min(60_000, Math.max(0, this.now() - race.startedAt)), buttons: 0 });
-          this.broadcast({ type: "race-input", raceId: race.raceId, input: race.inputs.at(-1), serverNow: this.now() });
-        }
-        await this.ctx.storage.put("activeRace", race);
-      }
+      if (race?.reporterId === id) await this.handOverRace(race, replacementId);
       await this.sendControl();
     });
+  }
+  async handOverRace(race, reporterId) {
+    if (race.reporterId === reporterId) return;
+    race.reporterId = reporterId;
+    // The previous reporter can no longer release its buttons. Release only when something is held,
+    // so repeated hand-overs cannot pass MAX_RACE_INPUTS.
+    if (race.inputs.at(-1)?.buttons) {
+      race.inputs.push({ at: Math.min(60_000, Math.max(0, this.now() - race.startedAt)), buttons: 0 });
+      this.broadcast({ type: "race-input", raceId: race.raceId, input: race.inputs.at(-1), serverNow: this.now() });
+    }
+    await this.ctx.storage.put("activeRace", race);
   }
   broadcast(message) {
     const payload = JSON.stringify(message);
