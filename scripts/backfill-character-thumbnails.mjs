@@ -1,10 +1,11 @@
 // Staff-only, paged, resumable backfill. Secrets are read from a file, never argv/logs.
 import fs from "node:fs/promises";
 import path from "node:path";
+import { setTimeout as delay } from "node:timers/promises";
 import { characterThumbnailUrl } from "../app/domain/character-thumbnail.js";
 
-const [origin, passcodeFile, outputFile, query = "", workers = "4"] = process.argv.slice(2);
-if (!origin || !passcodeFile || !outputFile) throw new Error("Usage: node scripts/backfill-character-thumbnails.mjs https://host passcode-file report.json [query] [concurrency=4]");
+const [origin, passcodeFile, outputFile, query = "", workers = "2"] = process.argv.slice(2);
+if (!origin || !passcodeFile || !outputFile) throw new Error("Usage: node scripts/backfill-character-thumbnails.mjs https://host passcode-file report.json [query] [concurrency=2]");
 const base = new URL(origin);
 const concurrency = Number(workers);
 if (base.protocol !== "https:" || !Number.isInteger(concurrency) || concurrency < 1 || concurrency > 4) throw new Error("HTTPS and concurrency 1..4 required");
@@ -36,11 +37,12 @@ async function run(limit = queue.length) {
     for (let attempt = 1; attempt <= 3; attempt++) {
       try {
         const r = await fetch(new URL(characterThumbnailUrl(id), base), { method: "POST", headers: { Cookie: cookie, Origin: base.origin }, signal: AbortSignal.timeout(60_000) });
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        if (!r.ok) { await r.text(); throw new Error(`HTTP ${r.status}`); }
         result = { ...await r.json(), requestMs: performance.now() - began, attempts: attempt };
         break;
       } catch (error) {
-        if (attempt === 3) result = { id, status: "failed", error: String(error), requestMs: performance.now() - began };
+        if (attempt === 3) result = { id, status: "failed", error: String(error), attempts: attempt, requestMs: performance.now() - began };
+        else await delay(1000 * 2 ** (attempt - 1));
       }
     }
     results.push(result);
