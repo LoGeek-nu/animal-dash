@@ -1,15 +1,17 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { createCourseObstacles } from "../../../domain/course.js";
 import { useRaceEngine } from "../race/useRaceEngine.js";
 import { useRaceSounds } from "../useRaceSounds.js";
 import { GameHeader } from "./GameHeader.jsx";
 import { RaceLane } from "./RaceLane.jsx";
 
-export function RaceArena({ raceId, lanes, raceStartedAt, onFinished, onInput, canControl, raceFeed, connected }) {
+export function RaceArena({ raceId, lanes, raceStartedAt, onFinished, onInput, canControl, raceFeed, connected, onAllFinished }) {
   const { runners, ranks } = useRaceEngine({ raceId, lanes, raceStartedAt, onFinished, onInput, canControl, raceFeed, connected });
   useRaceSounds(runners);
+  const allFinished = lanes.every((lane, index) => !lane || runners[index]?.finishedAt != null);
+  useEffect(() => { if (allFinished) onAllFinished?.(raceId); }, [allFinished, onAllFinished, raceId]);
   // The same race ID gives the same course the runtime simulates.
   const obstacles = useMemo(() => createCourseObstacles(raceId, lanes.length), [raceId, lanes.length]);
 
