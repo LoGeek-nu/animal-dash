@@ -12,35 +12,30 @@ import {
 } from "../worker/auth.js";
 import { authRetryDelay, fetchStaffAuth, loginPath, logout, safeNextPath } from "../app/features/auth/useStaffAuth.js";
 
-function sessionDb() {
+function sessionNamespace() {
   const sessions = new Map();
   return {
-    prepare(sql) {
-      return {
-        bind(...values) {
-          return {
-            async run() {
-              if (sql.startsWith("DELETE FROM staff_sessions WHERE expires_at <=")) {
-                for (const [hash, session] of sessions) if (session.expires_at <= values[0]) sessions.delete(hash);
-              } else if (sql.startsWith("INSERT INTO staff_sessions")) {
-                sessions.set(values[0], { expires_at: values[2] });
-              } else if (sql.startsWith("DELETE FROM staff_sessions WHERE session_hash")) {
-                sessions.delete(values[0]);
-              }
-              return { success: true };
-            },
-            async first() {
-              const session = sessions.get(values[0]);
-              return session?.expires_at > values[1] ? { expires_at: session.expires_at } : null;
-            },
-          };
-        },
-      };
+    getByName() {
+      return { async fetch(url, init = {}) {
+        const path = new URL(url).pathname;
+        const body = typeof init.body === "string" ? init.body : "";
+        if (path.endsWith("/create")) {
+          const { sessionId, expiresAt } = JSON.parse(body);
+          sessions.set(sessionId, expiresAt);
+          return new Response(null, { status: 204 });
+        }
+        if (path.endsWith("/verify")) return new Response(null, { status: sessions.get(body) > Date.now() ? 204 : 401 });
+        if (path.endsWith("/revoke")) {
+          sessions.delete(body);
+          return new Response(null, { status: 204 });
+        }
+        return new Response(null, { status: 404 });
+      } };
     },
   };
 }
 
-const env = { STAFF_PASSCODE: "kuma-dash-2026", DB: sessionDb() };
+const env = { STAFF_PASSCODE: "kuma-dash-2026", RACE_SESSION: sessionNamespace() };
 const request = (headers = {}, url = "https://animaldash.logeek.tech/api/sync") => new Request(url, { headers });
 const cookieValue = (setCookie) => setCookie.split(";")[0];
 

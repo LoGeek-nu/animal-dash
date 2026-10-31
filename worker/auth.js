@@ -1,5 +1,6 @@
 // Staff authentication: a shared passcode is exchanged for an individually
-// revocable, signed session cookie. D1 stores only a hash of each session ID.
+// revocable, signed session cookie. The sync Durable Object stores only a hash
+// of each session ID.
 export const STAFF_COOKIE = "animal_dash_staff";
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 14;
 const TOKEN_LABEL = "animal-dash-staff-v1";
@@ -44,11 +45,6 @@ async function signSession(passcode, sessionId) {
   return [...new Uint8Array(signature)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
-async function sessionHash(sessionId) {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(sessionId));
-  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
-}
-
 function newSessionId() {
   const bytes = crypto.getRandomValues(new Uint8Array(32));
   let binary = "";
@@ -57,13 +53,13 @@ function newSessionId() {
 }
 
 async function verifiedSessionId(request, env) {
-  if (!env.STAFF_PASSCODE || !env.DB) return null;
+  if (!env.STAFF_PASSCODE || !env.RACE_SESSION) return null;
   const parsed = parseStaffToken(request);
   if (!parsed || !constantTimeEqual(parsed.signature, await signSession(env.STAFF_PASSCODE, parsed.sessionId))) return null;
-  const hash = await sessionHash(parsed.sessionId);
-  const row = await env.DB.prepare("SELECT expires_at FROM staff_sessions WHERE session_hash = ? AND expires_at > ?")
-    .bind(hash, Date.now()).first();
-  return row ? parsed.sessionId : null;
+  const response = await env.RACE_SESSION.getByName("main").fetch("https://sync/staff-session/verify", {
+    method: "POST", body: parsed.sessionId,
+  });
+  return response.ok ? parsed.sessionId : null;
 }
 
 // Returns the authenticated session ID so the Durable Object can attach it to
@@ -93,14 +89,14 @@ function cookieAttributes(request, maxAge) {
 }
 
 export async function staffCookie(request, env) {
-  if (!env.STAFF_PASSCODE || !env.DB) throw new Error("Staff sessions require STAFF_PASSCODE and DB");
+  if (!env.STAFF_PASSCODE || !env.RACE_SESSION) throw new Error("Staff sessions require STAFF_PASSCODE and RACE_SESSION");
   const sessionId = newSessionId();
   const now = Date.now();
   const expiresAt = now + COOKIE_MAX_AGE * 1000;
-  const hash = await sessionHash(sessionId);
-  await env.DB.prepare("DELETE FROM staff_sessions WHERE expires_at <= ?").bind(now).run();
-  await env.DB.prepare("INSERT INTO staff_sessions (session_hash, created_at, expires_at) VALUES (?, ?, ?)")
-    .bind(hash, now, expiresAt).run();
+  const response = await env.RACE_SESSION.getByName("main").fetch("https://sync/staff-session/create", {
+    method: "POST", body: JSON.stringify({ sessionId, expiresAt }),
+  });
+  if (!response.ok) throw new Error("Staff session could not be stored");
   const signature = await signSession(env.STAFF_PASSCODE, sessionId);
   return `${STAFF_COOKIE}=${sessionId}.${signature}; ${cookieAttributes(request, COOKIE_MAX_AGE)}`;
 }
@@ -109,10 +105,11 @@ export async function revokeStaffSession(request, env) {
   if (!env.STAFF_PASSCODE) return null;
   const parsed = parseStaffToken(request);
   if (!parsed || !constantTimeEqual(parsed.signature, await signSession(env.STAFF_PASSCODE, parsed.sessionId))) return null;
-  if (!env.DB) throw new Error("Staff session store is unavailable");
-  const hash = await sessionHash(parsed.sessionId);
-  await env.DB.prepare("DELETE FROM staff_sessions WHERE session_hash = ?").bind(hash).run();
-  return parsed.sessionId;
+  if (!env.RACE_SESSION) throw new Error("Staff session store is unavailable");
+  const response = await env.RACE_SESSION.getByName("main").fetch("https://sync/staff-session/revoke", {
+    method: "POST", body: parsed.sessionId,
+  });
+  if (!response.ok) throw new Error("Staff session revocation failed");
 }
 
 export function clearedStaffCookie(request) {

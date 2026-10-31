@@ -47,9 +47,40 @@ export class RaceSessionRoom {
 
   async fetch(request) {
     const url = new URL(request.url);
-    if (url.pathname === "/revoke-staff-session" && request.method === "POST") {
-      const sessionId = await request.text();
+    if (url.pathname.startsWith("/staff-session/") && request.method === "POST") {
+      const action = url.pathname.slice("/staff-session/".length);
+      let sessionId;
+      let expiresAt;
+      if (action === "create") {
+        ({ sessionId, expiresAt } = await request.json());
+      } else {
+        sessionId = await request.text();
+      }
       if (!/^[A-Za-z0-9_-]{43}$/.test(sessionId)) return new Response("Invalid session", { status: 400 });
+      const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(sessionId));
+      const hash = [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+      const key = `staff-session:${hash}`;
+      if (action === "create") {
+        if (!Number.isSafeInteger(expiresAt) || expiresAt <= Date.now() || expiresAt > Date.now() + 15 * 24 * 60 * 60 * 1000) {
+          return new Response("Invalid expiry", { status: 400 });
+        }
+        const storedSessions = await this.ctx.storage.list({ prefix: "staff-session:" });
+        for (const [storedKey, storedExpiry] of storedSessions) {
+          if (!Number.isSafeInteger(storedExpiry) || storedExpiry <= Date.now()) await this.ctx.storage.delete(storedKey);
+        }
+        await this.ctx.storage.put(key, expiresAt);
+        return new Response(null, { status: 204 });
+      }
+      if (action === "verify") {
+        const storedExpiry = await this.ctx.storage.get(key);
+        if (!Number.isSafeInteger(storedExpiry) || storedExpiry <= Date.now()) {
+          if (storedExpiry !== undefined) await this.ctx.storage.delete(key);
+          return new Response(null, { status: 401 });
+        }
+        return new Response(null, { status: 204 });
+      }
+      if (action !== "revoke") return new Response("Not found", { status: 404 });
+      await this.ctx.storage.delete(key);
       for (const socket of this.ctx.getWebSockets()) {
         if (socket.deserializeAttachment()?.sessionId === sessionId) {
           try { socket.close(1008, "Staff session revoked"); } catch { /* already closing */ }

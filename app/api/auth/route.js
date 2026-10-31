@@ -1,6 +1,5 @@
 import { env } from "cloudflare:workers";
 import { clearedStaffCookie, isStaffRequest, loginAttemptAllowed, loginRequired, passcodeMatches, revokeStaffSession, staffCookie } from "../../../worker/auth.js";
-import { getSyncRoom } from "../../../worker/sync.js";
 
 export async function GET(request) {
   return Response.json(
@@ -33,12 +32,7 @@ export async function POST(request) {
 export async function DELETE(request) {
   const headers = { "Set-Cookie": clearedStaffCookie(request) };
   try {
-    const sessionId = await revokeStaffSession(request, env);
-    if (sessionId) {
-      if (!env.RACE_SESSION) throw new Error("Race session binding is unavailable");
-      const response = await getSyncRoom(env).fetch("https://sync/revoke-staff-session", { method: "POST", body: sessionId });
-      if (!response.ok) throw new Error("Staff WebSocket revocation failed");
-    }
+    await revokeStaffSession(request, env);
     return new Response(null, { status: 204, headers });
   } catch (error) {
     console.error("staff_session_revoke_failed", error);
