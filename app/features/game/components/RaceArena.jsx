@@ -3,11 +3,13 @@
 import { useMemo } from "react";
 import { createCourseObstacles } from "../../../domain/course.js";
 import { useRaceEngine } from "../race/useRaceEngine.js";
+import { useRaceSounds } from "../useRaceSounds.js";
 import { GameHeader } from "./GameHeader.jsx";
 import { RaceLane } from "./RaceLane.jsx";
 
 export function RaceArena({ raceId, lanes, raceStartedAt, onFinished, onInput, canControl, raceFeed, connected }) {
   const { runners, ranks } = useRaceEngine({ raceId, lanes, raceStartedAt, onFinished, onInput, canControl, raceFeed, connected });
+  useRaceSounds(runners);
   // The same race ID gives the same course the runtime simulates.
   const obstacles = useMemo(() => createCourseObstacles(raceId, lanes.length), [raceId, lanes.length]);
 
