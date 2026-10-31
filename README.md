@@ -25,6 +25,7 @@
 ### 開発
 
 - [開発ガイドライン](./docs/development-guide.md) — コマンド、ゲームドメイン用語集、テスト構成
+- [キャラクター一覧の400枚検証](./docs/character-scroll-verification.md) — 隔離したローカルD1・R2でのスクロール検証
 - [ディレクトリ構成](./docs/directory-structure.md) — プロジェクトのディレクトリ構造
 - [観戦と操作権限](./docs/spectating.md) — ログイン不要の観戦、操作端末の選定、WebSocketによる走行同期
 - [開発フロー](./docs/development-flow.md) — Issue作成からPRマージまでの手順
