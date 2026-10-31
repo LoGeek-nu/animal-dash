@@ -13,13 +13,13 @@ export function CountdownScreen({ lanes, countdownEndsAt }) {
   }, []);
 
   const left = countdownEndsAt ? Math.max(0, countdownEndsAt - now) : 0;
-  const value = left > 2700 ? "3" : left > 1800 ? "2" : left > 900 ? "1" : "GO!";
+  const value = left > 4000 ? null : left > 3000 ? "3" : left > 2000 ? "2" : left > 1000 ? "1" : "GO!";
 
   return (
     <main className="game-stage countdown-stage">
       <GameHeader phase="COUNTDOWN" />
       <CountdownGrid lanes={lanes} />
-      <div className="countdown-overlay"><p>READY?</p><strong key={value}>{value}</strong><span>コントローラーを持ってね！</span></div>
+      <div className="countdown-overlay"><p>READY?</p>{value && <strong key={value}>{value}</strong>}<span>コントローラーを持ってね！</span></div>
     </main>
   );
 }

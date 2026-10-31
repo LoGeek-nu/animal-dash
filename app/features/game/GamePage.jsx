@@ -6,11 +6,13 @@ import { StaffLoginNotice } from "../auth/StaffLoginNotice.jsx";
 import { useRaceSession } from "../race-session/useRaceSession.js";
 import { GameControlContext } from "./components/GameControlBadge.jsx";
 import { GamePhaseRenderer } from "./GamePhaseRenderer.jsx";
+import { useCountdownSound } from "./useCountdownSound.js";
 
 export function GamePage() {
   const auth = useStaffAuth();
   const role = auth === null ? null : auth.authenticated ? "game" : "viewer";
   const { session, actions, ready, syncStatus, canControl, raceFeed } = useRaceSession(role);
+  useCountdownSound(session.phase, session.countdownEndsAt);
   return (
     <GameControlContext.Provider value={{ canControl, syncStatus }}>
       {ready ? <GamePhaseRenderer session={session} onFinished={actions.finishRace} onInput={actions.reportInput}
