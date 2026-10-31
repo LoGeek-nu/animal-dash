@@ -7,12 +7,17 @@ import { useRaceSession } from "../race-session/useRaceSession.js";
 import { GameControlContext } from "./components/GameControlBadge.jsx";
 import { GamePhaseRenderer } from "./GamePhaseRenderer.jsx";
 import { useCountdownSound } from "./useCountdownSound.js";
+import { MUSIC, useMusic } from "./useMusic.js";
 
 export function GamePage() {
   const auth = useStaffAuth();
   const role = auth === null ? null : auth.authenticated ? "game" : "viewer";
   const { session, actions, ready, syncStatus, canControl, raceFeed } = useRaceSession(role);
   useCountdownSound(session.phase, session.countdownEndsAt);
+  const phase = ready ? session.phase : null;
+  useMusic(MUSIC.lobby, phase === "ATTRACT" || phase === "WAITING");
+  useMusic(MUSIC.race, phase === "RACING");
+  useMusic(MUSIC.results, phase === "RESULTS");
   return (
     <GameControlContext.Provider value={{ canControl, syncStatus }}>
       {ready ? <GamePhaseRenderer session={session} onFinished={actions.finishRace} onInput={actions.reportInput}
