@@ -1,18 +1,21 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  clearedStaffCookie,
+  clearedRoleCookies,
+  GAME_COOKIE,
+  gameCookie,
+  isGameRequest,
   isSameOrigin,
   isStaffRequest,
   loginAttemptAllowed,
   loginRequired,
-  passcodeMatches,
+  passcodeRole,
   STAFF_COOKIE,
   staffCookie,
 } from "../worker/auth.js";
 import { authRetryDelay, fetchStaffAuth, loginPath, logout, safeNextPath } from "../app/features/auth/useStaffAuth.js";
 
-const env = { STAFF_PASSCODE: "kuma-dash-2026" };
+const env = { STAFF_PASSCODE: "kuma-dash-2026", GAME_PASSCODE: "usagi-run-2026" };
 const request = (headers = {}, url = "https://animaldash.logeek.tech/api/sync") => new Request(url, { headers });
 const cookieValue = (setCookie) => setCookie.split(";")[0];
 
@@ -30,16 +33,33 @@ test("missing, forged, or stale cookies are refused", async () => {
   assert.equal(await isStaffRequest(request(), env), false);
   assert.equal(await isStaffRequest(request({ Cookie: `${STAFF_COOKIE}=${"0".repeat(64)}` }), env), false);
   assert.equal(await isStaffRequest(request({ Cookie: cookieValue(setCookie) }), { STAFF_PASSCODE: "changed" }), false);
-  assert.match(clearedStaffCookie(request()), /Max-Age=0/);
+  const cleared = clearedRoleCookies(request());
+  assert.deepEqual(cleared.map((cookie) => cookie.split("=")[0]), [STAFF_COOKIE, GAME_COOKIE]);
+  for (const cookie of cleared) assert.match(cookie, /Max-Age=0/);
+});
+
+test("the admin and game passcodes each open only their own screen", async () => {
+  assert.equal(passcodeRole("kuma-dash-2026", env), "staff");
+  assert.equal(passcodeRole("usagi-run-2026", env), "game");
+  const staff = request({ Cookie: cookieValue(await staffCookie(request(), env)) });
+  const game = request({ Cookie: cookieValue(await gameCookie(request(), env)) });
+  assert.match(await gameCookie(request(), env), new RegExp(`^${GAME_COOKIE}=[0-9a-f]{64};`));
+  assert.deepEqual([await isStaffRequest(staff, env), await isGameRequest(staff, env)], [true, false]);
+  assert.deepEqual([await isStaffRequest(game, env), await isGameRequest(game, env)], [false, true]);
+  // A game cookie copied into the staff cookie's name does not open the admin screen, and vice versa.
+  const swapped = request({ Cookie: `${STAFF_COOKIE}=${cookieValue(await gameCookie(request(), env)).split("=")[1]}` });
+  assert.equal(await isStaffRequest(swapped, env), false);
+  // Without GAME_PASSCODE nobody can control the game, not even staff.
+  assert.equal(await isGameRequest(staff, { STAFF_PASSCODE: env.STAFF_PASSCODE }), false);
 });
 
 test("without a configured passcode nothing is accepted outside vite dev", async () => {
   assert.equal(loginRequired({}), true);
   assert.equal(loginRequired(env), true);
   assert.equal(await isStaffRequest(request({ Cookie: `${STAFF_COOKIE}=x` }), {}), false);
-  assert.equal(passcodeMatches("", {}), false);
-  assert.equal(passcodeMatches("kuma-dash-2026", env), true);
-  assert.equal(passcodeMatches("kuma-dash-2027", env), false);
+  assert.equal(await isGameRequest(request({ Cookie: `${GAME_COOKIE}=x` }), {}), false);
+  assert.equal(passcodeRole("", {}), null);
+  assert.equal(passcodeRole("kuma-dash-2027", env), null);
 });
 
 test("cookies are not marked Secure on plain http (local dev over LAN)", async () => {
@@ -96,7 +116,7 @@ test("login attempts are counted per IP, and unlimited where the limiter binding
   assert.equal(await loginAttemptAllowed(from("203.0.113.7"), {}), true);
 });
 
-test("public sync accepts only viewer upgrades; writing roles require the staff cookie", async () => {
+test("public sync accepts only viewer upgrades; admin and game sockets each require their own cookie", async () => {
   const { syncResponse } = await import("../worker/sync-access.js");
   const forwarded = [];
   const bindings = { ...env, RACE_SESSION: { getByName: () => ({ fetch: async (request) => {
@@ -109,7 +129,10 @@ test("public sync accepts only viewer upgrades; writing roles require the staff 
   for (const role of ["admin", "game"]) assert.equal((await sync(role)).status, 401);
   assert.equal((await sync("game", { Cookie: `${STAFF_COOKIE}=forged` })).status, 401);
   const cookie = cookieValue(await staffCookie(request(), env));
-  for (const role of ["admin", "game"]) assert.equal((await sync(role, { Cookie: cookie })).status, 200);
+  const game = cookieValue(await gameCookie(request(), env));
+  // The admin passcode only watches the game; the game passcode cannot open the admin socket.
+  assert.deepEqual([(await sync("admin", { Cookie: cookie })).status, (await sync("game", { Cookie: cookie })).status], [200, 401]);
+  assert.deepEqual([(await sync("admin", { Cookie: game })).status, (await sync("game", { Cookie: game })).status], [401, 200]);
   assert.equal((await sync("viewer", { Origin: "https://evil.test" })).status, 403);
   assert.equal((await sync("owner")).status, 400);
   assert.deepEqual(forwarded, ["viewer", "viewer", "admin", "game"]);
@@ -117,8 +140,8 @@ test("public sync accepts only viewer upgrades; writing roles require the staff 
 
 test("a failed auth check is reported as unknown rather than signed out, and is retried with backoff", async () => {
   const reply = (status, body = {}) => async () => new Response(JSON.stringify(body), { status });
-  assert.deepEqual(await fetchStaffAuth(reply(200, { authenticated: true, loginRequired: true })), { authenticated: true, loginRequired: true });
-  assert.deepEqual(await fetchStaffAuth(reply(200, { authenticated: false, loginRequired: false })), { authenticated: false, loginRequired: false });
+  assert.deepEqual(await fetchStaffAuth(reply(200, { authenticated: true, loginRequired: true })), { authenticated: true, game: false, loginRequired: true });
+  assert.deepEqual(await fetchStaffAuth(reply(200, { authenticated: false, game: true, loginRequired: false })), { authenticated: false, game: true, loginRequired: false });
   await assert.rejects(fetchStaffAuth(reply(503)));
   await assert.rejects(fetchStaffAuth(async () => { throw new TypeError("Failed to fetch"); }));
   assert.deepEqual([0, 1, 2, 3, 4, 50].map(authRetryDelay), [1000, 2000, 5000, 10_000, 10_000, 10_000]);
