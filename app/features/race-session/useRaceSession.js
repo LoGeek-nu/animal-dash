@@ -17,6 +17,7 @@ export function useRaceSession(role = "viewer") {
   const [syncStatus, setSyncStatus] = useState("connecting");
   const [raceFeed, setRaceFeed] = useState(null);
   const [ownsControls, setOwnsControls] = useState(false);
+  const [muted, setMuted] = useState(false);
   const canControl = role === "game" && ownsControls && syncStatus === "open";
   const channelRef = useRef(null);
   const sessionRef = useRef(session);
@@ -38,6 +39,7 @@ export function useRaceSession(role = "viewer") {
         if (status === "open") void dailyRankings.refresh();
       },
       onControl: setOwnsControls,
+      onSound: setMuted,
       onRace: (message) => setRaceFeed((current) => receiveRaceUpdate(current, message, performance.now())),
       onResultsSaved: () => { void dailyRankings.refresh(); }, onResultsFailed: () => { void dailyRankings.refresh(); },
     });
@@ -74,7 +76,8 @@ export function useRaceSession(role = "viewer") {
     showWaiting: () => dispatch(raceSessionActions.showWaiting()),
     restartAttract: () => dispatch(raceSessionActions.restartAttract()),
     nextAttract: () => dispatch(raceSessionActions.nextAttract()),
-  }), [dispatch, canControl]);
+    setMuted: (value) => { if (role === "admin") channelRef.current?.sendSound(value); },
+  }), [dispatch, canControl, role]);
 
-  return { session, ready, syncStatus, actions, canControl, raceFeed };
+  return { session, ready, syncStatus, actions, canControl, raceFeed, muted };
 }

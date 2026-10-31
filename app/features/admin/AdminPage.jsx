@@ -23,7 +23,7 @@ import { laneOnlyCollisionDetection } from "./model/lane-collision.js";
 
 export function AdminPage() {
   const auth = useRequireStaff("/admin");
-  const { session, ready, syncStatus, actions } = useRaceSession("admin");
+  const { session, ready, syncStatus, actions, muted } = useRaceSession("admin");
   const [confirm, setConfirm] = useState(null);
   const [generateOpen, setGenerateOpen] = useState(false);
   const [infoId, setInfoId] = useState(null);
@@ -65,7 +65,7 @@ export function AdminPage() {
       <main className={`admin-shell ${drag.activeCharacterId ? "is-dragging-character" : ""} ${drag.overLaneId ? "is-over-lane-zone" : ""}`}>
         <AdminHeader ready={ready} syncStatus={syncStatus} canLogout={auth?.loginRequired === true} />
         <AdminStatusBar session={session} participantCount={participantCount} />
-        <MobileAdminWorkspace session={session} selection={selection} actions={actions}
+        <MobileAdminWorkspace session={session} selection={selection} actions={actions} muted={muted}
           canLogout={auth?.loginRequired === true} onRequestGenerate={() => setGenerateOpen(true)}
           onRequestFinish={() => setConfirm("finish")} onRequestReset={() => setConfirm("reset")} />
         <section className="admin-workspace">
@@ -98,6 +98,7 @@ export function AdminPage() {
           session={session}
           participantCount={participantCount}
           actions={actions}
+          muted={muted}
           onRequestFinish={() => setConfirm("finish")}
           onRequestReset={() => setConfirm("reset")}
         />

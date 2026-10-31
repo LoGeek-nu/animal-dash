@@ -121,3 +121,20 @@ test("viewer channels never publish state or input, and receive control and repl
   assert.deepEqual(controls, [false]);
   assert.equal(races.length, 2);
 });
+
+test("only the admin channel sends mute changes, and every channel receives them", () => {
+  for (const role of ["admin", "game", "viewer"]) {
+    const sounds = [];
+    const channel = createRaceSessionChannel(() => {}, { role, onSound: (muted) => sounds.push(muted) });
+    const socket = FakeWebSocket.instances.at(-1);
+    socket.readyState = FakeWebSocket.OPEN;
+    const sent = [];
+    socket.send = (raw) => sent.push(raw);
+    channel.sendSound(true);
+    assert.deepEqual(sent, role === "admin" ? [JSON.stringify({ type: "sound", muted: true })] : []);
+    socket.emit("message", { data: JSON.stringify({ type: "sound", muted: true }) });
+    socket.emit("message", { data: JSON.stringify({ type: "sound", muted: "no" }) });
+    assert.deepEqual(sounds, [true]);
+    channel.close();
+  }
+});

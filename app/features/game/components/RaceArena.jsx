@@ -7,9 +7,9 @@ import { useRaceSounds } from "../useRaceSounds.js";
 import { GameHeader } from "./GameHeader.jsx";
 import { RaceLane } from "./RaceLane.jsx";
 
-export function RaceArena({ raceId, lanes, raceStartedAt, onFinished, onInput, canControl, raceFeed, connected, onAllFinished }) {
+export function RaceArena({ raceId, lanes, raceStartedAt, onFinished, onInput, canControl, raceFeed, connected, muted, onAllFinished }) {
   const { runners, ranks } = useRaceEngine({ raceId, lanes, raceStartedAt, onFinished, onInput, canControl, raceFeed, connected });
-  useRaceSounds(runners);
+  useRaceSounds(runners, muted);
   const allFinished = lanes.every((lane, index) => !lane || runners[index]?.finishedAt != null);
   useEffect(() => { if (allFinished) onAllFinished?.(raceId); }, [allFinished, onAllFinished, raceId]);
   // The same race ID gives the same course the runtime simulates.
