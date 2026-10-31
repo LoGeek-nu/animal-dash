@@ -74,7 +74,7 @@ export function readCharacterPageOptions(params) {
 
 export async function listCharacterPage(db, { query = "", limit = 12, after = null } = {}) {
   // instr preserves the literal substring search (including % and _) of the UI.
-  const filter = "(instr(name, ?1) > 0 OR instr(character_type, ?1) > 0)";
+  const filter = "id NOT IN ('keroppin', 'koro') AND (instr(name, ?1) > 0 OR instr(character_type, ?1) > 0)";
   const boundary = after ? " AND (created_at, id) < (?2, ?3)" : "";
   const args = after ? [query, after[1], after[2], limit + 1] : [query, limit + 1];
   const [page, count] = await db.batch([

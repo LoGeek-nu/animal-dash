@@ -1,57 +1,49 @@
-// In-memory pool of generated characters, filled from GET /api/characters (backed by R2).
+// Only characters already viewed or referenced by a session live in this cache.
 let pool = [];
-let inflight = null;
-let queued = null;
 const listeners = new Set();
+const catalogListeners = new Set();
+const pending = new Map();
 
-function notify() {
-  for (const listener of listeners) listener();
-}
+function notify() { for (const listener of listeners) listener(); }
+export function getGeneratedCharacters() { return pool; }
+export function subscribeGeneratedCharacters(listener) { listeners.add(listener); return () => listeners.delete(listener); }
+export function subscribeCharacterCatalog(listener) { catalogListeners.add(listener); return () => catalogListeners.delete(listener); }
+export function invalidateCharacterCatalog() { for (const listener of catalogListeners) listener(); }
 
-export function getGeneratedCharacters() {
-  return pool;
-}
-
-export function addGeneratedCharacter(character) {
-  if (pool.some((existing) => existing.id === character.id)) return;
-  pool = [...pool, character];
+export function cacheGeneratedCharacters(characters) {
+  const incoming = new Map(characters.filter((c) => c.generated).map((c) => [c.id, c]));
+  if (!incoming.size) return;
+  pool = pool.map((c) => { const updated = incoming.get(c.id); incoming.delete(c.id); return updated ?? c; });
+  pool = [...pool, ...incoming.values()];
   notify();
 }
 
-export function subscribeGeneratedCharacters(listener) {
-  listeners.add(listener);
-  return () => listeners.delete(listener);
+export function addGeneratedCharacter(character) {
+  cacheGeneratedCharacters([{ ...character, generated: true }]);
+  invalidateCharacterCatalog();
 }
 
-function load() {
-  return fetch("/api/characters", { cache: "no-store" })
-    .then((response) => response.ok ? response.json() : null)
-    .then((body) => {
-      if (!body) return;
-      const fetched = body.characters.filter((character) => character.generated);
-      // Characters are never deleted, so keep any we already have that this response predates
-      // (e.g. one added locally while the request was in flight).
-      const fetchedIds = new Set(fetched.map((character) => character.id));
-      pool = [...fetched, ...pool.filter((character) => !fetchedIds.has(character.id))];
-      notify();
-    })
-    .catch(() => {});
-}
-
-// A request already in flight may have been answered before the change the caller wants to see,
-// so callers arriving meanwhile share one fresh request that starts after it. Failures keep the current pool.
-export function refreshGeneratedCharacters() {
-  if (!inflight) {
-    inflight = load().finally(() => {
-      inflight = null;
-    });
-    return inflight;
+// At most twelve explicit IDs per request; never fall back to fetching the catalog.
+export async function ensureGeneratedCharacters(ids, { refresh = false } = {}) {
+  const needed = [...new Set(ids)].filter((id) => refresh || !pool.some((c) => c.id === id));
+  for (let start = 0; start < needed.length; start += 12) {
+    const batch = needed.slice(start, start + 12);
+    const key = batch.slice().sort().join(",");
+    if (!pending.has(key)) {
+      const request = fetch(`/api/characters?${new URLSearchParams({ ids: key })}`, { cache: "no-store" })
+        .then(async (response) => {
+          if (!response.ok) throw new Error("Character lookup failed");
+          cacheGeneratedCharacters((await response.json()).characters);
+        }).finally(() => pending.delete(key));
+      pending.set(key, request);
+    }
+    await pending.get(key);
   }
-  queued ??= inflight.then(() => {
-    queued = null;
-    return refreshGeneratedCharacters();
-  });
-  return queued;
+}
+
+export async function refreshGeneratedCharacters(ids = []) {
+  await ensureGeneratedCharacters(ids, { refresh: true });
+  invalidateCharacterCatalog();
 }
 
 // The server refuses characters set in a lane; its message is shown to staff as-is.
@@ -71,5 +63,6 @@ export async function updateGeneratedCharacter(id, changes) {
   if (!response.ok) throw new Error(body.detail ?? "変更できませんでした。");
   pool = pool.map((character) => character.id === id ? { ...character, name: body.name, caption: body.caption } : character);
   notify();
+  invalidateCharacterCatalog();
   return body;
 }

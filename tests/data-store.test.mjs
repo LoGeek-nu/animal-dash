@@ -68,8 +68,8 @@ test("D1 preserves character IDs, stats and image keys; imports old R2 metadata 
   await importCharacterPage(db, bucket);
   const response = await charactersResponse({ DB: db });
   const body = await response.json();
-  // D1 keeps removed built-ins so their past race results stay valid.
-  assert.equal(body.total, characters.length + retiredCharacterIds.length + 4);
+  // The catalog hides retired built-ins while D1 retains their race history.
+  assert.equal(body.total, characters.length + 4);
   assert.equal(body.characters.find((c) => c.id === "gen-old-a").name, "生成うさぎ");
   assert.equal(await (await bucket.get("characters/gen-old-a.png")).text(), "png");
 });
@@ -412,7 +412,7 @@ test("400-character catalog uses stable newest cursors, DB filters and bounded I
   for (let i = 0; i < catalog.length; i += 50) await db.batch(catalog.slice(i, i + 50).map((c, j) => characterStatement(db, c, characterImageKey(c.id), 100 + Math.floor((i + j) / 3))));
   let page = await listCharacterPage(db), seen = [], calls = 0;
   assert.equal(page.characters.length, 12);
-  assert.equal(page.total, 410);
+  assert.equal(page.total, 408);
   await saveCharacter(db, gen("gen-added-during-scroll"), null, 9999);
   while (true) {
     calls++;
@@ -422,9 +422,9 @@ test("400-character catalog uses stable newest cursors, DB filters and bounded I
     const { readCharacterPageOptions } = await import("../worker/data-store.js");
     page = await listCharacterPage(db, readCharacterPageOptions(params));
   }
-  assert.equal(calls, 35);
-  assert.equal(seen.length, 410);
-  assert.equal(new Set(seen).size, 410);
+  assert.equal(calls, 34);
+  assert.equal(seen.length, 408);
+  assert.equal(new Set(seen).size, 408);
   assert.deepEqual(seen.slice(0, 400), catalog.map((c) => c.id).reverse());
   const read = (query) => charactersResponse({ DB: db }, new Request(`https://catalog/api/characters?${query}`));
   const filtered = await (await read(new URLSearchParams({ query: "動物0%_" }))).json();

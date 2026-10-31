@@ -138,3 +138,27 @@ test("only the admin channel sends mute changes, and every channel receives them
     channel.close();
   }
 });
+
+test("sessions resolve only referenced unknown characters and adopt them after lookup", async (t) => {
+  const { createInitialSession } = await import("../app/domain/race-session.js");
+  const calls = [];
+  t.mock.method(globalThis, "fetch", async (url) => {
+    calls.push(url);
+    const ids = new URL(url, "https://catalog").searchParams.get("ids").split(",");
+    return Response.json({ characters: ids.map((id) => ({ id, name: id, generated: true })) });
+  });
+  const sessions = [];
+  const channel = createRaceSessionChannel((s) => sessions.push(s));
+  t.after(() => channel.close());
+  const socket = FakeWebSocket.instances.at(-1);
+  const candidate = { ...createInitialSession(), lanes: [{ characterId: "gen-outside-page", isBot: false }, null, null, null] };
+  socket.emit("message", { data: JSON.stringify({ type: "session", session: candidate }) });
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(sessions.length, 1);
+  assert.equal(calls.length, 1);
+  assert.equal(new URL(calls[0], "https://catalog").searchParams.get("ids"), "gen-outside-page");
+  socket.emit("message", { data: JSON.stringify({ type: "session", session: { ...candidate, sequence: 2 } }) });
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(calls.length, 1);
+  assert.equal(sessions.length, 2);
+});

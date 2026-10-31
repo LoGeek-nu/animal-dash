@@ -2,13 +2,15 @@
 
 import { getCharacter } from "../../../domain/characters.js";
 
-export function CharacterAvatar({ id, character: snapshot, compact = false }) {
+export function CharacterAvatar({ id, character: snapshot, compact = false, lazy = false }) {
   const character = snapshot ?? getCharacter(id);
   return (
     <div className={`character-avatar ${compact ? "is-compact" : ""}`} style={{ "--char": character.color, "--char-pale": character.pale }}>
       <img
         src={character.generated ? character.imageUrl : `/characters/${character.id}/runner.png`}
         alt={`${character.name}の全身イラスト`}
+        loading={lazy ? "lazy" : "eager"}
+        decoding="async"
         draggable={false}
       />
     </div>

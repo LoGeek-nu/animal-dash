@@ -1,4 +1,5 @@
-import { refreshGeneratedCharacters } from "../../domain/generated-characters.js";
+import { ensureGeneratedCharacters, refreshGeneratedCharacters } from "../../domain/generated-characters.js";
+import { isBuiltInCharacterId } from "../../domain/characters.js";
 import { validSession } from "./race-session-validator.js";
 
 const SYNC_PATH = "/api/sync";
@@ -109,11 +110,20 @@ function createSyncSocket({ role, onSession, onCharactersChanged, onResultsSaved
 
 export function createRaceSessionChannel(onSession, { onSyncStatus = () => {}, onResultsSaved = () => {}, onResultsFailed = () => {}, onControl = () => {}, onRace = () => {}, onSound = () => {}, role = "viewer" } = {}) {
   let closed = false;
+  let latest = null;
+  let accepting = 0;
+  const referencedIds = (candidate) => Array.isArray(candidate?.lanes)
+    ? candidate.lanes.flatMap((lane) => typeof lane?.characterId === "string" && !isBuiltInCharacterId(lane.characterId) ? [lane.characterId] : []) : [];
   const accept = async (candidate) => {
-    if (!validSession(candidate)) await refreshGeneratedCharacters();
-    if (!closed && validSession(candidate)) onSession(candidate);
+    // Check shape before using untrusted frame IDs for lookups.
+    if (!validSession(candidate, (id) => typeof id === "string" && id.length > 0 && id.length <= 200)) return;
+    const version = ++accepting;
+    try {
+      await ensureGeneratedCharacters(referencedIds(candidate));
+      if (!closed && version === accepting && validSession(candidate)) { latest = candidate; onSession(candidate); }
+    } catch { /* A reconnect sends the session again; never adopt an unknown racer. */ }
   };
-  const sync = createSyncSocket({ role, onSession: accept, onCharactersChanged: refreshGeneratedCharacters, onStatus: onSyncStatus,
+  const sync = createSyncSocket({ role, onSession: accept, onCharactersChanged: () => { void refreshGeneratedCharacters(referencedIds(latest)).catch(() => {}); }, onStatus: onSyncStatus,
     onControl: (value) => { if (!closed) onControl(value); },
     onRace: (message) => { if (!closed) onRace(message); },
     onSound: (muted) => { if (!closed) onSound(muted); },
