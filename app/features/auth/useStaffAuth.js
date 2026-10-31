@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-const CHECK_FAILED = Object.freeze({ authenticated: false, loginRequired: true, checkFailed: true });
+const CHECK_FAILED = Object.freeze({ authenticated: false, game: false, loginRequired: true, checkFailed: true });
 const RETRY_DELAYS_MS = [1000, 2000, 5000, 10_000];
 
 // Throws when the answer is unknown (network error or a non-2xx reply), so callers can tell it from signed out.
@@ -10,14 +10,15 @@ export async function fetchStaffAuth(fetchImpl = fetch) {
   const response = await fetchImpl("/api/auth", { cache: "no-store" });
   if (!response.ok) throw new Error(`auth check failed: ${response.status}`);
   const body = await response.json();
-  return { authenticated: body.authenticated === true, loginRequired: body.loginRequired !== false };
+  return { authenticated: body.authenticated === true, game: body.game === true, loginRequired: body.loginRequired !== false };
 }
 
 export function authRetryDelay(attempt) {
   return RETRY_DELAYS_MS[Math.min(attempt, RETRY_DELAYS_MS.length - 1)];
 }
 
-// null while checking, then { authenticated, loginRequired }. A failed check acts signed out
+// null while checking, then { authenticated, game, loginRequired }: authenticated is the admin login,
+// game the game-screen login. A failed check acts signed out
 // (checkFailed: true) but keeps retrying, so one network blip cannot leave the staff game display a viewer.
 export function useStaffAuth() {
   const [auth, setAuth] = useState(null);

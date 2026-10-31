@@ -1,9 +1,10 @@
 import { env } from "cloudflare:workers";
-import { clearedStaffCookie, isStaffRequest, loginAttemptAllowed, loginRequired, passcodeMatches, staffCookie } from "../../../worker/auth.js";
+import { clearedRoleCookies, isGameRequest, isStaffRequest, loginAttemptAllowed, loginRequired, passcodeRole, roleCookie } from "../../../worker/auth.js";
 
 export async function GET(request) {
   return Response.json(
-    { authenticated: await isStaffRequest(request, env), loginRequired: loginRequired(env) },
+    // authenticated: the admin screen. game: controlling the game screen.
+    { authenticated: await isStaffRequest(request, env), game: await isGameRequest(request, env), loginRequired: loginRequired(env) },
     { headers: { "Cache-Control": "no-store" } },
   );
 }
@@ -18,12 +19,15 @@ export async function POST(request) {
   } catch {
     return Response.json({ error: "invalid_body", detail: "expected JSON with a passcode field" }, { status: 400 });
   }
-  if (!passcodeMatches(passcode, env)) {
+  const role = passcodeRole(passcode, env);
+  if (!role) {
     return Response.json({ error: "wrong_passcode", detail: "合言葉が違います" }, { status: 401 });
   }
-  return new Response(null, { status: 204, headers: { "Set-Cookie": await staffCookie(request, env) } });
+  return Response.json({ role }, { headers: { "Set-Cookie": await roleCookie(request, env, role) } });
 }
 
 export function DELETE(request) {
-  return new Response(null, { status: 204, headers: { "Set-Cookie": clearedStaffCookie(request) } });
+  const headers = new Headers();
+  for (const cookie of clearedRoleCookies(request)) headers.append("Set-Cookie", cookie);
+  return new Response(null, { status: 204, headers });
 }

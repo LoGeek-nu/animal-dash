@@ -13,7 +13,7 @@ import { MUSIC, useMusic } from "./useMusic.js";
 
 export function GamePage() {
   const auth = useStaffAuth();
-  const role = auth === null ? null : auth.authenticated ? "game" : "viewer";
+  const role = auth === null ? null : auth.game ? "game" : "viewer";
   const { session, actions, ready, syncStatus, canControl, raceFeed, muted } = useRaceSession(role);
   useCountdownSound(session.phase, session.countdownEndsAt, muted);
   // The race song fades out at the last goal, so the results song starts after a short pause instead of on top of it.

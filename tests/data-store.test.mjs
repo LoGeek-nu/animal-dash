@@ -10,7 +10,7 @@ import { getDailyRankings, getStoredCharacter, importCharacterPage, listStoredCh
 import { charactersResponse, importCharactersResponse, rankingsResponse, updateCharacterResponse } from "../worker/data-api.js";
 import { normalizeCharacterText } from "../app/domain/character-text.js";
 import { raceRecordFromSession, validRaceRecord } from "../worker/race-record.js";
-import { staffCookie } from "../worker/auth.js";
+import { gameCookie, staffCookie } from "../worker/auth.js";
 
 // Actual workerd D1/R2 bindings, isolated from the app's local and remote data.
 async function fixture(t, runtimeRoom = false) {
@@ -26,7 +26,7 @@ async function fixture(t, runtimeRoom = false) {
     durableObjects: { ROOM: { className: "RaceSessionRoom", useSQLite: true } } }
     : { script: "export default { fetch() { return new Response('ok'); } };" };
   const mf = new Miniflare(convertV4MiniflareOptions({ modules, ...script,
-    compatibilityDate: "2026-08-19", bindings: { STAFF_PASSCODE: "test-spectator-passcode" }, d1Databases: { DB: "test-races" }, r2Buckets: ["CHARACTERS"] }));
+    compatibilityDate: "2026-08-19", bindings: { STAFF_PASSCODE: "test-spectator-passcode", GAME_PASSCODE: "test-game-passcode" }, d1Databases: { DB: "test-races" }, r2Buckets: ["CHARACTERS"] }));
   t.after(() => mf.dispose());
   const db = await mf.getD1Database("DB");
   const bucket = await mf.getR2Bucket("CHARACTERS");
@@ -261,10 +261,13 @@ test("public spectators join mid-race, reconnect and watch canonical results wit
     const deadline = Date.now() + 5000;
     while (!await predicate()) { if (Date.now() > deadline) throw new Error("Missing spectator update"); await new Promise((resolve) => setTimeout(resolve, 10)); }
   };
-  const cookie = (await staffCookie(new Request("https://example.test/api/auth"), { STAFF_PASSCODE: "test-spectator-passcode" })).split(";")[0];
+  const passcodes = { STAFF_PASSCODE: "test-spectator-passcode", GAME_PASSCODE: "test-game-passcode" };
+  const authRequest = new Request("https://example.test/api/auth");
+  // Each writing role signs in with its own passcode.
+  const cookies = { admin: (await staffCookie(authRequest, passcodes)).split(";")[0], game: (await gameCookie(authRequest, passcodes)).split(";")[0] };
   const connect = async (role, authenticated = false) => {
     const response = await mf.dispatchFetch(`https://example.test/api/sync?role=${role}`, { headers: {
-      Upgrade: "websocket", Origin: "https://example.test", ...(authenticated ? { Cookie: cookie } : {}) } });
+      Upgrade: "websocket", Origin: "https://example.test", ...(authenticated ? { Cookie: cookies[role] } : {}) } });
     assert.equal(response.status, 101);
     const ws = response.webSocket, frames = [];
     ws.addEventListener("message", (event) => frames.push(JSON.parse(event.data)));
