@@ -49,3 +49,20 @@
 .ranking-row b, .result-row b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .result-row time { flex-shrink: 0; }
 .ranking-row .ranking-time { font-size: clamp(1rem, 1.4vw, 1.5rem); color: var(--ink); font-variant-numeric: tabular-nums; }
+
+/* Entrance: heading, then the race result, then today's ranking, so the race hands over instead of cutting. */
+@keyframes resultsDrop { from { opacity: 0; transform: translateY(-28px) scale(.94); } }
+@keyframes resultsRise { from { opacity: 0; transform: translateY(32px); } }
+.results-heading { animation: resultsDrop .55s cubic-bezier(.16,1.4,.5,1) both; }
+.current-results, .today-ranking, .results-footer { animation: resultsRise .5s cubic-bezier(.2,1.2,.5,1) both; }
+.current-results { animation-delay: .3s; }
+.current-results .result-row { animation: resultsRise .4s ease-out both; }
+.current-results .result-row:nth-child(3) { animation-delay: .6s; }
+.current-results .result-row:nth-child(4) { animation-delay: .72s; }
+.current-results .result-row:nth-child(5) { animation-delay: .84s; }
+.current-results .result-row:nth-child(6) { animation-delay: .96s; }
+.today-ranking { animation-delay: 1.15s; }
+.results-footer { animation-delay: 1.4s; }
+@media (prefers-reduced-motion: reduce) {
+  .results-heading, .current-results, .current-results .result-row, .today-ranking, .results-footer { animation-delay: 0s !important; }
+}

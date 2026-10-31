@@ -278,4 +278,17 @@ test("a new connection gets its own control state without messaging every other 
   finally { globalThis.WebSocketPair = WebSocketPair; }
   assert.deepEqual([f.admin, f.game, f.observer].map((ws) => ws.sent.length), before);
   assert.deepEqual(viewer.sent.find((m) => m.type === "control"), { type: "control", canControl: false });
+  assert.deepEqual(viewer.sent.find((m) => m.type === "sound"), { type: "sound", muted: false });
+});
+
+test("only staff on the admin screen can mute, and every screen hears about it in any phase", async () => {
+  const f = fixture();
+  await f.start();
+  await f.room.webSocketMessage(f.game, JSON.stringify({ type: "sound", muted: true }));
+  await f.room.webSocketMessage(f.admin, JSON.stringify({ type: "sound", muted: "yes" }));
+  assert.equal(f.data.get("muted"), undefined);
+  await f.room.webSocketMessage(f.admin, JSON.stringify({ type: "sound", muted: true }));
+  assert.equal(f.data.get("muted"), true);
+  assert.equal(f.data.get("session").phase, "RACING");
+  for (const ws of [f.admin, f.game, f.observer]) assert.deepEqual(ws.sent.at(-1), { type: "sound", muted: true });
 });

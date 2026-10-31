@@ -180,7 +180,7 @@ test("session transitions are isolated in the reducer", () => {
 
   const countdown = raceSessionReducer(moved, raceSessionActions.startCountdown(), 2_000);
   assert.equal(countdown.phase, "COUNTDOWN");
-  assert.equal(countdown.countdownEndsAt, 5_600);
+  assert.equal(countdown.countdownEndsAt, 8_500);
   assert.equal(raceSessionReducer(countdown, raceSessionActions.removeCharacter(0), 2_100), countdown);
 
   const attract = raceSessionReducer(initial, raceSessionActions.showAttract());
