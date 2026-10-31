@@ -71,5 +71,57 @@
       "enabled": true,
       "head_sampling_rate": 0.1
     }
+  },
+  "env": {
+    "develop": {
+      "name": "animaldash-develop",
+      "workers_dev": true,
+      "preview_urls": false,
+      "r2_buckets": [
+        {
+          "binding": "CHARACTERS",
+          "bucket_name": "animaldash-develop-characters"
+        }
+      ],
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "animaldash-develop-races",
+          "database_id": "e4412a8f-8f4c-4479-b90d-ed7e43a691a7",
+          "migrations_dir": "migrations"
+        }
+      ],
+      "durable_objects": {
+        "bindings": [
+          {
+            "name": "RACE_SESSION",
+            "class_name": "RaceSessionRoom"
+          },
+          {
+            "name": "GENERATION_QUOTA",
+            "class_name": "GenerationQuota"
+          }
+        ]
+      },
+      "ratelimits": [
+        {
+          "name": "AUTH_LIMITER",
+          "namespace_id": "1054",
+          "simple": {
+            "limit": 20,
+            "period": 60
+          }
+        }
+      ],
+      "routes": [
+        {
+          "pattern": "animaldash-develop.logeek.tech",
+          "custom_domain": true
+        }
+      ],
+      "vars": {
+        "IMAGE_CACHE_BENCHMARK": "true"
+      }
+    }
   }
 }
