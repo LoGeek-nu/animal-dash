@@ -1,6 +1,6 @@
 import { Button } from "../../../components/ui/atoms/Button.jsx";
 
-export function AdminControlBar({ session, participantCount, actions, onRequestFinish, onRequestReset }) {
+export function AdminControlBar({ session, participantCount, actions, muted, onRequestFinish, onRequestReset }) {
   return (
     <section className="admin-controlbar">
       <div className="readiness">
@@ -13,6 +13,7 @@ export function AdminControlBar({ session, participantCount, actions, onRequestF
         <Button variant="ghost" onClick={actions.showWaiting}>参加待機画面</Button>
         <Button variant="ghost" disabled={session.phase === "WAITING" || session.phase === "ATTRACT"} onClick={onRequestFinish}>{session.phase === "RESULTS" ? "リザルトをスキップ" : "強制終了"}</Button>
         <Button variant="ghost" onClick={onRequestReset}>リセット</Button>
+        <Button variant="ghost" onClick={() => actions.setMuted(!muted)}>{muted ? "🔇 音を出す" : "🔊 音を消す"}</Button>
         {session.phase === "WAITING" && participantCount < 4 && <Button variant="secondaryStart" disabled={participantCount === 0} onClick={() => actions.fillBots(true)}>BOTで補充して開始</Button>}
         <Button variant="raceStart" disabled={session.phase !== "WAITING" || participantCount === 0} onClick={actions.startRace}><span>▶</span> レース開始</Button>
       </div>

@@ -31,7 +31,7 @@ function CharacterCard({ character, selected, used, assigning, mutable, onSelect
   </div>;
 }
 
-export function MobileAdminWorkspace({ session, selection, actions, canLogout, onRequestGenerate, onRequestFinish, onRequestReset }) {
+export function MobileAdminWorkspace({ session, selection, actions, muted, canLogout, onRequestGenerate, onRequestFinish, onRequestReset }) {
   const [tab, setTab] = useState("lanes");
   const [targetLane, setTargetLane] = useState(null);
   const [infoId, setInfoId] = useState(null);
@@ -111,6 +111,7 @@ export function MobileAdminWorkspace({ session, selection, actions, canLogout, o
         <Button variant="ghost" onClick={actions.showWaiting}>参加待機画面</Button>
         <Button variant="ghost" disabled={session.phase === "WAITING" || session.phase === "ATTRACT"} onClick={() => requestConfirmation(onRequestFinish)}>{session.phase === "RESULTS" ? "リザルトをスキップ" : "強制終了"}</Button>
         <Button variant="ghost" className="mobile-reset" onClick={() => requestConfirmation(onRequestReset)}>リセット <small>確認画面へ進みます</small></Button>
+        <Button variant="ghost" onClick={() => actions.setMuted(!muted)}>{muted ? "🔇 音を出す" : "🔊 音を消す"}</Button>
       </div>
       <div className="mobile-operation-links"><a href="/game" target="_blank" rel="noreferrer">ゲーム画面を開く ↗</a>{canLogout && <button type="button" onClick={() => logout("/admin")}>ログアウト</button>}</div>
       <p className="mobile-operation-note">操作は他のスタッフの画面にも反映されます</p>

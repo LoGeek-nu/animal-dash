@@ -78,6 +78,7 @@ export class RaceSessionRoom {
       // A new socket can only take ownership from nobody, so no other socket's control changes here.
       await this.sendControl([server]);
       this.sendRace(server, race);
+      server.send(JSON.stringify({ type: "sound", muted: await this.ctx.storage.get("muted") === true }));
     });
     return new Response(null, { status: 101, webSocket: client });
   }
@@ -128,6 +129,13 @@ export class RaceSessionRoom {
     const actor = socket.deserializeAttachment() ?? {};
     const current = await this.session();
     if (actor.role === "viewer") return this.reject(socket, "read_only", current);
+    // Muting is separate from the session, so staff can silence the venue in any phase.
+    if (message.type === "sound") {
+      if (actor.role !== "admin" || typeof message.muted !== "boolean") return;
+      await this.ctx.storage.put("muted", message.muted);
+      this.broadcast({ type: "sound", muted: message.muted });
+      return;
+    }
     if (message.type === "input") {
       const race = await this.ctx.storage.get("activeRace");
       if (actor.role !== "game" || !race || actor.id !== race.reporterId || message.raceId !== race.raceId
