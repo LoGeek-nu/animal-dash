@@ -12,14 +12,37 @@ import {
 } from "../worker/auth.js";
 import { authRetryDelay, fetchStaffAuth, loginPath, logout, safeNextPath } from "../app/features/auth/useStaffAuth.js";
 
-const env = { STAFF_PASSCODE: "kuma-dash-2026" };
+function sessionNamespace() {
+  const sessions = new Map();
+  return {
+    getByName() {
+      return { async fetch(url, init = {}) {
+        const path = new URL(url).pathname;
+        const body = typeof init.body === "string" ? init.body : "";
+        if (path.endsWith("/create")) {
+          const { sessionId, expiresAt } = JSON.parse(body);
+          sessions.set(sessionId, expiresAt);
+          return new Response(null, { status: 204 });
+        }
+        if (path.endsWith("/verify")) return new Response(null, { status: sessions.get(body) > Date.now() ? 204 : 401 });
+        if (path.endsWith("/revoke")) {
+          sessions.delete(body);
+          return new Response(null, { status: 204 });
+        }
+        return new Response(null, { status: 404 });
+      } };
+    },
+  };
+}
+
+const env = { STAFF_PASSCODE: "kuma-dash-2026", RACE_SESSION: sessionNamespace() };
 const request = (headers = {}, url = "https://animaldash.logeek.tech/api/sync") => new Request(url, { headers });
 const cookieValue = (setCookie) => setCookie.split(";")[0];
 
 test("the issued cookie authenticates later requests without containing the passcode", async () => {
   const setCookie = await staffCookie(request(), env);
 
-  assert.match(setCookie, new RegExp(`^${STAFF_COOKIE}=[0-9a-f]{64}; Path=/; HttpOnly; SameSite=Strict; Max-Age=\\d+; Secure$`));
+  assert.match(setCookie, new RegExp(`^${STAFF_COOKIE}=[A-Za-z0-9_-]{43}\\.[0-9a-f]{64}; Path=/; HttpOnly; SameSite=Strict; Max-Age=\\d+; Secure$`));
   assert.doesNotMatch(setCookie, /kuma-dash-2026/);
   assert.equal(await isStaffRequest(request({ Cookie: `other=1; ${cookieValue(setCookie)}` }), env), true);
 });

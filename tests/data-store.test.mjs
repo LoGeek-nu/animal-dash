@@ -34,7 +34,20 @@ async function fixture(t, runtimeRoom = false) {
     const sql = await readFile(new URL(`../migrations/${migration}`, import.meta.url), "utf8");
     await db.batch(sql.split(";").map((s) => s.trim()).filter(Boolean).map((s) => db.prepare(s)));
   }
-  return { db, bucket, mf };
+  const sessions = new Map();
+  const RACE_SESSION = { getByName: () => ({ fetch: async (url, init = {}) => {
+    const path = new URL(url).pathname;
+    const body = typeof init.body === "string" ? init.body : "";
+    if (path.endsWith("/create")) {
+      const { sessionId, expiresAt } = JSON.parse(body);
+      sessions.set(sessionId, expiresAt);
+      return new Response(null, { status: 204 });
+    }
+    if (path.endsWith("/verify")) return new Response(null, { status: sessions.get(body) > Date.now() ? 204 : 401 });
+    if (path.endsWith("/revoke")) { sessions.delete(body); return new Response(null, { status: 204 }); }
+    return new Response(null, { status: 404 });
+  } }) };
+  return { db, bucket, mf, RACE_SESSION };
 }
 
 const startedAt = Date.parse("2026-10-10T12:00:00+09:00");
@@ -115,10 +128,10 @@ test("daily rankings use JST, per-character bests, competition ties and exclude 
 });
 
 test("TOP 3/TOP 10 API limits and errors are explicit and import requires staff authorization", async (t) => {
-  const { db, bucket } = await fixture(t);
+  const { db, bucket, RACE_SESSION } = await fixture(t);
   const storedIds = [...characters.map(({ id }) => id), ...retiredCharacterIds];
   for (let i = 0; i < storedIds.length; i++) await saveRace(db, bucket, race(`limit-${i}`, [result(storedIds[i], 1, 1000 + i)]));
-  const env = { DB: db, CHARACTERS: bucket, STAFF_PASSCODE: "test-passcode" };
+  const env = { DB: db, CHARACTERS: bucket, STAFF_PASSCODE: "test-passcode", RACE_SESSION };
   const request = (query = "") => new Request(`https://example.test/api/rankings?${query}`);
   assert.equal((await (await rankingsResponse(request("date=2026-10-10&limit=3"), env)).json()).rankings.length, 3);
   assert.equal((await (await rankingsResponse(request("date=2026-10-10&limit=10"), env)).json()).rankings.length, 10);
@@ -261,7 +274,10 @@ test("public spectators join mid-race, reconnect and watch canonical results wit
     const deadline = Date.now() + 5000;
     while (!await predicate()) { if (Date.now() > deadline) throw new Error("Missing spectator update"); await new Promise((resolve) => setTimeout(resolve, 10)); }
   };
-  const cookie = (await staffCookie(new Request("https://example.test/api/auth"), { STAFF_PASSCODE: "test-spectator-passcode" })).split(";")[0];
+  const cookie = (await staffCookie(new Request("https://example.test/api/auth"), {
+    DB: db, STAFF_PASSCODE: "test-spectator-passcode",
+    RACE_SESSION: { getByName: () => ({ fetch: (url, init) => mf.dispatchFetch(url, init) }) },
+  })).split(";")[0];
   const connect = async (role, authenticated = false) => {
     const response = await mf.dispatchFetch(`https://example.test/api/sync?role=${role}`, { headers: {
       Upgrade: "websocket", Origin: "https://example.test", ...(authenticated ? { Cookie: cookie } : {}) } });
