@@ -1,16 +1,25 @@
 import { isSameOrigin, isStaffRequest, unauthorizedResponse } from "./auth.js";
-import { getDailyRankings, importCharacterPage, listStoredCharacters, rankingDay } from "./data-store.js";
+import { getDailyRankings, importCharacterPage, getCharactersByIds, listCharacterPage, readCharacterPageOptions, rankingDay } from "./data-store.js";
 import { normalizeCharacterText } from "../app/domain/character-text.js";
 import { getSyncRoom } from "./sync.js";
 
 const headers = { "Cache-Control": "no-store" };
 const unavailable = () => Response.json({ error: "storage_unavailable", retryable: true }, { status: 503, headers });
 
-export async function charactersResponse(env) {
+export async function charactersResponse(env, request = new Request("https://catalog/api/characters")) {
+  const params = new URL(request.url).searchParams;
+  let options, ids;
+  try {
+    if (params.has("ids")) {
+      ids = params.get("ids").split(",");
+      if (ids.length > 12 || ids.some((id) => !id || id.length > 200) || [...params.keys()].some((key) => key !== "ids")) throw new Error("Invalid ids");
+    } else options = readCharacterPageOptions(params);
+  } catch (error) {
+    return Response.json({ error: "invalid_query", detail: error.message }, { status: 400, headers });
+  }
   if (!env.DB) return unavailable();
   try {
-    const characters = await listStoredCharacters(env.DB);
-    return Response.json({ characters, total: characters.length }, { headers });
+    return Response.json(ids ? { characters: await getCharactersByIds(env.DB, ids) } : await listCharacterPage(env.DB, options), { headers });
   } catch (error) {
     console.error("character_list_failed", error);
     return unavailable();

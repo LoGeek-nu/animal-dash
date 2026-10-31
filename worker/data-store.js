@@ -29,14 +29,15 @@ function validCharacter(character) {
 
 export function characterStatement(db, character, imageKey = null, createdAt = Date.now()) {
   if (!validCharacter(character)) throw new Error("Invalid character metadata");
+  character = onCurrentScale(character);
   const data = { ...character };
   delete data.imageUrl;
-  return db.prepare(`INSERT INTO characters (id, name, speed, acceleration, stamina, image_key, generated, data_json, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  return db.prepare(`INSERT INTO characters (id, name, speed, acceleration, stamina, image_key, generated, data_json, created_at, character_type)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET name=excluded.name, speed=excluded.speed, acceleration=excluded.acceleration,
-      stamina=excluded.stamina, image_key=excluded.image_key, generated=excluded.generated, data_json=excluded.data_json`)
+      stamina=excluded.stamina, image_key=excluded.image_key, generated=excluded.generated, data_json=excluded.data_json, character_type=excluded.character_type`)
     .bind(character.id, character.name, character.stats.speed, character.stats.acceleration, character.stats.stamina,
-      imageKey, character.generated ? 1 : 0, JSON.stringify(data), createdAt);
+      imageKey, character.generated ? 1 : 0, JSON.stringify(data), createdAt, characterType(character.stats));
 }
 
 export async function saveCharacter(db, character, imageKey = null, createdAt = Date.now()) {
@@ -51,6 +52,43 @@ export async function getStoredCharacter(db, id) {
 
 export async function listStoredCharacters(db) {
   const { results } = await db.prepare("SELECT * FROM characters ORDER BY generated, created_at, id").all();
+  return results.map(characterFromRow);
+}
+
+// A cursor is bound to its filter. The ID breaks ties without OFFSET, even while new
+// characters are being inserted at the head of the catalog.
+export function readCharacterPageOptions(params) {
+  const query = (params.get("query") ?? "").trim();
+  const limit = params.has("limit") ? Number(params.get("limit")) : 12;
+  if (query.length > 100 || !Number.isInteger(limit) || limit < 1 || limit > 48) throw new Error("Invalid query or limit");
+  let after = null;
+  if (params.has("cursor")) {
+    const cursor = params.get("cursor");
+    if (!cursor || cursor.length > 2048) throw new Error("Invalid cursor");
+    try { after = JSON.parse(decodeURIComponent(atob(cursor))); } catch { throw new Error("Invalid cursor"); }
+    if (!Array.isArray(after) || after.length !== 4 || after[0] !== 1 || !Number.isSafeInteger(after[1]) || after[1] < 0
+      || typeof after[2] !== "string" || !after[2].length || after[2].length > 200 || after[3] !== query) throw new Error("Invalid cursor");
+  }
+  return { query, limit, after };
+}
+
+export async function listCharacterPage(db, { query = "", limit = 12, after = null } = {}) {
+  // instr preserves the literal substring search (including % and _) of the UI.
+  const filter = "(instr(name, ?1) > 0 OR instr(character_type, ?1) > 0)";
+  const boundary = after ? " AND (created_at, id) < (?2, ?3)" : "";
+  const args = after ? [query, after[1], after[2], limit + 1] : [query, limit + 1];
+  const [page, count] = await db.batch([
+    db.prepare(`SELECT * FROM characters WHERE ${filter}${boundary} ORDER BY created_at DESC, id DESC LIMIT ?${args.length}`).bind(...args),
+    db.prepare(`SELECT count(*) AS total FROM characters WHERE ${filter}`).bind(query),
+  ]);
+  const rows = page.results.slice(0, limit);
+  const last = rows.at(-1);
+  return { characters: rows.map(characterFromRow), total: count.results[0].total,
+    nextCursor: page.results.length > limit ? btoa(encodeURIComponent(JSON.stringify([1, last.created_at, last.id, query]))) : null };
+}
+
+export async function getCharactersByIds(db, ids) {
+  const { results } = await db.prepare(`SELECT * FROM characters WHERE id IN (${ids.map(() => "?").join(",")})`).bind(...ids).all();
   return results.map(characterFromRow);
 }
 
