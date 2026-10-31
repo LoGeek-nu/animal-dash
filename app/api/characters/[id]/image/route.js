@@ -1,9 +1,17 @@
 import { env } from "cloudflare:workers";
-import { characterImageResponse } from "../../../../../worker/character-image.js";
+import { getGeneratedCharacterImage } from "../../character-store.js";
 
-export async function GET(request, { params }) {
+export async function GET(_request, { params }) {
   const { id } = await params;
-  return characterImageResponse(request, env, null, id);
-}
+  const object = env.CHARACTERS ? await getGeneratedCharacterImage(env.CHARACTERS, id) : null;
+  if (!object) return new Response("Not Found", { status: 404 });
 
-export const HEAD = GET;
+  return new Response(object.body, {
+    headers: {
+      "Content-Type": object.httpMetadata?.contentType ?? "image/png",
+      // Character ids are random UUIDs and the pixels never change (an edit rewrites only the metadata).
+      "Cache-Control": "public, max-age=31536000, immutable",
+      ETag: object.httpEtag,
+    },
+  });
+}

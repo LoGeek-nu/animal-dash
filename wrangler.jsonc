@@ -4,7 +4,9 @@
   "account_id": "bd6022bab607c76f306d3a313431d8f6",
   "main": "./worker/index.js",
   "compatibility_date": "2026-08-19",
-  "compatibility_flags": ["nodejs_compat"],
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
   "workers_dev": false,
   "preview_urls": false,
   "routes": [
@@ -43,17 +45,24 @@
     {
       "name": "AUTH_LIMITER",
       "namespace_id": "1001",
-      "simple": { "limit": 20, "period": 60 }
+      "simple": {
+        "limit": 20,
+        "period": 60
+      }
     }
   ],
   "migrations": [
     {
       "tag": "v1",
-      "new_sqlite_classes": ["RaceSessionRoom"]
+      "new_sqlite_classes": [
+        "RaceSessionRoom"
+      ]
     },
     {
       "tag": "v2",
-      "new_sqlite_classes": ["GenerationQuota"]
+      "new_sqlite_classes": [
+        "GenerationQuota"
+      ]
     }
   ],
   "assets": {
@@ -118,10 +127,7 @@
           "pattern": "animaldash-develop.logeek.tech",
           "custom_domain": true
         }
-      ],
-      "vars": {
-        "IMAGE_CACHE_BENCHMARK": "true"
-      }
+      ]
     }
   }
 }

@@ -41,3 +41,11 @@ PCの画像URLは408種類で重複なし。モバイルの参加枠タブは画
 DB・クライアントの自動テストでは、400件の継続取得、同時刻のID順序、途中追加時の重複・欠落防止、カーソル・件数の検証、検索変更時の応答競合、再試行、ページ外キャラの同期取得も確認します。
 
 最終確認: `npm run lint` 成功、`npm test`（ビルドを含む）128件すべて成功。
+
+## develop検証環境
+
+- 管理画面: https://animaldash-develop.logeek.tech/admin
+- ゲーム画面: https://animaldash-develop.logeek.tech/game
+- 専用Worker・D1・R2を使用し、`npm run deploy:develop`でビルド・デプロイします。合言葉は既存のdevelop環境と共通です。
+- 画像APIのCDNキャッシュ追加は取り下げ、従来のR2直接取得へ戻しています。ブラウザ向けの既存Cache-Controlは維持します。
+- 別端末のゲーム画面にレーン設定したキャラクターが表示されない事象は、この変更で解決済みとは扱いません。
