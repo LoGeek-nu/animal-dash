@@ -30,7 +30,7 @@ async function fixture(t, runtimeRoom = false) {
   t.after(() => mf.dispose());
   const db = await mf.getD1Database("DB");
   const bucket = await mf.getR2Bucket("CHARACTERS");
-  for (const migration of ["0001_race_storage.sql", "0002_builtin_characters.sql", "0003_builtin_stats_40.sql"]) {
+  for (const migration of ["0001_race_storage.sql", "0002_builtin_characters.sql", "0003_builtin_stats_40.sql", "0004_staff_sessions.sql"]) {
     const sql = await readFile(new URL(`../migrations/${migration}`, import.meta.url), "utf8");
     await db.batch(sql.split(";").map((s) => s.trim()).filter(Boolean).map((s) => db.prepare(s)));
   }
@@ -261,7 +261,7 @@ test("public spectators join mid-race, reconnect and watch canonical results wit
     const deadline = Date.now() + 5000;
     while (!await predicate()) { if (Date.now() > deadline) throw new Error("Missing spectator update"); await new Promise((resolve) => setTimeout(resolve, 10)); }
   };
-  const cookie = (await staffCookie(new Request("https://example.test/api/auth"), { STAFF_PASSCODE: "test-spectator-passcode" })).split(";")[0];
+  const cookie = (await staffCookie(new Request("https://example.test/api/auth"), { DB: db, STAFF_PASSCODE: "test-spectator-passcode" })).split(";")[0];
   const connect = async (role, authenticated = false) => {
     const response = await mf.dispatchFetch(`https://example.test/api/sync?role=${role}`, { headers: {
       Upgrade: "websocket", Origin: "https://example.test", ...(authenticated ? { Cookie: cookie } : {}) } });

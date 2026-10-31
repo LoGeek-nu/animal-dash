@@ -47,6 +47,16 @@ export class RaceSessionRoom {
 
   async fetch(request) {
     const url = new URL(request.url);
+    if (url.pathname === "/revoke-staff-session" && request.method === "POST") {
+      const sessionId = await request.text();
+      if (!/^[A-Za-z0-9_-]{43}$/.test(sessionId)) return new Response("Invalid session", { status: 400 });
+      for (const socket of this.ctx.getWebSockets()) {
+        if (socket.deserializeAttachment()?.sessionId === sessionId) {
+          try { socket.close(1008, "Staff session revoked"); } catch { /* already closing */ }
+        }
+      }
+      return new Response(null, { status: 204 });
+    }
     if (url.pathname === "/characters-changed") {
       this.broadcast({ type: "characters-changed" });
       return new Response(null, { status: 204 });
@@ -62,7 +72,7 @@ export class RaceSessionRoom {
     const role = url.searchParams.get("role") ?? "viewer";
     if (!["admin", "game", "viewer"].includes(role)) return new Response("Invalid role", { status: 400 });
     const { 0: client, 1: server } = new WebSocketPair();
-    server.serializeAttachment({ role, id: crypto.randomUUID() });
+    server.serializeAttachment({ role, id: crypto.randomUUID(), sessionId: role === "viewer" ? null : request.headers.get("X-Animal-Dash-Staff-Session") });
     this.ctx.acceptWebSocket(server);
     await this.runExclusive(async () => {
       const current = await this.session();

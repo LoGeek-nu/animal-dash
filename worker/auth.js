@@ -1,9 +1,9 @@
-// Staff authentication: a shared passcode (STAFF_PASSCODE secret) exchanged at /api/auth
-// for an HttpOnly cookie. Cookies ride along on fetch and WebSocket handshakes automatically,
-// so screens need no token plumbing.
+// Staff authentication: a shared passcode is exchanged for an individually
+// revocable, signed session cookie. D1 stores only a hash of each session ID.
 export const STAFF_COOKIE = "animal_dash_staff";
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 14;
 const TOKEN_LABEL = "animal-dash-staff-v1";
+const SESSION_ID_PATTERN = /^[A-Za-z0-9_-]{43}$/;
 
 // Local `npm run dev` without a passcode stays open so the setup guide's "no .dev.vars needed"
 // still holds. Built bundles (production) refuse everything until the secret is set.
@@ -18,14 +18,6 @@ function constantTimeEqual(a, b) {
   return diff === 0;
 }
 
-// The cookie holds an HMAC of the passcode, never the passcode itself.
-async function staffToken(passcode) {
-  const encoder = new TextEncoder();
-  const key = await crypto.subtle.importKey("raw", encoder.encode(passcode), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-  const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(TOKEN_LABEL));
-  return [...new Uint8Array(signature)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
-}
-
 function readCookie(request, name) {
   for (const part of (request.headers.get("Cookie") ?? "").split(";")) {
     const [key, ...rest] = part.trim().split("=");
@@ -34,10 +26,61 @@ function readCookie(request, name) {
   return null;
 }
 
+function parseStaffToken(request) {
+  const value = readCookie(request, STAFF_COOKIE);
+  if (typeof value !== "string") return null;
+  const separator = value.indexOf(".");
+  if (separator < 0) return null;
+  const sessionId = value.slice(0, separator);
+  const signature = value.slice(separator + 1);
+  if (!SESSION_ID_PATTERN.test(sessionId) || !/^[0-9a-f]{64}$/.test(signature)) return null;
+  return { sessionId, signature };
+}
+
+async function signSession(passcode, sessionId) {
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey("raw", encoder.encode(passcode), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(`${TOKEN_LABEL}:${sessionId}`));
+  return [...new Uint8Array(signature)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+async function sessionHash(sessionId) {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(sessionId));
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+function newSessionId() {
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+}
+
+async function verifiedSessionId(request, env) {
+  if (!env.STAFF_PASSCODE || !env.DB) return null;
+  const parsed = parseStaffToken(request);
+  if (!parsed || !constantTimeEqual(parsed.signature, await signSession(env.STAFF_PASSCODE, parsed.sessionId))) return null;
+  const hash = await sessionHash(parsed.sessionId);
+  const row = await env.DB.prepare("SELECT expires_at FROM staff_sessions WHERE session_hash = ? AND expires_at > ?")
+    .bind(hash, Date.now()).first();
+  return row ? parsed.sessionId : null;
+}
+
+// Returns the authenticated session ID so the Durable Object can attach it to
+// WebSockets and close those sockets when the session is revoked. The sentinel
+// is only used by local development when authentication is intentionally off.
+export async function staffSessionId(request, env) {
+  if (!loginRequired(env)) return "development";
+  try {
+    return await verifiedSessionId(request, env);
+  } catch {
+    return null;
+  }
+}
+
 export async function isStaffRequest(request, env) {
   if (!loginRequired(env)) return true;
-  if (!env.STAFF_PASSCODE) return false;
-  return constantTimeEqual(readCookie(request, STAFF_COOKIE), await staffToken(env.STAFF_PASSCODE));
+  return Boolean(await staffSessionId(request, env));
 }
 
 export function passcodeMatches(input, env) {
@@ -50,7 +93,26 @@ function cookieAttributes(request, maxAge) {
 }
 
 export async function staffCookie(request, env) {
-  return `${STAFF_COOKIE}=${await staffToken(env.STAFF_PASSCODE)}; ${cookieAttributes(request, COOKIE_MAX_AGE)}`;
+  if (!env.STAFF_PASSCODE || !env.DB) throw new Error("Staff sessions require STAFF_PASSCODE and DB");
+  const sessionId = newSessionId();
+  const now = Date.now();
+  const expiresAt = now + COOKIE_MAX_AGE * 1000;
+  const hash = await sessionHash(sessionId);
+  await env.DB.prepare("DELETE FROM staff_sessions WHERE expires_at <= ?").bind(now).run();
+  await env.DB.prepare("INSERT INTO staff_sessions (session_hash, created_at, expires_at) VALUES (?, ?, ?)")
+    .bind(hash, now, expiresAt).run();
+  const signature = await signSession(env.STAFF_PASSCODE, sessionId);
+  return `${STAFF_COOKIE}=${sessionId}.${signature}; ${cookieAttributes(request, COOKIE_MAX_AGE)}`;
+}
+
+export async function revokeStaffSession(request, env) {
+  if (!env.STAFF_PASSCODE) return null;
+  const parsed = parseStaffToken(request);
+  if (!parsed || !constantTimeEqual(parsed.signature, await signSession(env.STAFF_PASSCODE, parsed.sessionId))) return null;
+  if (!env.DB) throw new Error("Staff session store is unavailable");
+  const hash = await sessionHash(parsed.sessionId);
+  await env.DB.prepare("DELETE FROM staff_sessions WHERE session_hash = ?").bind(hash).run();
+  return parsed.sessionId;
 }
 
 export function clearedStaffCookie(request) {

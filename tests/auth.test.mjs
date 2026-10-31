@@ -12,14 +12,42 @@ import {
 } from "../worker/auth.js";
 import { authRetryDelay, fetchStaffAuth, loginPath, logout, safeNextPath } from "../app/features/auth/useStaffAuth.js";
 
-const env = { STAFF_PASSCODE: "kuma-dash-2026" };
+function sessionDb() {
+  const sessions = new Map();
+  return {
+    prepare(sql) {
+      return {
+        bind(...values) {
+          return {
+            async run() {
+              if (sql.startsWith("DELETE FROM staff_sessions WHERE expires_at <=")) {
+                for (const [hash, session] of sessions) if (session.expires_at <= values[0]) sessions.delete(hash);
+              } else if (sql.startsWith("INSERT INTO staff_sessions")) {
+                sessions.set(values[0], { expires_at: values[2] });
+              } else if (sql.startsWith("DELETE FROM staff_sessions WHERE session_hash")) {
+                sessions.delete(values[0]);
+              }
+              return { success: true };
+            },
+            async first() {
+              const session = sessions.get(values[0]);
+              return session?.expires_at > values[1] ? { expires_at: session.expires_at } : null;
+            },
+          };
+        },
+      };
+    },
+  };
+}
+
+const env = { STAFF_PASSCODE: "kuma-dash-2026", DB: sessionDb() };
 const request = (headers = {}, url = "https://animaldash.logeek.tech/api/sync") => new Request(url, { headers });
 const cookieValue = (setCookie) => setCookie.split(";")[0];
 
 test("the issued cookie authenticates later requests without containing the passcode", async () => {
   const setCookie = await staffCookie(request(), env);
 
-  assert.match(setCookie, new RegExp(`^${STAFF_COOKIE}=[0-9a-f]{64}; Path=/; HttpOnly; SameSite=Strict; Max-Age=\\d+; Secure$`));
+  assert.match(setCookie, new RegExp(`^${STAFF_COOKIE}=[A-Za-z0-9_-]{43}\\.[0-9a-f]{64}; Path=/; HttpOnly; SameSite=Strict; Max-Age=\\d+; Secure$`));
   assert.doesNotMatch(setCookie, /kuma-dash-2026/);
   assert.equal(await isStaffRequest(request({ Cookie: `other=1; ${cookieValue(setCookie)}` }), env), true);
 });

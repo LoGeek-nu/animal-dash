@@ -1,5 +1,6 @@
 import { env } from "cloudflare:workers";
-import { clearedStaffCookie, isStaffRequest, loginAttemptAllowed, loginRequired, passcodeMatches, staffCookie } from "../../../worker/auth.js";
+import { clearedStaffCookie, isStaffRequest, loginAttemptAllowed, loginRequired, passcodeMatches, revokeStaffSession, staffCookie } from "../../../worker/auth.js";
+import { getSyncRoom } from "../../../worker/sync.js";
 
 export async function GET(request) {
   return Response.json(
@@ -21,9 +22,26 @@ export async function POST(request) {
   if (!passcodeMatches(passcode, env)) {
     return Response.json({ error: "wrong_passcode", detail: "合言葉が違います" }, { status: 401 });
   }
-  return new Response(null, { status: 204, headers: { "Set-Cookie": await staffCookie(request, env) } });
+  try {
+    return new Response(null, { status: 204, headers: { "Set-Cookie": await staffCookie(request, env) } });
+  } catch (error) {
+    console.error("staff_session_create_failed", error);
+    return Response.json({ error: "session_unavailable", detail: "ログイン状態を保存できませんでした。", retryable: true }, { status: 503 });
+  }
 }
 
-export function DELETE(request) {
-  return new Response(null, { status: 204, headers: { "Set-Cookie": clearedStaffCookie(request) } });
+export async function DELETE(request) {
+  const headers = { "Set-Cookie": clearedStaffCookie(request) };
+  try {
+    const sessionId = await revokeStaffSession(request, env);
+    if (sessionId) {
+      if (!env.RACE_SESSION) throw new Error("Race session binding is unavailable");
+      const response = await getSyncRoom(env).fetch("https://sync/revoke-staff-session", { method: "POST", body: sessionId });
+      if (!response.ok) throw new Error("Staff WebSocket revocation failed");
+    }
+    return new Response(null, { status: 204, headers });
+  } catch (error) {
+    console.error("staff_session_revoke_failed", error);
+    return Response.json({ error: "session_revoke_failed", detail: "ログアウトを完了できませんでした。もう一度お試しください。", retryable: true }, { status: 503, headers });
+  }
 }

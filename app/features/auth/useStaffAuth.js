@@ -61,7 +61,11 @@ export function loginPath(returnTo) {
 }
 
 export async function logout(returnTo) {
-  await fetch("/api/auth", { method: "DELETE" }).catch(() => {});
+  const response = await fetch("/api/auth", { method: "DELETE" }).catch(() => null);
+  if (!response?.ok) {
+    window.alert("ログアウトを完了できませんでした。通信状態を確認して、もう一度お試しください。");
+    return;
+  }
   window.location.assign(loginPath(returnTo));
 }
 
