@@ -86,6 +86,7 @@ npx wrangler r2 bucket create animaldash-characters
 
 ```bash
 npx wrangler secret put STAFF_PASSCODE
+npx wrangler secret put GAME_PASSCODE
 npx wrangler secret put IMAGE_POC_API_URL
 npx wrangler secret put IMAGE_POC_API_KEY
 ```
