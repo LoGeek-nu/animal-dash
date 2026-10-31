@@ -27,10 +27,13 @@ export function createCharacterCatalog({ fetcher = (...args) => fetch(...args), 
         cache(page.characters);
         const cached = new Map(getGeneratedCharacters().map((c) => [c.id, c]));
         const existing = head ? state.characters.map((c) => cached.get(c.id) ?? c).filter((c) => c.name.includes(state.query.trim()) || c.preset.includes(state.query.trim())) : state.characters;
-        const items = head ? [...page.characters, ...existing] : [...existing, ...page.characters];
+        // If more than a page arrived since the last visit, there may be a gap
+        // between the new head and old items. Resume from the new head's cursor.
+        const contiguous = !head || page.characters.some((c) => existing.some((old) => old.id === c.id)) || !page.nextCursor;
+        const items = head ? [...page.characters, ...(contiguous ? existing : [])] : [...existing, ...page.characters];
         const ids = new Set();
         publish({ characters: items.filter((c) => !ids.has(c.id) && ids.add(c.id)), total: page.total,
-          nextCursor: head && state.started ? state.nextCursor : page.nextCursor, started: true });
+          nextCursor: head && state.started && contiguous ? state.nextCursor : page.nextCursor, started: true });
       } catch (error) {
         if (version === revision && error.name !== "AbortError") publish({ error: error.message });
       } finally {

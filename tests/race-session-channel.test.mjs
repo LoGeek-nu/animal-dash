@@ -162,3 +162,24 @@ test("sessions resolve only referenced unknown characters and adopt them after l
   assert.equal(calls.length, 1);
   assert.equal(sessions.length, 2);
 });
+
+test("a failed targeted lookup retries without a WebSocket reconnect", async (t) => {
+  const { createInitialSession } = await import("../app/domain/race-session.js");
+  let attempt = 0;
+  t.mock.method(globalThis, "fetch", async () => {
+    if (++attempt === 1) throw new Error("offline");
+    return Response.json({ characters: [{ id: "gen-lookup-retry", generated: true }] });
+  });
+  const sessions = [];
+  const channel = createRaceSessionChannel((s) => sessions.push(s));
+  t.after(() => channel.close());
+  FakeWebSocket.instances.at(-1).emit("message", { data: JSON.stringify({ type: "session", session: {
+    ...createInitialSession(), lanes: [{ characterId: "gen-lookup-retry", isBot: false }, null, null, null],
+  } }) });
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(sessions.length, 0);
+  timeouts.pop()();
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(sessions.length, 1);
+  assert.equal(attempt, 2);
+});

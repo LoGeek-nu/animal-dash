@@ -64,3 +64,16 @@ test("failed pages retry the same cursor; head refresh preserves loaded pages an
   assert.deepEqual(catalog.getSnapshot().characters.map((c) => c.id), ["gen-3", "gen-2", "gen-1"]);
   assert.equal(catalog.getSnapshot().nextCursor, null);
 });
+
+test("head refresh with more than a page of new arrivals resumes without skipping the gap", async () => {
+  let refreshed = false;
+  const catalog = createCharacterCatalog({ cache() {}, fetcher: async () => Response.json({
+    characters: refreshed ? Array.from({ length: 12 }, (_, i) => character(30 - i)) : [character(1)],
+    total: refreshed ? 31 : 1, nextCursor: refreshed ? "after-new-head" : null,
+  }) });
+  await catalog.loadMore();
+  refreshed = true;
+  await catalog.refresh();
+  assert.equal(catalog.getSnapshot().nextCursor, "after-new-head");
+  assert.equal(catalog.getSnapshot().characters.length, 12);
+});

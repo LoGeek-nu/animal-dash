@@ -9,9 +9,29 @@ WITH RECURSIVE exact AS (
   SELECT id, es, ea, et, round(es), round(ea), round(et),
     CASE WHEN round(es) + round(ea) + round(et) < 40 THEN 1 ELSE -1 END FROM exact
   UNION ALL
-  SELECT id, es, ea, et, s + CASE WHEN (CASE WHEN (direction = 1 AND s < 20) OR (direction = -1 AND s > 1) THEN direction * (es - s) ELSE -1000 END >= CASE WHEN (direction = 1 AND a < 20) OR (direction = -1 AND a > 1) THEN direction * (ea - a) ELSE -1000 END AND CASE WHEN (direction = 1 AND s < 20) OR (direction = -1 AND s > 1) THEN direction * (es - s) ELSE -1000 END >= CASE WHEN (direction = 1 AND t < 20) OR (direction = -1 AND t > 1) THEN direction * (et - t) ELSE -1000 END) THEN direction ELSE 0 END,
-    a + CASE WHEN (CASE WHEN (direction = 1 AND a < 20) OR (direction = -1 AND a > 1) THEN direction * (ea - a) ELSE -1000 END > CASE WHEN (direction = 1 AND s < 20) OR (direction = -1 AND s > 1) THEN direction * (es - s) ELSE -1000 END AND CASE WHEN (direction = 1 AND a < 20) OR (direction = -1 AND a > 1) THEN direction * (ea - a) ELSE -1000 END >= CASE WHEN (direction = 1 AND t < 20) OR (direction = -1 AND t > 1) THEN direction * (et - t) ELSE -1000 END) THEN direction ELSE 0 END,
-    t + CASE WHEN (CASE WHEN (direction = 1 AND t < 20) OR (direction = -1 AND t > 1) THEN direction * (et - t) ELSE -1000 END > CASE WHEN (direction = 1 AND s < 20) OR (direction = -1 AND s > 1) THEN direction * (es - s) ELSE -1000 END AND CASE WHEN (direction = 1 AND t < 20) OR (direction = -1 AND t > 1) THEN direction * (et - t) ELSE -1000 END > CASE WHEN (direction = 1 AND a < 20) OR (direction = -1 AND a > 1) THEN direction * (ea - a) ELSE -1000 END) THEN direction ELSE 0 END, direction
+  -- Stable ties prefer speed, then acceleration, then stamina.
+  SELECT id, es, ea, et,
+    s + CASE WHEN (
+      CASE WHEN (direction = 1 AND s < 20) OR (direction = -1 AND s > 1) THEN direction * (es - s) ELSE -1000 END >=
+      CASE WHEN (direction = 1 AND a < 20) OR (direction = -1 AND a > 1) THEN direction * (ea - a) ELSE -1000 END
+      AND
+      CASE WHEN (direction = 1 AND s < 20) OR (direction = -1 AND s > 1) THEN direction * (es - s) ELSE -1000 END >=
+      CASE WHEN (direction = 1 AND t < 20) OR (direction = -1 AND t > 1) THEN direction * (et - t) ELSE -1000 END)
+      THEN direction ELSE 0 END,
+    a + CASE WHEN (
+      CASE WHEN (direction = 1 AND a < 20) OR (direction = -1 AND a > 1) THEN direction * (ea - a) ELSE -1000 END >
+      CASE WHEN (direction = 1 AND s < 20) OR (direction = -1 AND s > 1) THEN direction * (es - s) ELSE -1000 END
+      AND
+      CASE WHEN (direction = 1 AND a < 20) OR (direction = -1 AND a > 1) THEN direction * (ea - a) ELSE -1000 END >=
+      CASE WHEN (direction = 1 AND t < 20) OR (direction = -1 AND t > 1) THEN direction * (et - t) ELSE -1000 END)
+      THEN direction ELSE 0 END,
+    t + CASE WHEN (
+      CASE WHEN (direction = 1 AND t < 20) OR (direction = -1 AND t > 1) THEN direction * (et - t) ELSE -1000 END >
+      CASE WHEN (direction = 1 AND s < 20) OR (direction = -1 AND s > 1) THEN direction * (es - s) ELSE -1000 END
+      AND
+      CASE WHEN (direction = 1 AND t < 20) OR (direction = -1 AND t > 1) THEN direction * (et - t) ELSE -1000 END >
+      CASE WHEN (direction = 1 AND a < 20) OR (direction = -1 AND a > 1) THEN direction * (ea - a) ELSE -1000 END)
+      THEN direction ELSE 0 END, direction
   FROM fitted WHERE s + a + t != 40
 )
 UPDATE characters SET (speed, acceleration, stamina) =
