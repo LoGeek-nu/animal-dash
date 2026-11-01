@@ -18,6 +18,13 @@ export function raceSessionReducer(session, action, now = Date.now()) {
       lanes[action.laneIndex] = { characterId: action.characterId, isBot: Boolean(action.isBot) || isBuiltInCharacterId(action.characterId) };
       return { ...session, lanes };
     }
+    case RaceSessionAction.SET_RANKING_EXCLUDED: {
+      if (!canEditLanes(session.phase) || !Number.isInteger(action.laneIndex)
+        || !session.lanes[action.laneIndex] || session.lanes[action.laneIndex].isBot || typeof action.excluded !== "boolean") return session;
+      const lanes = session.lanes.map((lane, index) => index === action.laneIndex
+        ? { ...lane, rankingExcluded: action.excluded } : lane);
+      return { ...session, lanes };
+    }
     case RaceSessionAction.REMOVE_CHARACTER: {
       if (!canEditLanes(session.phase) || !Number.isInteger(action.laneIndex) || !session.lanes[action.laneIndex]) return session;
       const lanes = [...session.lanes];

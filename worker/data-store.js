@@ -140,7 +140,8 @@ export async function saveRace(db, bucket, race) {
   if (!validRaceRecord(race)) throw new RaceStorageError("invalid_results", "Invalid race results");
   // First submission wins, including DNF. A resend never rewrites a finalized result.
   const normalized = { raceId: race.raceId, startedAt: race.startedAt, completedAt: race.completedAt, courseSeed: race.courseSeed,
-    results: race.results.map(({ characterId, lane, rank, finishMs, isBot }) => ({ characterId, lane, rank, finishMs, isBot }))
+    results: race.results.map(({ characterId, lane, rank, finishMs, isBot, rankingExcluded }) => ({ characterId, lane, rank, finishMs, isBot,
+      ...(rankingExcluded === true ? { rankingExcluded: true } : {}) }))
       .sort((a, b) => a.lane - b.lane) };
   const payload = JSON.stringify(normalized);
   const existing = await db.prepare("SELECT payload_json FROM races WHERE id = ?").bind(race.raceId).first();
@@ -155,10 +156,10 @@ export async function saveRace(db, bucket, race) {
     VALUES (?, ?, ?, ?, ?) ON CONFLICT(id) DO NOTHING`).bind(race.raceId, race.startedAt, race.completedAt, race.courseSeed, payload));
   for (let index = 0; index < race.results.length; index += 1) {
     const result = race.results[index];
-    statements.push(db.prepare(`INSERT INTO race_results (race_id, character_id, lane, rank, finish_ms, is_bot, character_snapshot)
-      SELECT ?, ?, ?, ?, ?, ?, ? WHERE (SELECT payload_json FROM races WHERE id = ?) = ?
+    statements.push(db.prepare(`INSERT INTO race_results (race_id, character_id, lane, rank, finish_ms, is_bot, character_snapshot, ranking_excluded)
+      SELECT ?, ?, ?, ?, ?, ?, ?, ? WHERE (SELECT payload_json FROM races WHERE id = ?) = ?
       ON CONFLICT(race_id, lane) DO NOTHING`).bind(race.raceId, result.characterId, result.lane, result.rank, result.finishMs,
-      result.isBot ? 1 : 0, JSON.stringify(entrants[index]), race.raceId, payload));
+      result.isBot ? 1 : 0, JSON.stringify(entrants[index]), result.rankingExcluded === true ? 1 : 0, race.raceId, payload));
   }
   // D1 batch is atomic: character relations, race and every entrant commit together.
   await db.batch(statements);
@@ -184,7 +185,7 @@ export async function getDailyRankings(db, { date, limit = 10 } = {}) {
     SELECT rr.*, r.started_at, ROW_NUMBER() OVER (
       PARTITION BY rr.character_id ORDER BY rr.finish_ms, r.started_at, rr.race_id, rr.lane
     ) AS attempt FROM race_results rr JOIN races r ON r.id = rr.race_id
-    WHERE r.started_at >= ? AND r.started_at < ? AND rr.finish_ms IS NOT NULL AND rr.is_bot = 0
+    WHERE r.started_at >= ? AND r.started_at < ? AND rr.finish_ms IS NOT NULL AND rr.is_bot = 0 AND rr.ranking_excluded = 0
   ), best AS (SELECT * FROM attempts WHERE attempt = 1)
   SELECT *, RANK() OVER (ORDER BY finish_ms) AS daily_rank FROM best
   ORDER BY finish_ms, character_id LIMIT ?`).bind(day.start, day.end, limit).all();

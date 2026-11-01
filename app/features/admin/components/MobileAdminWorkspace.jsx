@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { VisuallyHidden } from "../../../components/ui/atoms/VisuallyHidden.jsx";
 import { Button } from "../../../components/ui/atoms/Button.jsx";
 import { CharacterAvatar } from "../../../components/ui/molecules/CharacterAvatar.jsx";
 import { SearchField } from "../../../components/ui/molecules/SearchField.jsx";
@@ -10,6 +11,7 @@ import { PHASE_LABELS } from "../../../domain/race-session.js";
 import { logout } from "../../auth/useStaffAuth.js";
 import { createLongPressGesture } from "../model/long-press.js";
 import { CharacterPageEnd } from "./CharacterPageEnd.jsx";
+import { RankingExcludeButton } from "./RankingExcludeButton.jsx";
 import { AdminModal } from "./AdminModal.jsx";
 import { CharacterDetailDialog } from "./CharacterDetailDialog.jsx";
 
@@ -81,13 +83,14 @@ export function MobileAdminWorkspace({ session, selection, actions, muted, canLo
     </nav>
     {tab === "lanes" ? <>
       <Button variant="ghost" className="mobile-capture-entry" disabled={!mutable} onClick={onRequestGenerate}><svg aria-hidden="true" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 7h5l2-3h4l2 3h5v13H3Z" /><circle cx="12" cy="13" r="4" /></svg>読み取り・撮影して追加</Button>
+
       <section className="mobile-panel" aria-labelledby="mobile-lanes-title">
-        <div className="mobile-panel-heading"><span>02</span><div><h1 id="mobile-lanes-title">レーンにセット</h1><p>空きレーンの「選ぶ」からキャラクターを指定</p></div></div>
+        <VisuallyHidden><h1 id="mobile-lanes-title">参加レーン</h1></VisuallyHidden>
         <div className="mobile-lanes">{session.lanes.map((lane, index) => {
           const character = lane ? getCharacter(lane.characterId) : null;
           return <div key={index} className={`mobile-lane ${lane ? "has-racer" : ""}`} style={{ "--lane": laneColors[index] }}>
             <div className="mobile-lane-number"><small>LANE</small><strong>0{index + 1}</strong></div>
-            {character ? <><CharacterAvatar id={character.id} compact /><div className="mobile-lane-copy"><strong>{character.name} {lane.isBot && <b>BOT</b>}</strong><small>{character.preset}タイプ</small><StatMeters character={character} compact /></div><button type="button" className="mobile-remove" disabled={!mutable} aria-label={`レーン${index + 1}から解除`} onClick={() => actions.removeCharacter(index)}>×</button></>
+            {character ? <><CharacterAvatar id={character.id} compact /><div className="mobile-lane-copy"><strong>{character.name} {lane.isBot && <b>BOT</b>}</strong><small>{character.preset}タイプ</small><StatMeters character={character} compact /></div><div className="mobile-lane-actions"><RankingExcludeButton lane={lane} index={index} mutable={mutable} onChange={actions.setRankingExcluded} /><button type="button" className="mobile-remove" disabled={!mutable} aria-label={`レーン${index + 1}から解除`} onClick={() => actions.removeCharacter(index)}><span aria-hidden="true">×</span></button></div></>
               : <><span className="mobile-empty-mark" aria-hidden="true">?</span><strong className="mobile-empty-copy">空きレーン</strong><Button variant="ghost" disabled={!mutable} onClick={() => chooseLane(index)} aria-label={`レーン${index + 1}のキャラクターを選ぶ`}>＋ 選ぶ</Button></>}
           </div>;
         })}</div>
