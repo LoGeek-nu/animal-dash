@@ -3,7 +3,7 @@ import { getCharacter } from "../../../domain/characters.js";
 import { BotFillControl } from "./BotFillControl.jsx";
 import { LaneDropTarget } from "./LaneDropTarget.jsx";
 
-export function LaneManagement({ lanes, selectedId, activeCharacterId, overLaneId, mutable, participantCount, onClearSelection, onAssign, onRemove, onFillBots }) {
+export function LaneManagement({ lanes, selectedId, activeCharacterId, overLaneId, mutable, participantCount, onClearSelection, onAssign, onRemove, onSetRankingExcluded, onFillBots }) {
   const activeCharacter = activeCharacterId ? getCharacter(activeCharacterId) : null;
   return (
     <div className="lane-management panel-card" aria-label="キャラクターのドロップ先">
@@ -22,6 +22,7 @@ export function LaneManagement({ lanes, selectedId, activeCharacterId, overLaneI
             dragging={Boolean(overLaneId)}
             onAssign={onAssign}
             onRemove={onRemove}
+            onSetRankingExcluded={onSetRankingExcluded}
           />
         ))}
       </div>

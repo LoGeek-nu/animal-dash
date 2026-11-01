@@ -345,3 +345,36 @@ test("targeted refresh keeps cached characters and never downloads the full cata
   await refreshGeneratedCharacters();
   assert.equal(calls.length, 1);
 });
+
+
+test("ranking exclusion is per entry, synchronized, locked during racing and cleared on replacement", () => {
+  const id = "gen-ranking-human";
+  addGeneratedCharacter({ ...characters[0], id, generated: true });
+  let session = raceSessionReducer(createInitialSession(), raceSessionActions.assignCharacter(0, id));
+  assert.equal(session.lanes[0].isBot, false);
+  assert.equal(Boolean(session.lanes[0].rankingExcluded), false);
+  assert.equal(raceSessionReducer(session, raceSessionActions.setRankingExcluded(1, false)), session, "BOT cannot be toggled");
+  session = raceSessionReducer(session, raceSessionActions.setRankingExcluded(0, true));
+  assert.equal(session.lanes[0].rankingExcluded, true);
+  assert.equal(validSession(session), true);
+  assert.equal(validSession({ ...session, lanes: [{ ...session.lanes[0], rankingExcluded: "yes" }, null, null, null] }), false);
+  for (const phase of ["COUNTDOWN", "RACING", "RESULTS"]) {
+    const locked = { ...session, phase };
+    assert.equal(raceSessionReducer(locked, raceSessionActions.setRankingExcluded(0, false)), locked);
+  }
+  assert.equal(raceSessionReducer(session, raceSessionActions.setRankingExcluded(3, true)), session);
+  session = raceSessionReducer(session, raceSessionActions.setRankingExcluded(0, false));
+  assert.equal(session.lanes[0].rankingExcluded, false);
+  session = raceSessionReducer(session, raceSessionActions.setRankingExcluded(0, true));
+  session = raceSessionReducer(session, raceSessionActions.assignCharacter(0, "toramaru"));
+  assert.equal(session.lanes[0].rankingExcluded, undefined);
+  session = raceSessionReducer(session, raceSessionActions.assignCharacter(0, id));
+  session = raceSessionReducer(session, raceSessionActions.setRankingExcluded(0, true));
+  session = raceSessionReducer(session, raceSessionActions.assignCharacter(2, id));
+  assert.equal(session.lanes[0], null);
+  assert.equal(Boolean(session.lanes[2].rankingExcluded), false, "moving a character clears exclusion");
+  session = raceSessionReducer(session, raceSessionActions.setRankingExcluded(2, true));
+  session = raceSessionReducer(session, raceSessionActions.removeCharacter(2));
+  session = raceSessionReducer(session, raceSessionActions.assignCharacter(2, id));
+  assert.equal(Boolean(session.lanes[2].rankingExcluded), false, "re-adding a character starts eligible");
+});

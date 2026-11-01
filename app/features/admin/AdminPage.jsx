@@ -100,6 +100,7 @@ export function AdminPage() {
             onClearSelection={clearSelection}
             onAssign={assignSelected}
             onRemove={actions.removeCharacter}
+            onSetRankingExcluded={actions.setRankingExcluded}
             onFillBots={() => actions.fillBots(false)}
           />
         </section>}

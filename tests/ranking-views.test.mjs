@@ -61,3 +61,15 @@ test("attract ranking reveals 10th place first and lands TOP 3 last, ending on 1
   assert.equal(delays[9], 0);
   assert.ok(delays[2] - delays[3] > delays[3] - delays[4], "TOP 3 waits an extra beat");
 });
+
+
+test("excluded staff keeps its place and time on THIS RACE without being added to the daily board", async (t) => {
+  const { ResultsBoardView } = await loadRankingViews(t);
+  const html = renderToStaticMarkup(createElement(ResultsBoardView, {
+    results: [{ ...results[0], rankingExcluded: true }], board: board("ready", []),
+  }));
+  assert.match(html, /ももラビ/);
+  assert.match(html, /32\.345秒/);
+  assert.match(html, /place-1/);
+  assert.doesNotMatch(html, /class="ranking-row/);
+});

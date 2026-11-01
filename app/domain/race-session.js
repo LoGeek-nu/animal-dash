@@ -1,5 +1,5 @@
 /** @typedef {"ATTRACT"|"WAITING"|"COUNTDOWN"|"RACING"|"RESULTS"|"RECOVERY"} RacePhase */
-/** @typedef {{characterId:string, isBot:boolean}} LaneAssignment */
+/** @typedef {{characterId:string, isBot:boolean, rankingExcluded?:boolean}} LaneAssignment */
 /** @typedef {{characterId:string, lane:number, rank:number, finishMs:number|null, isBot:boolean}} RaceResult */
 /** @typedef {{version:3, sequence:number, sessionId:string, raceId?:string|null, phase:RacePhase, lanes:Array<LaneAssignment|null>, lastSync:number, courseSeed:string, countdownEndsAt:number|null, raceStartedAt:number|null, raceCompletedAt?:number|null, resultsEndsAt:number|null, results:RaceResult[], resultsForced?:boolean, attractIndex?:number}} RaceSession */
 
