@@ -292,3 +292,27 @@ test("only staff on the admin screen can mute, and every screen hears about it i
   assert.equal(f.data.get("session").phase, "RACING");
   for (const ws of [f.admin, f.game, f.observer]) assert.deepEqual(ws.sent.at(-1), { type: "sound", muted: true });
 });
+
+test("the newest game screen takes control, even mid-race, and the previous one becomes a viewer", async () => {
+  const f = fixture(); await f.start();
+  const race = f.data.get("activeRace");
+  f.setNow(race.startedAt + 500);
+  await f.room.webSocketMessage(f.game, JSON.stringify({ type: "input", raceId: race.raceId, buttons: 17, at: 500 }));
+  const late = { ...socket("game", "late"), serializeAttachment() {} };
+  f.ctx.acceptWebSocket = () => {};
+  f.ctx.getWebSockets = () => [f.admin, f.game, f.observer, late];
+  const { WebSocketPair } = globalThis;
+  globalThis.WebSocketPair = class { constructor() { return [{}, late]; } };
+  try { await f.room.fetch(new Request("https://room/?role=game", { headers: { Upgrade: "websocket" } })); } catch { /* 101 */ }
+  finally { globalThis.WebSocketPair = WebSocketPair; }
+  assert.equal(f.data.get("gameOwner"), "late");
+  assert.equal(f.data.get("activeRace").reporterId, "late");
+  // The old screen's held buttons are released, since it can no longer report the release itself.
+  assert.deepEqual(f.data.get("activeRace").inputs.at(-1), { at: 500, buttons: 0 });
+  assert.equal(f.game.sent.findLast((m) => m.type === "control").canControl, false);
+  assert.equal(late.sent.findLast((m) => m.type === "control").canControl, true);
+  f.setNow(race.startedAt + 800);
+  await f.room.webSocketMessage(f.game, JSON.stringify({ type: "input", raceId: race.raceId, buttons: 1, at: 800 }));
+  await f.room.webSocketMessage(late, JSON.stringify({ type: "input", raceId: race.raceId, buttons: 16, at: 800 }));
+  assert.deepEqual(f.data.get("activeRace").inputs.slice(-1), [{ at: 800, buttons: 16 }]);
+});

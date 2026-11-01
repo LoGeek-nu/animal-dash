@@ -1,4 +1,5 @@
-import { refreshGeneratedCharacters } from "../../domain/generated-characters.js";
+import { ensureGeneratedCharacters, refreshGeneratedCharacters, getGeneratedCharacters } from "../../domain/generated-characters.js";
+import { isBuiltInCharacterId } from "../../domain/characters.js";
 import { validSession } from "./race-session-validator.js";
 
 const SYNC_PATH = "/api/sync";
@@ -68,7 +69,7 @@ function createSyncSocket({ role, onSession, onCharactersChanged, onResultsSaved
         if (message.type === "control") onControl(message.canControl === true);
         if (message.type === "race" || message.type === "race-input") onRace(message);
         if (message.type === "sound" && typeof message.muted === "boolean") onSound(message.muted);
-        if (message.type === "characters-changed") onCharactersChanged();
+        if (message.type === "characters-changed") onCharactersChanged(message);
         if (message.type === "results-saved" && typeof message.raceId === "string") onResultsSaved(message.raceId);
         if (message.type === "results-failed" && typeof message.raceId === "string") onResultsFailed(message.raceId);
       } catch {
@@ -109,11 +110,30 @@ function createSyncSocket({ role, onSession, onCharactersChanged, onResultsSaved
 
 export function createRaceSessionChannel(onSession, { onSyncStatus = () => {}, onResultsSaved = () => {}, onResultsFailed = () => {}, onControl = () => {}, onRace = () => {}, onSound = () => {}, role = "viewer" } = {}) {
   let closed = false;
+  let latest = null;
+  let accepting = 0;
+  let lookupRetry = null;
+  const referencedIds = (candidate) => Array.isArray(candidate?.lanes)
+    ? candidate.lanes.flatMap((lane) => typeof lane?.characterId === "string" && !isBuiltInCharacterId(lane.characterId) ? [lane.characterId] : []) : [];
   const accept = async (candidate) => {
-    if (!validSession(candidate)) await refreshGeneratedCharacters();
-    if (!closed && validSession(candidate)) onSession(candidate);
+    // Check shape before using untrusted frame IDs for lookups.
+    if (!validSession(candidate, (id) => typeof id === "string" && id.length > 0 && id.length <= 200)) return;
+    window.clearTimeout(lookupRetry);
+    const version = ++accepting;
+    try {
+      await ensureGeneratedCharacters(referencedIds(candidate));
+      if (!closed && version === accepting && validSession(candidate)) { latest = candidate; onSession(candidate); }
+    } catch {
+      // A healthy socket need not reconnect after a transient HTTP lookup failure.
+      if (!closed && version === accepting) lookupRetry = window.setTimeout(() => { void accept(candidate); }, 1000);
+    }
   };
-  const sync = createSyncSocket({ role, onSession: accept, onCharactersChanged: refreshGeneratedCharacters, onStatus: onSyncStatus,
+  const sync = createSyncSocket({ role, onSession: accept, onCharactersChanged: (change) => {
+    const cachedIds = getGeneratedCharacters().map((c) => c.id);
+    const id = typeof change.id === "string" && change.id.length > 0 && change.id.length <= 200 ? change.id : null;
+    const ids = id ? (cachedIds.includes(id) || referencedIds(latest).includes(id) ? [id] : []) : cachedIds;
+    void refreshGeneratedCharacters(ids, { id, kind: change.kind === "created" ? "created" : "updated" }).catch(() => {});
+  }, onStatus: onSyncStatus,
     onControl: (value) => { if (!closed) onControl(value); },
     onRace: (message) => { if (!closed) onRace(message); },
     onSound: (muted) => { if (!closed) onSound(muted); },
@@ -123,6 +143,6 @@ export function createRaceSessionChannel(onSession, { onSyncStatus = () => {}, o
     publish(session) { sync.send(session); },
     sendInput(input) { sync.sendInput(input); },
     sendSound(muted) { sync.sendSound(muted); },
-    close() { closed = true; sync.close(); },
+    close() { closed = true; window.clearTimeout(lookupRetry); sync.close(); },
   };
 }

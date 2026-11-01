@@ -6,6 +6,6 @@ export function getSyncRoom(env) {
 }
 
 // Tells every connected screen to reload the generated character list.
-export async function notifyCharactersChanged(env) {
-  await getSyncRoom(env).fetch("https://sync/characters-changed", { method: "POST" });
+export async function notifyCharactersChanged(env, id) {
+  await getSyncRoom(env).fetch("https://sync/characters-changed", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, kind: "created" }) });
 }

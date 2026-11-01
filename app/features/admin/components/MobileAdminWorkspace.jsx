@@ -9,6 +9,7 @@ import { getCharacter, laneColors } from "../../../domain/characters.js";
 import { PHASE_LABELS } from "../../../domain/race-session.js";
 import { logout } from "../../auth/useStaffAuth.js";
 import { createLongPressGesture } from "../model/long-press.js";
+import { CharacterPageEnd } from "./CharacterPageEnd.jsx";
 import { AdminModal } from "./AdminModal.jsx";
 import { CharacterDetailDialog } from "./CharacterDetailDialog.jsx";
 
@@ -24,7 +25,7 @@ function CharacterCard({ character, selected, used, assigning, mutable, onSelect
     <button type="button" className="mobile-character-main" onPointerDown={gesture.onPointerDown} onPointerMove={gesture.onPointerMove}
       onPointerUp={gesture.onPointerUp} onPointerCancel={gesture.onPointerCancel} onClick={gesture.onClick} onContextMenu={gesture.onContextMenu} aria-disabled={assigning && (used || !mutable) ? true : undefined}
       aria-label={`${character.name}${assigning ? "を選択" : "の詳細を見る"}`} aria-pressed={assigning ? selected : undefined}>
-      <CharacterAvatar id={character.id} compact />
+      <CharacterAvatar id={character.id} compact lazy />
       <span className="mobile-character-copy"><strong>{selected && <span aria-hidden="true">✓ </span>}{character.name}</strong><small>{character.preset}タイプ</small>{used && <b>使用中</b>}</span>
     </button>
     <button type="button" className="mobile-character-info" aria-label={`${character.name}のステータス`} onClick={inspect}><span aria-hidden="true">ⓘ</span></button>
@@ -37,6 +38,7 @@ export function MobileAdminWorkspace({ session, selection, actions, muted, canLo
   const [infoId, setInfoId] = useState(null);
   const [operationsOpen, setOperationsOpen] = useState(false);
   const workspaceRef = useRef(null);
+  const listRef = useRef(null);
   const mutable = session.phase === "WAITING" || session.phase === "ATTRACT";
   const participantCount = session.lanes.filter(Boolean).length;
   const readiness = session.phase === "WAITING"
@@ -97,8 +99,7 @@ export function MobileAdminWorkspace({ session, selection, actions, muted, canLo
         <div className="mobile-panel-heading"><span>01</span><div><h1 id="mobile-library-title">{assigning ? "キャラクターを選ぶ" : "キャラクターを見る"}</h1><p>登録済みのキャラクター {selection.totalCount}体</p></div></div>
         <p className="mobile-info-hint">ⓘ または長押しでステータスを表示</p>
         <SearchField value={selection.query} onChange={(event) => selection.setQuery(event.target.value)} placeholder="名前・タイプで検索" />
-        <div className="mobile-character-grid">{selection.filteredCharacters.map((character) => <CharacterCard key={character.id} character={character} used={selection.usedIds.has(character.id)} selected={assigning && selectedId === character.id} assigning={assigning} mutable={mutable} onSelect={selection.toggleSelected} onInfo={setInfoId} />)}</div>
-        {!selection.filteredCharacters.length && <p className="mobile-empty-search">該当するキャラクターがいません。</p>}
+        <div className="mobile-character-grid" ref={listRef} tabIndex={0} role="region" aria-label="キャラクター一覧">{selection.filteredCharacters.map((character) => <CharacterCard key={character.id} character={character} used={selection.usedIds.has(character.id)} selected={assigning && selectedId === character.id} assigning={assigning} mutable={mutable} onSelect={selection.toggleSelected} onInfo={setInfoId} />)}<CharacterPageEnd selection={selection} rootRef={listRef} /></div>
       </section>
       <div className="mobile-action-dock mobile-character-dock"><div><Button variant="primary" disabled={!canAssign} onClick={assign}>{!assigning && <svg className="mobile-set-lock" aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><rect x="5" y="10" width="14" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3" /><path d="M12 14v3" /></svg>}{assigning ? `レーン${targetLane + 1}にセット` : "レーンにセット"}</Button>{assigning && <Button variant="secondary" disabled={!selectedId} onClick={() => selection.setSelectedId(null)}>選択解除</Button>}</div>{!assigning && <small>参加枠の「選ぶ」から開くとセットできます</small>}{assigning && session.lanes[targetLane] && <small role="status">このレーンは他の操作で埋まりました。参加枠から選び直してください。</small>}</div>
     </>}

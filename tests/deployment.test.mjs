@@ -53,6 +53,6 @@ test("Cloudflare Workers is the only configured deployment target", async () => 
   assert.equal(wrangler.observability.enabled, true);
 
   assert.doesNotMatch(viteSource, /@openai\/sites-vite-plugin|hosting\.json|\bsites\(/);
-  assert.doesNotMatch(workerSource, /\bIMAGES\b|image-optimization/);
+  assert.deepEqual(wrangler.images, { binding: "IMAGES" });
   await assert.rejects(access(new URL(".openai/hosting.json", root)));
 });

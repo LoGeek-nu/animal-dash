@@ -1,8 +1,11 @@
+import { useRef } from "react";
+import { CharacterPageEnd } from "./CharacterPageEnd.jsx";
 import { Button } from "../../../components/ui/atoms/Button.jsx";
 import { SearchField } from "../../../components/ui/molecules/SearchField.jsx";
 import { DraggableCharacter } from "./DraggableCharacter.jsx";
 
-export function CharacterLibrary({ query, onQueryChange, filteredCharacters, usedIds, mutable, selectedId, onSelect, onInfo, totalCount, onRequestGenerate }) {
+export function CharacterLibrary({ query, onQueryChange, filteredCharacters, usedIds, mutable, selectedId, onSelect, onInfo, totalCount, onRequestGenerate, selection }) {
+  const listRef = useRef(null);
   return (
     <div className="character-library panel-card">
       <div className="panel-heading">
@@ -12,7 +15,7 @@ export function CharacterLibrary({ query, onQueryChange, filteredCharacters, use
           <Button variant="ghost" className="capture-button" disabled={!mutable} onClick={onRequestGenerate}><svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M3 7h5l2-3h4l2 3h5v13H3Z" /><circle cx="12" cy="13" r="4" /></svg>撮影して追加</Button>
         </div>
       </div>
-      <div className="character-list">
+      <div className="character-list" ref={listRef} tabIndex={0} role="region" aria-label="キャラクター一覧">
         {filteredCharacters.map((character) => {
           const isUsed = usedIds.has(character.id);
           return (
@@ -28,6 +31,7 @@ export function CharacterLibrary({ query, onQueryChange, filteredCharacters, use
             </div>
           );
         })}
+        <CharacterPageEnd selection={selection} rootRef={listRef} />
       </div>
     </div>
   );

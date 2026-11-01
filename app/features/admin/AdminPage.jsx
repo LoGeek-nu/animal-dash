@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { DndContext, DragOverlay } from "@dnd-kit/core";
 import { VisuallyHidden } from "../../components/ui/atoms/VisuallyHidden.jsx";
 import { ConfirmDialog } from "../../components/ui/organisms/ConfirmDialog.jsx";
@@ -22,6 +22,14 @@ import { useCharacterSelection } from "./hooks/useCharacterSelection.js";
 import { laneOnlyCollisionDetection } from "./model/lane-collision.js";
 
 export function AdminPage() {
+  const [mobile, setMobile] = useState(false);
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 900px)");
+    const update = () => setMobile(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
   const auth = useRequireStaff("/admin");
   const { session, ready, syncStatus, actions, muted } = useRaceSession("admin");
   const [confirm, setConfirm] = useState(null);
@@ -65,11 +73,12 @@ export function AdminPage() {
       <main className={`admin-shell ${drag.activeCharacterId ? "is-dragging-character" : ""} ${drag.overLaneId ? "is-over-lane-zone" : ""}`}>
         <AdminHeader ready={ready} syncStatus={syncStatus} canLogout={auth?.loginRequired === true} />
         <AdminStatusBar session={session} participantCount={participantCount} />
-        <MobileAdminWorkspace session={session} selection={selection} actions={actions} muted={muted}
+        {mobile && <MobileAdminWorkspace session={session} selection={selection} actions={actions} muted={muted}
           canLogout={auth?.loginRequired === true} onRequestGenerate={() => setGenerateOpen(true)}
-          onRequestFinish={() => setConfirm("finish")} onRequestReset={() => setConfirm("reset")} />
-        <section className="admin-workspace">
+          onRequestFinish={() => setConfirm("finish")} onRequestReset={() => setConfirm("reset")} />}
+        {!mobile && <section className="admin-workspace">
           <CharacterLibrary
+            selection={selection}
             query={selection.query}
             onQueryChange={selection.setQuery}
             filteredCharacters={selection.filteredCharacters}
@@ -93,7 +102,7 @@ export function AdminPage() {
             onRemove={actions.removeCharacter}
             onFillBots={() => actions.fillBots(false)}
           />
-        </section>
+        </section>}
         <AdminControlBar
           session={session}
           participantCount={participantCount}
