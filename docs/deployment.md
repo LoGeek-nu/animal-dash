@@ -37,12 +37,13 @@ npm run db:migrate:remote
 本番のWorkerには次のシークレットが必要です。値はリポジトリに書かず、Wranglerで登録します。
 
 ```bash
-npx wrangler secret put STAFF_PASSCODE      # スタッフログインの合言葉
+npx wrangler secret put STAFF_PASSCODE      # 管理画面の合言葉
+npx wrangler secret put GAME_PASSCODE       # ゲーム画面を操作する合言葉（管理用とは別にする）
 npx wrangler secret put IMAGE_POC_API_URL
 npx wrangler secret put IMAGE_POC_API_KEY
 ```
 
-`STAFF_PASSCODE`が未登録のままだと、ゲーム入力・管理操作に使う同期接続とキャラクター生成はすべて拒否されます。観戦用の同期（`/api/sync?role=viewer`）はログイン不要で接続できます。合言葉は推測されにくい長めのものにし、当日はスタッフ間で口頭などで共有してください。変更すると、ログイン済みの端末も全てログアウトされます。
+`STAFF_PASSCODE`が未登録のままだと、管理操作に使う同期接続とキャラクター生成はすべて拒否されます。`GAME_PASSCODE`が未登録のままだと、どの端末もゲーム画面を操作できません（管理用の合言葉でログインしていても、`/game`は観戦になります）。新しく`GAME_PASSCODE`を登録するときは、デプロイより先に登録してください。観戦用の同期（`/api/sync?role=viewer`）はログイン不要で接続できます。合言葉は推測されにくい長めのものにし、当日はスタッフ間で口頭などで共有してください。変更すると、ログイン済みの端末も全てログアウトされます。
 
 ### 回数制限
 

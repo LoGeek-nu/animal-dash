@@ -4,6 +4,12 @@ import { useState } from "react";
 import { Button } from "../../components/ui/atoms/Button.jsx";
 import { safeNextPath } from "./useStaffAuth.js";
 
+// Each passcode opens one screen; say so instead of sending the device to a screen it cannot use.
+const WRONG_SCREEN = {
+  staff: "これは管理画面用の合言葉です。ゲーム画面を操作するには、ゲーム用の合言葉を入力してください。",
+  game: "これはゲーム画面用の合言葉です。管理画面に入るには、管理用の合言葉を入力してください。",
+};
+
 export function LoginPage() {
   const [passcode, setPasscode] = useState("");
   const [error, setError] = useState(null);
@@ -24,8 +30,15 @@ export function LoginPage() {
         setError(body.detail ?? "ログインに失敗しました。");
         return;
       }
+      const { role } = await response.json().catch(() => ({}));
+      const requested = new URLSearchParams(window.location.search).get("next");
+      const next = safeNextPath(requested ?? (role === "game" ? "/game" : "/admin"));
+      if (next.startsWith(role === "game" ? "/admin" : "/game")) {
+        setError(WRONG_SCREEN[role]);
+        return;
+      }
       // Full navigation so the new cookie is used when the screen opens its sync socket.
-      window.location.assign(safeNextPath(new URLSearchParams(window.location.search).get("next")));
+      window.location.assign(next);
     } catch {
       setError("通信に失敗しました。ネットワークを確認してください。");
     } finally {
@@ -37,7 +50,7 @@ export function LoginPage() {
     <main className="staff-login">
       <form className="generate-dialog" onSubmit={submit}>
         <h2>スタッフログイン</h2>
-        <p>管理画面・ゲーム画面を同期させるには、この端末で一度だけ合言葉を入力してください。</p>
+        <p>管理画面は管理用、ゲーム画面の操作はゲーム用の合言葉を、この端末で一度だけ入力してください。</p>
         <label className="staff-login-field">
           <span>合言葉</span>
           <input

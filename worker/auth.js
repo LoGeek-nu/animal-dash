@@ -1,14 +1,20 @@
-// Staff authentication: a shared passcode (STAFF_PASSCODE secret) exchanged at /api/auth
-// for an HttpOnly cookie. Cookies ride along on fetch and WebSocket handshakes automatically,
-// so screens need no token plumbing.
+// Staff authentication: shared passcodes exchanged at /api/auth for HttpOnly cookies. Cookies ride
+// along on fetch and WebSocket handshakes automatically, so screens need no token plumbing.
+// Two roles with separate passcodes, so staff who open /game just to watch cannot take its controls:
+// - staff (STAFF_PASSCODE): the admin screen and staff APIs
+// - game (GAME_PASSCODE): controlling the game screen
 export const STAFF_COOKIE = "animal_dash_staff";
+export const GAME_COOKIE = "animal_dash_game";
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 14;
-const TOKEN_LABEL = "animal-dash-staff-v1";
+const ROLES = {
+  staff: { cookie: STAFF_COOKIE, secret: "STAFF_PASSCODE", label: "animal-dash-staff-v1" },
+  game: { cookie: GAME_COOKIE, secret: "GAME_PASSCODE", label: "animal-dash-game-v1" },
+};
 
-// Local `npm run dev` without a passcode stays open so the setup guide's "no .dev.vars needed"
-// still holds. Built bundles (production) refuse everything until the secret is set.
+// Local `npm run dev` without passcodes stays open so the setup guide's "no .dev.vars needed"
+// still holds. Built bundles (production) refuse everything until the secrets are set.
 export function loginRequired(env) {
-  return Boolean(env.STAFF_PASSCODE) || import.meta.env?.DEV !== true;
+  return Boolean(env.STAFF_PASSCODE || env.GAME_PASSCODE) || import.meta.env?.DEV !== true;
 }
 
 function constantTimeEqual(a, b) {
@@ -19,10 +25,10 @@ function constantTimeEqual(a, b) {
 }
 
 // The cookie holds an HMAC of the passcode, never the passcode itself.
-async function staffToken(passcode) {
+async function roleToken(passcode, label) {
   const encoder = new TextEncoder();
   const key = await crypto.subtle.importKey("raw", encoder.encode(passcode), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-  const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(TOKEN_LABEL));
+  const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(label));
   return [...new Uint8Array(signature)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
@@ -34,14 +40,27 @@ function readCookie(request, name) {
   return null;
 }
 
-export async function isStaffRequest(request, env) {
+async function hasRole(request, env, role) {
   if (!loginRequired(env)) return true;
-  if (!env.STAFF_PASSCODE) return false;
-  return constantTimeEqual(readCookie(request, STAFF_COOKIE), await staffToken(env.STAFF_PASSCODE));
+  const { cookie, secret, label } = ROLES[role];
+  if (!env[secret]) return false;
+  return constantTimeEqual(readCookie(request, cookie), await roleToken(env[secret], label));
 }
 
-export function passcodeMatches(input, env) {
-  return Boolean(env.STAFF_PASSCODE) && constantTimeEqual(input, env.STAFF_PASSCODE);
+export function isStaffRequest(request, env) {
+  return hasRole(request, env, "staff");
+}
+
+export function isGameRequest(request, env) {
+  return hasRole(request, env, "game");
+}
+
+// "staff", "game" or null. The passcodes must differ; a shared one would only ever sign in as staff.
+export function passcodeRole(input, env) {
+  return Object.keys(ROLES).find((role) => {
+    const secret = env[ROLES[role].secret];
+    return Boolean(secret) && constantTimeEqual(input, secret);
+  }) ?? null;
 }
 
 function cookieAttributes(request, maxAge) {
@@ -49,12 +68,22 @@ function cookieAttributes(request, maxAge) {
   return `Path=/; HttpOnly; SameSite=Strict; Max-Age=${maxAge}${secure}`;
 }
 
-export async function staffCookie(request, env) {
-  return `${STAFF_COOKIE}=${await staffToken(env.STAFF_PASSCODE)}; ${cookieAttributes(request, COOKIE_MAX_AGE)}`;
+export async function roleCookie(request, env, role) {
+  const { cookie, secret, label } = ROLES[role];
+  return `${cookie}=${await roleToken(env[secret], label)}; ${cookieAttributes(request, COOKIE_MAX_AGE)}`;
 }
 
-export function clearedStaffCookie(request) {
-  return `${STAFF_COOKIE}=; ${cookieAttributes(request, 0)}`;
+export function staffCookie(request, env) {
+  return roleCookie(request, env, "staff");
+}
+
+export function gameCookie(request, env) {
+  return roleCookie(request, env, "game");
+}
+
+// Logging out signs the device out of both roles.
+export function clearedRoleCookies(request) {
+  return Object.values(ROLES).map(({ cookie }) => `${cookie}=; ${cookieAttributes(request, 0)}`);
 }
 
 // Browsers always send Origin on WebSocket handshakes; reject ones started by other sites.
