@@ -16,6 +16,7 @@ export function validRaceRecord(race) {
       && Number.isInteger(result.lane) && result.lane >= 1 && result.lane <= 4
       && Number.isInteger(result.rank) && result.rank >= 1 && result.rank <= race.results.length
       && typeof result.isBot === "boolean"
+      && (result.rankingExcluded === undefined || typeof result.rankingExcluded === "boolean")
       && (result.finishMs === null || (Number.isSafeInteger(result.finishMs) && result.finishMs >= 0
         && result.finishMs < RACE_TIMEOUT && result.finishMs <= race.completedAt - race.startedAt)));
 }
@@ -28,7 +29,12 @@ export function raceRecordFromSession(session) {
     startedAt: session.raceStartedAt,
     completedAt: session.raceCompletedAt ?? session.lastSync,
     courseSeed: session.courseSeed,
-    results: session.results.map((result) => ({ ...result, finishMs: session.resultsForced ? null : result.finishMs })),
+    results: session.results.map((result) => {
+      const timing = { ...result };
+      delete timing.rankingExcluded;
+      return { ...timing, finishMs: session.resultsForced ? null : result.finishMs,
+        ...(session.lanes[result.lane - 1]?.rankingExcluded === true ? { rankingExcluded: true } : {}) };
+    }),
   };
   if (!validRaceRecord(race)) throw new Error("Invalid race results");
   const active = session.lanes.filter(Boolean);

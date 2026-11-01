@@ -20,5 +20,6 @@ export function validSession(value, isKnownId = isKnownCharacterId) {
       typeof lane === "object"
       && isKnownId(lane.characterId)
       && typeof lane.isBot === "boolean"
+      && (lane.rankingExcluded === undefined || typeof lane.rankingExcluded === "boolean")
     ));
 }

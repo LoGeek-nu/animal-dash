@@ -61,6 +61,7 @@ export function useRaceSession(role = "viewer") {
 
   const actions = useMemo(() => ({
     assignCharacter: (laneIndex, characterId, isBot = false) => dispatch(raceSessionActions.assignCharacter(laneIndex, characterId, isBot)),
+    setRankingExcluded: (laneIndex, excluded) => dispatch(raceSessionActions.setRankingExcluded(laneIndex, excluded)),
     removeCharacter: (laneIndex) => dispatch(raceSessionActions.removeCharacter(laneIndex)),
     fillBots: (startAfterFill = false) => dispatch(raceSessionActions.fillBots(startAfterFill)),
     startRace: () => dispatch(raceSessionActions.startCountdown()),

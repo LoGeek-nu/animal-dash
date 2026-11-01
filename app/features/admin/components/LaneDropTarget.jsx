@@ -1,12 +1,13 @@
 "use client";
 
+import { RankingExcludeButton } from "./RankingExcludeButton.jsx";
 import { useDroppable } from "@dnd-kit/core";
 import { Button } from "../../../components/ui/atoms/Button.jsx";
 import { CharacterAvatar } from "../../../components/ui/molecules/CharacterAvatar.jsx";
 import { StatBars } from "../../../components/ui/molecules/StatBars.jsx";
 import { getCharacter, laneColors } from "../../../domain/characters.js";
 
-export function LaneDropTarget({ lane, index, selectedId, mutable, dragging, onAssign, onRemove }) {
+export function LaneDropTarget({ lane, index, selectedId, mutable, dragging, onAssign, onRemove, onSetRankingExcluded }) {
   const { isOver, setNodeRef } = useDroppable({ id: `lane-${index}`, data: { laneIndex: index }, disabled: !mutable });
 
   return (
@@ -19,6 +20,7 @@ export function LaneDropTarget({ lane, index, selectedId, mutable, dragging, onA
           <span>{getCharacter(lane.characterId).preset}タイプ</span>
           <StatBars id={lane.characterId} small />
         </div>
+        <RankingExcludeButton lane={lane} index={index} mutable={mutable} onChange={onSetRankingExcluded} />
         {isOver && <div className="drop-replace-label">ここに交代</div>}
         <Button variant="icon" disabled={!mutable} onClick={() => onRemove(index)} aria-label={`レーン${index + 1}から解除`}>×</Button>
       </> : <>

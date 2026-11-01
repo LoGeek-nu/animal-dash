@@ -158,3 +158,34 @@
   .admin-shell .confirm-dialog p { font-size: .8rem; }
   .admin-shell .confirm-dialog button { min-height: 44px; min-width: 0; font-size: .8rem; }
 }
+
+@media (max-width: 900px) {
+  .admin-header { height: 48px; }
+  .admin-statusbar { min-height: 48px; padding-top: 6px; padding-bottom: 6px; }
+  .mobile-admin-workspace { padding: 8px 10px var(--mobile-dock-height, 88px); }
+  .mobile-admin-tabs { margin-bottom: 8px; }
+  .mobile-admin-tabs button { min-height: 40px; }
+  .mobile-panel:has(.mobile-lanes) { padding: 8px; }
+  .mobile-lanes { gap: 6px; }
+  .mobile-lane { min-height: 68px; gap: 6px; padding: 6px; }
+  .mobile-lane.has-racer { display: grid; grid-template-columns: 22px 36px minmax(0, 1fr) 60px 36px; gap: 5px; min-height: 68px; padding: 6px; }
+  .mobile-lane-number { width: 22px; }
+  .mobile-lane-number strong { font-size: 1rem; }
+  .mobile-lane .character-avatar.is-compact { width: 36px; height: 44px; flex-basis: 36px; }
+  .mobile-lane-copy > strong { font-size: .68rem; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .mobile-lane-copy > small { font-size: .5rem; }
+  .mobile-lane-copy .mobile-stats { margin-top: 3px; }
+  .mobile-stats.is-compact > div { grid-template-columns: 2rem 1fr; font-size: .43rem; gap: 2px; margin: 1px 0; }
+  .mobile-stats.is-compact meter { height: 4px; }
+  .mobile-lane-actions { display: contents; }
+  .mobile-lane-actions .ranking-exclude-button { flex-direction: column-reverse; justify-content: center; min-width: 0; min-height: 52px; gap: 4px; padding: 5px 2px; font-size: .48rem; white-space: nowrap; }
+  .mobile-lane-actions .ranking-exclude-check { width: 16px; height: 16px; }
+  .mobile-lane-actions .mobile-remove { width: 36px; height: 44px; padding: 0; border: 0; background: transparent; color: var(--ink-soft); font-size: 1.2rem; }
+  .mobile-fill-bots { min-height: 44px; margin-top: 8px; padding: 4px 8px; }
+  .mobile-fill-bots > span:first-child { width: 28px; height: 28px; font-size: .48rem; }
+  .mobile-fill-bots strong { font-size: .65rem; }
+  .mobile-fill-bots small { display: none; }
+  .mobile-action-dock { padding: 8px 10px calc(8px + env(safe-area-inset-bottom)); }
+  .mobile-readiness { margin-bottom: 5px; font-size: .65rem; }
+  .mobile-action-dock button { min-height: 44px; }
+}

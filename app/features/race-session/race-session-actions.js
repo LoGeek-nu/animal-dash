@@ -2,6 +2,7 @@ import { createRaceId } from "../../domain/race-session.js";
 
 export const RaceSessionAction = {
   ASSIGN_CHARACTER: "ASSIGN_CHARACTER",
+  SET_RANKING_EXCLUDED: "SET_RANKING_EXCLUDED",
   REMOVE_CHARACTER: "REMOVE_CHARACTER",
   FILL_BOTS: "FILL_BOTS",
   START_COUNTDOWN: "START_COUNTDOWN",
@@ -17,6 +18,7 @@ export const RaceSessionAction = {
 
 export const raceSessionActions = {
   assignCharacter: (laneIndex, characterId, isBot = false) => ({ type: RaceSessionAction.ASSIGN_CHARACTER, laneIndex, characterId, isBot }),
+  setRankingExcluded: (laneIndex, excluded) => ({ type: RaceSessionAction.SET_RANKING_EXCLUDED, laneIndex, excluded }),
   removeCharacter: (laneIndex) => ({ type: RaceSessionAction.REMOVE_CHARACTER, laneIndex }),
   fillBots: (startAfterFill = false) => ({ type: RaceSessionAction.FILL_BOTS, startAfterFill, raceId: startAfterFill ? createRaceId() : undefined }),
   startCountdown: () => ({ type: RaceSessionAction.START_COUNTDOWN, raceId: createRaceId() }),

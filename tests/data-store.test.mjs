@@ -30,7 +30,7 @@ async function fixture(t, runtimeRoom = false) {
   t.after(() => mf.dispose());
   const db = await mf.getD1Database("DB");
   const bucket = await mf.getR2Bucket("CHARACTERS");
-  for (const migration of ["0001_race_storage.sql", "0002_builtin_characters.sql", "0003_builtin_stats_40.sql", "0004_character_paging.sql"]) {
+  for (const migration of ["0001_race_storage.sql", "0002_builtin_characters.sql", "0003_builtin_stats_40.sql", "0004_character_paging.sql", "0005_ranking_exclusion.sql"]) {
     const sql = await readFile(new URL(`../migrations/${migration}`, import.meta.url), "utf8");
     await db.batch(sql.split(";").map((s) => s.trim()).filter(Boolean).map((s) => db.prepare(s)));
   }
@@ -90,7 +90,7 @@ test("final results are atomic, idempotent and immutable, and reference static a
   // A real SQL constraint failure rolls back the whole D1 batch.
   await assert.rejects(db.batch([
     db.prepare("INSERT INTO races VALUES ('rollback', 1, 2, 'course', '{}')"),
-    db.prepare("INSERT INTO race_results VALUES ('rollback', 'missing', 1, 1, 100, 0, '{}')"),
+    db.prepare("INSERT INTO race_results VALUES ('rollback', 'missing', 1, 1, 100, 0, '{}', 0)"),
   ]), /FOREIGN KEY/);
   assert.equal(await db.prepare("SELECT * FROM races WHERE id = 'rollback'").first(), null);
 });
@@ -253,7 +253,6 @@ test("generated characters saved before the total of 40 are read back fitted, wi
   // Built-ins are left exactly as defined.
   assert.deepEqual((await listStoredCharacters(db)).find((c) => c.id === "momo").stats, characters[0].stats);
 });
-
 
 test("public spectators join mid-race, reconnect and watch canonical results without acquiring control", { timeout: 15000 }, async (t) => {
   const { db, mf } = await fixture(t, true);
@@ -458,4 +457,82 @@ test("catalog migration fits legacy stats exactly like the current read model", 
     const row = await db.prepare("SELECT speed, acceleration, stamina FROM characters WHERE id = ?").bind(`legacy-${i}`).first();
     assert.deepEqual(row, readGeneratedStats(inputs[i]));
   }
+});
+
+test("staff records remain saved but are excluded before per-character bests and ranks are computed", async (t) => {
+  const { db, bucket } = await fixture(t);
+  const staff = race("staff", [{ ...result("momo", 1, 1000), rankingExcluded: true }, result("toramaru", 2, 20000)]);
+  await saveRace(db, bucket, staff);
+  assert.equal((await saveRace(db, bucket, staff)).duplicate, true);
+  let board = await getDailyRankings(db, { date: "2026-10-10", limit: 10 });
+  assert.deepEqual(board.rankings.map((r) => [r.characterId, r.rank]), [["toramaru", 1]]);
+  await saveRace(db, bucket, race("customer", [result("momo", 1, 30000)]));
+  board = await getDailyRankings(db, { date: "2026-10-10", limit: 10 });
+  assert.deepEqual(board.rankings.map((r) => [r.characterId, r.finishMs, r.rank]), [["toramaru", 20000, 1], ["momo", 30000, 2]]);
+  const stored = await db.prepare("SELECT rank, finish_ms, ranking_excluded FROM race_results WHERE race_id = 'staff' AND lane = 1").first();
+  assert.deepEqual(stored, { rank: 1, finish_ms: 1000, ranking_excluded: 1 });
+  await assert.rejects(saveRace(db, bucket, { ...staff, results: staff.results.map((r) => ({ ...r, rankingExcluded: false })) }), /different results/);
+});
+
+test("saved exclusion comes from the starting lane rather than submitted result metadata", () => {
+  const session = { ...createInitialSession(), phase: "RESULTS", raceId: "staff-entry", raceStartedAt: startedAt,
+    raceCompletedAt: startedAt + 30000, lanes: [{ characterId: "momo", isBot: false, rankingExcluded: true }, null, null, null],
+    results: [result("momo", 1, 30000)] };
+  assert.equal(raceRecordFromSession(session).results[0].rankingExcluded, true);
+  assert.equal(session.results[0].rankingExcluded, undefined);
+  const customer = { ...session, lanes: [{ characterId: "momo", isBot: false }, null, null, null],
+    results: [{ ...result("momo", 1, 30000), rankingExcluded: true }] };
+  assert.equal(raceRecordFromSession(customer).results[0].rankingExcluded, undefined);
+});
+
+test("WebSocket exclusion survives reconnect, stays fixed during a race and reaches D1 rankings", { timeout: 15000 }, async (t) => {
+  const { db, mf } = await fixture(t, true);
+  const wait = async (predicate) => {
+    const deadline = Date.now() + 5000;
+    while (!await predicate()) {
+      if (Date.now() > deadline) throw new Error("Missing worker acknowledgement");
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+  };
+  const connect = async (role) => {
+    const response = await mf.dispatchFetch(`https://example.test/sync?role=${role}`, { headers: { Upgrade: "websocket" } });
+    const ws = response.webSocket;
+    const frames = [];
+    ws.addEventListener("message", (event) => frames.push(JSON.parse(event.data)));
+    ws.accept();
+    t.after(() => ws.close());
+    await wait(() => frames.some((m) => m.type === "session"));
+    return { ws, frames };
+  };
+  await mf.dispatchFetch(`https://example.test/test-clock?now=${startedAt}`);
+  const admin = await connect("admin");
+  let current = admin.frames.find((m) => m.type === "session").session;
+  const send = async (actor, patch, accepted = true) => {
+    const next = { ...current, ...patch, sequence: current.sequence + 1 };
+    const offset = actor.frames.length;
+    actor.ws.send(JSON.stringify({ type: "session", session: next }));
+    await wait(() => actor.frames.slice(offset).some((m) => accepted ? m.session?.sequence === next.sequence : m.type === "error"));
+    if (accepted) current = actor.frames.slice(offset).find((m) => m.session?.sequence === next.sequence).session;
+  };
+  await send(admin, { phase: "WAITING", lanes: [
+    { characterId: "momo", isBot: false, rankingExcluded: true },
+    { characterId: "toramaru", isBot: false }, null, null,
+  ] });
+  const game = await connect("game");
+  assert.deepEqual(game.frames.find((m) => m.type === "session").session.lanes, current.lanes);
+  await send(admin, { phase: "COUNTDOWN" });
+  await mf.dispatchFetch(`https://example.test/test-clock?now=${current.countdownEndsAt}`);
+  await send(game, { phase: "RACING" });
+  await mf.dispatchFetch(`https://example.test/test-clock?now=${current.raceStartedAt + 59000}`);
+  // A reporter cannot clear the frozen exclusion when submitting results.
+  await send(game, { phase: "RESULTS", lanes: current.lanes.map((lane) => lane && { ...lane, rankingExcluded: false }) }, false);
+  await send(game, { phase: "RESULTS" });
+  const raceId = current.raceId;
+  await wait(() => game.frames.some((m) => m.type === "results-saved" && m.raceId === raceId));
+  assert.equal(current.results.length, 2, "staff still appears in the current race results");
+  const rows = (await db.prepare("SELECT character_id, ranking_excluded, finish_ms FROM race_results WHERE race_id = ? ORDER BY lane").bind(raceId).all()).results;
+  assert.deepEqual(rows.map((r) => r.ranking_excluded), [1, 0]);
+  assert.ok(rows.every((r) => r.finish_ms > 0));
+  const board = await getDailyRankings(db, { date: "2026-10-10" });
+  assert.deepEqual(board.rankings.map((r) => [r.characterId, r.rank]), [["toramaru", 1]]);
 });
