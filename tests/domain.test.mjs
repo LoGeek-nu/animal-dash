@@ -129,7 +129,7 @@ test("generated characters are resolved alongside the static eight without mutat
   assert.equal(isKnownCharacterId("gen-test-unknown"), false);
   assert.equal(getCharacter("gen-test-unknown").id, characters[0].id);
 
-  const generated = { id: "gen-test-unknown", name: "テスト", stats: { speed: 10, acceleration: 10, stamina: 10 } };
+  const generated = { id: "gen-test-unknown", generated: true, name: "テスト", stats: { speed: 10, acceleration: 10, stamina: 10 } };
   addGeneratedCharacter(generated);
 
   assert.equal(isKnownCharacterId("gen-test-unknown"), true);
@@ -329,26 +329,19 @@ test("route entries and phase rendering stay separated", async () => {
   assert.doesNotMatch(phaseRenderer, /import\s*\(|React\.lazy/);
 });
 
-test("a refresh asked for mid-request gets a fresh response, and a stale one never drops a character", async (t) => {
-  const responses = [];
-  t.mock.method(globalThis, "fetch", () => new Promise((resolve) => responses.push(resolve)));
-  const reply = (ids) => responses.shift()(Response.json({ characters: ids.map((id) => ({ id, generated: true })) }));
-
-  const first = refreshGeneratedCharacters();
+test("targeted refresh keeps cached characters and never downloads the full catalog", async (t) => {
+  const calls = [];
+  t.mock.method(globalThis, "fetch", async (url) => {
+    const params = new URL(url, "https://catalog").searchParams;
+    calls.push(params);
+    return Response.json({ characters: params.get("ids").split(",").map((id) => ({ id, generated: true })) });
+  });
   addGeneratedCharacter({ id: "gen-refresh-local", generated: true });
-  const second = refreshGeneratedCharacters();
-  assert.equal(responses.length, 1);
-
-  // The first answer predates both characters below.
-  reply(["gen-refresh-old"]);
-  await first;
-  assert.ok(getGeneratedCharacters().some((character) => character.id === "gen-refresh-local"));
-
-  await new Promise((resolve) => setImmediate(resolve));
-  assert.equal(responses.length, 1);
-  reply(["gen-refresh-old", "gen-refresh-local", "gen-refresh-new"]);
-  await second;
-  const ids = getGeneratedCharacters().map((character) => character.id);
-  assert.ok(ids.includes("gen-refresh-new"));
-  assert.equal(ids.filter((id) => id === "gen-refresh-local").length, 1);
+  await refreshGeneratedCharacters(["gen-refresh-new"]);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].get("ids"), "gen-refresh-new");
+  assert.ok(getGeneratedCharacters().some((c) => c.id === "gen-refresh-local"));
+  assert.ok(getGeneratedCharacters().some((c) => c.id === "gen-refresh-new"));
+  await refreshGeneratedCharacters();
+  assert.equal(calls.length, 1);
 });

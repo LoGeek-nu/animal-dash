@@ -1,57 +1,62 @@
-// In-memory pool of generated characters, filled from GET /api/characters (backed by R2).
+// Only characters already viewed or referenced by a session live in this cache.
 let pool = [];
-let inflight = null;
-let queued = null;
 const listeners = new Set();
+const catalogListeners = new Set();
+const pending = new Map();
+const stale = new Set();
+const versions = new Map();
 
-function notify() {
-  for (const listener of listeners) listener();
-}
+function notify() { for (const listener of listeners) listener(); }
+export function getGeneratedCharacters() { return pool; }
+export function subscribeGeneratedCharacters(listener) { listeners.add(listener); return () => listeners.delete(listener); }
+export function subscribeCharacterCatalog(listener) { catalogListeners.add(listener); return () => catalogListeners.delete(listener); }
+export function invalidateCharacterCatalog(change = {}) { for (const listener of catalogListeners) listener(change); }
 
-export function getGeneratedCharacters() {
-  return pool;
-}
-
-export function addGeneratedCharacter(character) {
-  if (pool.some((existing) => existing.id === character.id)) return;
-  pool = [...pool, character];
+export function cacheGeneratedCharacters(characters) {
+  const incoming = new Map(characters.filter((c) => c.generated).map((c) => [c.id, c]));
+  if (!incoming.size) return;
+  pool = pool.map((c) => { const updated = incoming.get(c.id); incoming.delete(c.id); return updated ?? c; });
+  pool = [...pool, ...incoming.values()];
   notify();
 }
 
-export function subscribeGeneratedCharacters(listener) {
-  listeners.add(listener);
-  return () => listeners.delete(listener);
+export function addGeneratedCharacter(character) {
+  cacheGeneratedCharacters([{ ...character, generated: true }]);
+  invalidateCharacterCatalog({ kind: "created", id: character.id });
 }
 
-function load() {
-  return fetch("/api/characters", { cache: "no-store" })
-    .then((response) => response.ok ? response.json() : null)
-    .then((body) => {
-      if (!body) return;
-      const fetched = body.characters.filter((character) => character.generated);
-      // Characters are never deleted, so keep any we already have that this response predates
-      // (e.g. one added locally while the request was in flight).
-      const fetchedIds = new Set(fetched.map((character) => character.id));
-      pool = [...fetched, ...pool.filter((character) => !fetchedIds.has(character.id))];
-      notify();
-    })
-    .catch(() => {});
-}
-
-// A request already in flight may have been answered before the change the caller wants to see,
-// so callers arriving meanwhile share one fresh request that starts after it. Failures keep the current pool.
-export function refreshGeneratedCharacters() {
-  if (!inflight) {
-    inflight = load().finally(() => {
-      inflight = null;
-    });
-    return inflight;
+// At most twelve explicit IDs per request; never fall back to fetching the catalog.
+export async function ensureGeneratedCharacters(ids) {
+  const missing = (id) => stale.has(id) || !pool.some((c) => c.id === id);
+  const needed = [...new Set(ids)].filter(missing);
+  for (let start = 0; start < needed.length; start += 12) {
+    const batch = needed.slice(start, start + 12);
+    const key = batch.slice().sort().join(",");
+    // A notification during an older lookup requires a fresh response, not the
+    // stale in-flight response. A later assignment also waits for this repair.
+    while (batch.some(missing)) {
+      if (!pending.has(key)) {
+        const requestedVersions = new Map(batch.map((id) => [id, versions.get(id) ?? 0]));
+        const request = fetch(`/api/characters?${new URLSearchParams({ ids: key })}`, { cache: "no-store" })
+          .then(async (response) => {
+            if (!response.ok) throw new Error("Character lookup failed");
+            const characters = (await response.json()).characters;
+            if (batch.some((id) => !characters.some((c) => c.id === id && c.generated))) throw new Error("Character lookup incomplete");
+            const current = characters.filter((c) => requestedVersions.has(c.id) && requestedVersions.get(c.id) === (versions.get(c.id) ?? 0));
+            cacheGeneratedCharacters(current);
+            for (const c of current) stale.delete(c.id);
+          }).finally(() => pending.delete(key));
+        pending.set(key, request);
+      }
+      await pending.get(key);
+    }
   }
-  queued ??= inflight.then(() => {
-    queued = null;
-    return refreshGeneratedCharacters();
-  });
-  return queued;
+}
+
+export async function refreshGeneratedCharacters(ids = [], change = { kind: "updated" }) {
+  for (const id of ids) { stale.add(id); versions.set(id, (versions.get(id) ?? 0) + 1); }
+  try { await ensureGeneratedCharacters(ids); }
+  finally { invalidateCharacterCatalog(change); }
 }
 
 // The server refuses characters set in a lane; its message is shown to staff as-is.
@@ -71,5 +76,6 @@ export async function updateGeneratedCharacter(id, changes) {
   if (!response.ok) throw new Error(body.detail ?? "変更できませんでした。");
   pool = pool.map((character) => character.id === id ? { ...character, name: body.name, caption: body.caption } : character);
   notify();
+  invalidateCharacterCatalog({ kind: "updated", id });
   return body;
 }

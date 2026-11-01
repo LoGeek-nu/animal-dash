@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { refreshGeneratedCharacters } from "../../domain/generated-characters.js";
 import { createInitialSession } from "../../domain/race-session.js";
 import { raceSessionActions } from "./race-session-actions.js";
 import { createRaceSessionChannel } from "./race-session-channel.js";
@@ -44,9 +43,6 @@ export function useRaceSession(role = "viewer") {
       onResultsSaved: () => { void dailyRankings.refresh(); }, onResultsFailed: () => { void dailyRankings.refresh(); },
     });
     channelRef.current = channel;
-
-    // Load generated characters first so a saved session that references them still validates.
-    void refreshGeneratedCharacters();
 
     return () => {
       channel.close();

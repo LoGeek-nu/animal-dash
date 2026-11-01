@@ -125,3 +125,7 @@
 .connection-badge.is-pending span { background: #f2b630; box-shadow: 0 0 0 3px #fcefc8; }
 .connection-badge.is-offline span { background: var(--red); box-shadow: 0 0 0 3px #fbd9dd; animation: none; }
 .admin-header .connection-badge.is-offline { color: white; background: var(--red); }
+
+.character-list { align-content: start; grid-auto-rows: max-content; }
+.character-page-end { grid-column: 1 / -1; min-height: 44px; padding: 12px; text-align: center; color: var(--ink-soft); font-size: .8rem; }
+.character-page-end button { padding: 6px 12px; text-decoration: underline; }

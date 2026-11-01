@@ -14,7 +14,7 @@ import { staffCookie } from "../worker/auth.js";
 
 // Actual workerd D1/R2 bindings, isolated from the app's local and remote data.
 async function fixture(t, runtimeRoom = false) {
-  const modulePaths = ["tests/fixtures/race-worker.mjs", "app/api/characters/generate/route.js", "app/api/characters/import/route.js", "worker/generation-quota.js", "worker/data-api.js", "worker/sync-access.js", "worker/auth.js", "worker/sync.js", "worker/race-session-room.js", "worker/data-store.js", "worker/race-record.js",
+  const modulePaths = ["tests/fixtures/race-worker.mjs", "worker/character-thumbnail.js", "app/domain/character-thumbnail.js", "app/api/characters/generate/route.js", "app/api/characters/import/route.js", "worker/generation-quota.js", "worker/data-api.js", "worker/sync-access.js", "worker/auth.js", "worker/sync.js", "worker/race-session-room.js", "worker/data-store.js", "worker/race-record.js",
     "app/api/characters/character-store.js", "app/domain/characters.js", "app/domain/generated-characters.js", "app/domain/generated-stats.js", "app/domain/character-text.js",
     "app/features/race-session/race-session-validator.js", "app/domain/race-session.js", "app/domain/race-results.js",
     "app/features/race-session/constants.js", "worker/race-authority.js", "app/domain/course.js",
@@ -30,7 +30,7 @@ async function fixture(t, runtimeRoom = false) {
   t.after(() => mf.dispose());
   const db = await mf.getD1Database("DB");
   const bucket = await mf.getR2Bucket("CHARACTERS");
-  for (const migration of ["0001_race_storage.sql", "0002_builtin_characters.sql", "0003_builtin_stats_40.sql"]) {
+  for (const migration of ["0001_race_storage.sql", "0002_builtin_characters.sql", "0003_builtin_stats_40.sql", "0004_character_paging.sql"]) {
     const sql = await readFile(new URL(`../migrations/${migration}`, import.meta.url), "utf8");
     await db.batch(sql.split(";").map((s) => s.trim()).filter(Boolean).map((s) => db.prepare(s)));
   }
@@ -68,8 +68,8 @@ test("D1 preserves character IDs, stats and image keys; imports old R2 metadata 
   await importCharacterPage(db, bucket);
   const response = await charactersResponse({ DB: db });
   const body = await response.json();
-  // D1 keeps removed built-ins so their past race results stay valid.
-  assert.equal(body.total, characters.length + retiredCharacterIds.length + 4);
+  // The catalog hides retired built-ins while D1 retains their race history.
+  assert.equal(body.total, characters.length + 4);
   assert.equal(body.characters.find((c) => c.id === "gen-old-a").name, "生成うさぎ");
   assert.equal(await (await bucket.get("characters/gen-old-a.png")).text(), "png");
 });
@@ -403,4 +403,59 @@ test("staff edit generated characters' names and catchphrases through the room, 
   assert.equal(refused.status, 409);
   assert.equal(refused.body.error, "character_in_use");
   assert.equal((await getStoredCharacter(db, "gen-edit")).caption, "ぴょんと跳ねる");
+});
+
+test("400-character catalog uses stable newest cursors, DB filters and bounded ID lookup", async (t) => {
+  const { db } = await fixture(t);
+  const { characterStatement, listCharacterPage } = await import("../worker/data-store.js");
+  const catalog = Array.from({ length: 400 }, (_, i) => ({ ...gen(`gen-page-${String(i).padStart(3, "0")}`), name: `動物${i}${i === 0 ? "%_" : ""}` }));
+  for (let i = 0; i < catalog.length; i += 50) await db.batch(catalog.slice(i, i + 50).map((c, j) => characterStatement(db, c, characterImageKey(c.id), 100 + Math.floor((i + j) / 3))));
+  let page = await listCharacterPage(db), seen = [], calls = 0;
+  assert.equal(page.characters.length, 12);
+  assert.equal(page.total, 408);
+  await saveCharacter(db, gen("gen-added-during-scroll"), null, 9999);
+  while (true) {
+    calls++;
+    seen.push(...page.characters.map((c) => c.id));
+    if (!page.nextCursor) break;
+    const params = new URLSearchParams({ cursor: page.nextCursor });
+    const { readCharacterPageOptions } = await import("../worker/data-store.js");
+    page = await listCharacterPage(db, readCharacterPageOptions(params));
+  }
+  assert.equal(calls, 34);
+  assert.equal(seen.length, 408);
+  assert.equal(new Set(seen).size, 408);
+  assert.deepEqual(seen.slice(0, 400), catalog.map((c) => c.id).reverse());
+  const read = (query) => charactersResponse({ DB: db }, new Request(`https://catalog/api/characters?${query}`));
+  const filtered = await (await read(new URLSearchParams({ query: "動物0%_" }))).json();
+  assert.deepEqual(filtered.characters.map((c) => c.id), [catalog[0].id]);
+  const typed = await (await read(new URLSearchParams({ query: "スピード" }))).json();
+  assert.ok(typed.total >= 400);
+  assert.ok(typed.characters.every((c) => c.preset === "スピード"));
+  const lookup = await (await read(new URLSearchParams({ ids: catalog[0].id }))).json();
+  assert.equal(lookup.characters[0].id, catalog[0].id);
+  const cursor = (await listCharacterPage(db)).nextCursor;
+  for (const query of ["limit=0", "limit=49", "limit=1.5", "cursor=", "cursor=broken", "ids=", `ids=${Array(13).fill("a").join(",")}`, "ids=a&query=x", new URLSearchParams({ query: "changed", cursor }).toString()]) {
+    assert.equal((await read(query)).status, 400, query);
+  }
+  const plan = await db.prepare("EXPLAIN QUERY PLAN SELECT id FROM characters WHERE (created_at, id) < (?, ?) ORDER BY created_at DESC, id DESC LIMIT 13").bind(200, "x").all();
+  assert.match(JSON.stringify(plan.results), /characters_newest/);
+});
+
+test("catalog migration fits legacy stats exactly like the current read model", async (t) => {
+  const { db } = await fixture(t);
+  const { readGeneratedStats } = await import("../app/domain/generated-stats.js");
+  // Re-run only the normalization portion against legacy rows, including clamp and tie cases.
+  const inputs = Array.from({ length: 160 }, (_, i) => ({ speed: (i * 7) % 31 + 1, acceleration: (i * 13) % 29 + 1, stamina: (i * 19) % 23 + 1 }));
+  for (let i = 0; i < inputs.length; i++) {
+    const c = { ...gen(`legacy-${i}`), stats: inputs[i], preset: "古いタイプ" };
+    await db.prepare("INSERT INTO characters (id,name,speed,acceleration,stamina,image_key,generated,data_json,created_at) VALUES (?, ?, ?, ?, ?, NULL, 1, ?, 1)")
+      .bind(c.id, c.name, c.stats.speed, c.stats.acceleration, c.stats.stamina, JSON.stringify(c)).run();
+  }
+  const sql = (await readFile(new URL("../migrations/0004_character_paging.sql", import.meta.url), "utf8")).split(";")[0];
+  await db.prepare(sql).run();
+  for (let i = 0; i < inputs.length; i++) {
+    const row = await db.prepare("SELECT speed, acceleration, stamina FROM characters WHERE id = ?").bind(`legacy-${i}`).first();
+    assert.deepEqual(row, readGeneratedStats(inputs[i]));
+  }
 });

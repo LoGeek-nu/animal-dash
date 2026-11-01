@@ -1,11 +1,11 @@
 import { getCharacter } from "../../../domain/characters.js";
 import { CharacterAvatar } from "./CharacterAvatar.jsx";
 
-export function CharacterSummary({ id, compact = true, showCaption = false }) {
+export function CharacterSummary({ id, compact = true, showCaption = false, lazy = false }) {
   const character = getCharacter(id);
   return (
     <>
-      <CharacterAvatar id={id} compact={compact} />
+      <CharacterAvatar id={id} compact={compact} lazy={lazy} />
       <div className="character-summary-copy">
         <strong>{character.name}</strong>
         <span>{character.preset}タイプ</span>

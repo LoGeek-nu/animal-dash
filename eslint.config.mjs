@@ -9,6 +9,9 @@ import globals from "globals";
 const eslintConfig = defineConfig([
   globalIgnores([
     ".next/**",
+    ".wrangler/**",
+    "work/**",
+    "outputs/**",
     "dist/**",
     "out/**",
     "build/**",

@@ -22,7 +22,7 @@ export function DraggableCharacter({ character, disabled, isUsed, selected, onSe
       {...attributes}
       {...listeners}
     >
-      <CharacterSummary id={character.id} compact showCaption />
+      <CharacterSummary id={character.id} compact showCaption lazy />
       {isUsed ? <b>使用中</b> : <i>{selected ? "選択中" : "つかむ"}</i>}
     </Button>
   );
