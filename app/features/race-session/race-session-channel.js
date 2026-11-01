@@ -1,4 +1,4 @@
-import { ensureGeneratedCharacters, refreshGeneratedCharacters } from "../../domain/generated-characters.js";
+import { ensureGeneratedCharacters, refreshGeneratedCharacters, getGeneratedCharacters } from "../../domain/generated-characters.js";
 import { isBuiltInCharacterId } from "../../domain/characters.js";
 import { validSession } from "./race-session-validator.js";
 
@@ -69,7 +69,7 @@ function createSyncSocket({ role, onSession, onCharactersChanged, onResultsSaved
         if (message.type === "control") onControl(message.canControl === true);
         if (message.type === "race" || message.type === "race-input") onRace(message);
         if (message.type === "sound" && typeof message.muted === "boolean") onSound(message.muted);
-        if (message.type === "characters-changed") onCharactersChanged();
+        if (message.type === "characters-changed") onCharactersChanged(message);
         if (message.type === "results-saved" && typeof message.raceId === "string") onResultsSaved(message.raceId);
         if (message.type === "results-failed" && typeof message.raceId === "string") onResultsFailed(message.raceId);
       } catch {
@@ -128,7 +128,12 @@ export function createRaceSessionChannel(onSession, { onSyncStatus = () => {}, o
       if (!closed && version === accepting) lookupRetry = window.setTimeout(() => { void accept(candidate); }, 1000);
     }
   };
-  const sync = createSyncSocket({ role, onSession: accept, onCharactersChanged: () => { void refreshGeneratedCharacters(referencedIds(latest)).catch(() => {}); }, onStatus: onSyncStatus,
+  const sync = createSyncSocket({ role, onSession: accept, onCharactersChanged: (change) => {
+    const cachedIds = getGeneratedCharacters().map((c) => c.id);
+    const id = typeof change.id === "string" && change.id.length > 0 && change.id.length <= 200 ? change.id : null;
+    const ids = id ? (cachedIds.includes(id) || referencedIds(latest).includes(id) ? [id] : []) : cachedIds;
+    void refreshGeneratedCharacters(ids, { id, kind: change.kind === "created" ? "created" : "updated" }).catch(() => {});
+  }, onStatus: onSyncStatus,
     onControl: (value) => { if (!closed) onControl(value); },
     onRace: (message) => { if (!closed) onRace(message); },
     onSound: (muted) => { if (!closed) onSound(muted); },

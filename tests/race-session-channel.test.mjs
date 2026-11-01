@@ -183,3 +183,30 @@ test("a failed targeted lookup retries without a WebSocket reconnect", async (t)
   assert.equal(sessions.length, 1);
   assert.equal(attempt, 2);
 });
+
+test("editing an unassigned cached character refreshes it before /game reuses it", async (t) => {
+  const { cacheGeneratedCharacters, getGeneratedCharacters } = await import("../app/domain/generated-characters.js");
+  const { createInitialSession } = await import("../app/domain/race-session.js");
+  const id = "gen-renamed-between-races";
+  cacheGeneratedCharacters([{ id, generated: true, name: "old", caption: "old caption" }]);
+  const calls = [];
+  t.mock.method(globalThis, "fetch", async (url) => {
+    calls.push(url);
+    return Response.json({ characters: [{ id, generated: true, name: "new", caption: "new caption" }] });
+  });
+  const seen = [];
+  const channel = createRaceSessionChannel(() => seen.push(getGeneratedCharacters().find(c => c.id === id)?.name));
+  t.after(() => channel.close());
+  const socket = FakeWebSocket.instances.at(-1);
+  const send = (lanes) => socket.emit("message", { data: JSON.stringify({ type: "session", session: { ...createInitialSession(), lanes } }) });
+  const tick = () => new Promise(r => setImmediate(r));
+  send([{ characterId: id, isBot: false }, null, null, null]); await tick();
+  send([null, null, null, null]); await tick();
+  socket.emit("message", { data: JSON.stringify({ type: "characters-changed", id, kind: "updated" }) });
+  // Reassignment can race the HTTP response: it must wait for the refresh.
+  send([{ characterId: id, isBot: false }, null, null, null]); await tick();
+  assert.equal(seen.at(-1), "new");
+  assert.equal(getGeneratedCharacters().find(c => c.id === id).caption, "new caption");
+  assert.equal(calls.length, 1);
+  assert.equal(new URL(calls[0], "https://test").searchParams.get("ids"), id);
+});

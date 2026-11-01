@@ -48,7 +48,9 @@ export class RaceSessionRoom {
   async fetch(request) {
     const url = new URL(request.url);
     if (url.pathname === "/characters-changed") {
-      this.broadcast({ type: "characters-changed" });
+      const change = await request.json().catch(() => ({}));
+      const id = typeof change.id === "string" && change.id.length > 0 && change.id.length <= 200 ? change.id : undefined;
+      this.broadcast({ type: "characters-changed", ...(id ? { id, kind: "created" } : {}) });
       return new Response(null, { status: 204 });
     }
     if (url.pathname === "/update-character" && request.method === "POST") {
@@ -248,7 +250,7 @@ export class RaceSessionRoom {
       return Response.json({ error: "storage_failed", detail: "保存できませんでした。もう一度試してください。", retryable: true }, { status: 500 });
     }
     if (!character) return notFound();
-    this.broadcast({ type: "characters-changed" });
+    this.broadcast({ type: "characters-changed", id, kind: "updated" });
     return Response.json(character);
   }
 

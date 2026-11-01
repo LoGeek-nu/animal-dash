@@ -120,6 +120,6 @@ export async function POST(request) {
   await prepareGeneratedCharacterThumbnail(env, character.id);
 
   // Other screens can still pick the character up on their next reload, so a failed notice is not an error.
-  await notifyCharactersChanged(env).catch(() => {});
+  await notifyCharactersChanged(env, character.id).catch(() => {});
   return Response.json(character);
 }

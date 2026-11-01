@@ -50,7 +50,14 @@ export function createCharacterCatalog({ fetcher = (...args) => fetch(...args), 
     getSnapshot: () => state,
     subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener); },
     start() {
-      unsubscribe = subscribeCharacterCatalog(() => { void request(true); });
+      unsubscribe = subscribeCharacterCatalog((change) => {
+        // Discard pre-edit page responses before they can poison the fresh cache.
+        revision++; active?.controller.abort(); active = null; refreshQueued = false;
+        // An older character may enter/leave a filtered result anywhere in its
+        // ordering. Restart that search instead of retaining an obsolete cursor.
+        if (change.kind === "updated" && state.query.trim()) publish({ characters: [], nextCursor: null, started: false });
+        void request(true);
+      });
       if (!state.started) void request();
       else if (state.loading) { publish({ loading: false }); void request(); }
     },

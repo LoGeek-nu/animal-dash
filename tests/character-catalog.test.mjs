@@ -77,3 +77,30 @@ test("head refresh with more than a page of new arrivals resumes without skippin
   assert.equal(catalog.getSnapshot().nextCursor, "after-new-head");
   assert.equal(catalog.getSnapshot().characters.length, 12);
 });
+
+test("remote rename removes old filtered matches, adds newly matching older rows and discards pre-edit pages", async (t) => {
+  const { refreshGeneratedCharacters } = await import("../app/domain/generated-characters.js");
+  const rows = Array.from({ length: 24 }, (_, i) => ({ ...character(`rename-${i}`), name: `match ${i}` }));
+  const outside = { ...character("outside-filter"), name: "other" };
+  rows.push(outside);
+  t.mock.method(globalThis, "fetch", async (url) => Response.json({ characters: rows.filter(c => new URL(url, "https://test").searchParams.get("ids").split(",").includes(c.id)) }));
+  const catalog = createCharacterCatalog({ fetcher: async (url) => {
+    const params = new URL(url, "https://test").searchParams;
+    const filtered = rows.filter(c => c.name.includes(params.get("query") ?? ""));
+    const start = Number(params.get("cursor") ?? 0);
+    return Response.json({ characters: filtered.slice(start, start + 12), total: filtered.length, nextCursor: start + 12 < filtered.length ? String(start + 12) : null });
+  } });
+  catalog.start(); t.after(() => catalog.dispose());
+  catalog.setQuery("match"); await tick(); await catalog.loadMore();
+  rows[23].name = "renamed out";
+  await refreshGeneratedCharacters([rows[23].id], { kind: "updated", id: rows[23].id });
+  await tick(); await catalog.loadMore();
+  assert.equal(catalog.getSnapshot().total, 23);
+  assert.equal(catalog.getSnapshot().characters.length, 23);
+  assert.ok(!catalog.getSnapshot().characters.some(c => c.id === rows[23].id));
+  outside.name = "match newly renamed";
+  await refreshGeneratedCharacters([outside.id], { kind: "updated", id: outside.id });
+  await tick(); await catalog.loadMore();
+  assert.equal(catalog.getSnapshot().characters.length, 24);
+  assert.ok(catalog.getSnapshot().characters.some(c => c.id === outside.id));
+});
