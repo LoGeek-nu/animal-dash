@@ -78,7 +78,7 @@ test("head refresh with more than a page of new arrivals resumes without skippin
   assert.equal(catalog.getSnapshot().characters.length, 12);
 });
 
-test("remote rename removes old filtered matches, adds newly matching older rows and discards pre-edit pages", async (t) => {
+test("remote rename removes old filtered matches and adds newly matching older rows", async (t) => {
   const { refreshGeneratedCharacters } = await import("../app/domain/generated-characters.js");
   const rows = Array.from({ length: 24 }, (_, i) => ({ ...character(`rename-${i}`), name: `match ${i}` }));
   const outside = { ...character("outside-filter"), name: "other" };
